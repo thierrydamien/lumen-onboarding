@@ -1,0 +1,15 @@
+cf82676 v15: harden internal pages and update README
+8cfdee1 v14: escape fmtDate output in the dashboard row (defense-in-depth)
+8663b75 v13: validate and cap the session POST payload
+458555d v12: show consultant handoff and notes on the dashboard
+c7e5519 v11: stop leaking consultant notes in the client link
+cd126ed v10: localize widget chrome for non-English chats
+701ca26 v09: sanitize client marker delimiters; use latest widget submission
+f9b21bb v08: editable reports/alerts + non-destructive array merge
+a55463b v07: preserve topic URLs/hashtags in the brief
+7dd0499 v06: add manual review/finish escape hatch
+0152532 v05: capture markets/languages/timezone in the expert flow
+2e60c0e v04: fix PACING/FORWARD MOTION contradiction that stalled clients
+2d74d7c v03: stop promising pause/resume and auto-save the live build lacks
+66605eb v02: stop promising a Google Sheets copy and email that do not exist
+69f663e v01: remove dead duplicate system prompt and unused API stub
