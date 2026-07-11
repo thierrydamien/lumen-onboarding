@@ -107,10 +107,10 @@ index ca56bb7..52f4a79 100644
    store error, check the package version against current Netlify docs.
 diff --git a/apps-script/onboarding-sheet-webapp.gs b/apps-script/onboarding-sheet-webapp.gs
 new file mode 100644
-index 0000000..5bf6504
+index 0000000..ba56305
 --- /dev/null
 +++ b/apps-script/onboarding-sheet-webapp.gs
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,100 @@
 +/**
 + * Lumen onboarding -> Google Sheet (Apps Script Web App).
 + *
@@ -124,7 +124,11 @@ index 0000000..5bf6504
 + *      XLSX -> Google Sheet conversion below).
 + *   3. Project Settings > Script Properties > add SHARED_SECRET = <a long random
 + *      string>. Put the SAME value in Netlify env APPS_SCRIPT_SECRET.
-+ *   4. Deploy > New deployment > type Web app. Execute as: Me. Who has access:
++ *   4. (Optional Slack alert on completion) add Script Property SLACK_BOT_TOKEN =
++ *      <your xoxb- token> and, if different from the default below, SLACK_CHANNEL.
++ *      The bot must be a member of that channel. Keep the token here in Script
++ *      Properties, never hardcoded.
++ *   5. Deploy > New deployment > type Web app. Execute as: Me. Who has access:
 + *      Anyone. Copy the /exec URL into Netlify env APPS_SCRIPT_WEBAPP_URL.
 + *
 + * SECURITY: "Anyone" means anyone with the URL can invoke it, so every request is
@@ -135,6 +139,8 @@ index 0000000..5bf6504
 +
 +// Destination folder (same one the survey script writes to).
 +const DEST_FOLDER_ID = "1BacQuILUAGSKcuUzEwY-iVCh37gt72rY";
++// Slack channel for the completion alert (override via Script Property SLACK_CHANNEL).
++const DEFAULT_SLACK_CHANNEL = "C097154H39N";
 +
 +function doPost(e) {
 +  try {
@@ -163,10 +169,43 @@ index 0000000..5bf6504
 +      try { DriveApp.getFileById(file.id).addEditor(body.clientEmail); } catch (err) { /* non-fatal */ }
 +    }
 +
-+    return json_({ url: "https://docs.google.com/spreadsheets/d/" + file.id + "/edit" });
++    const url = "https://docs.google.com/spreadsheets/d/" + file.id + "/edit";
++
++    // Slack alert: a client finished the assistant and a brief was created.
++    // Non-fatal — a Slack failure must not fail the Sheet response.
++    try { postCompletionSlack_(body, url); } catch (err) { /* non-fatal */ }
++
++    return json_({ url: url });
 +  } catch (err) {
 +    return json_({ error: String(err) });
 +  }
++}
++
++// Posts the onboarding-completed alert. No-op unless SLACK_BOT_TOKEN is set.
++function postCompletionSlack_(body, url) {
++  const props = PropertiesService.getScriptProperties();
++  const token = props.getProperty("SLACK_BOT_TOKEN");
++  if (!token) return;
++  const channel = props.getProperty("SLACK_CHANNEL") || DEFAULT_SLACK_CHANNEL;
++
++  const contact = [body.contactName, body.clientEmail].filter(Boolean).join(" · ");
++  const counts = (body.topicsCount != null || body.usersCount != null)
++    ? "Topics: " + (body.topicsCount != null ? body.topicsCount : "?") + " · Users: " + (body.usersCount != null ? body.usersCount : "?") + "\n"
++    : "";
++  const text =
++    ":white_check_mark: *Lumen onboarding completed* — a setup brief was created.\n" +
++    "Client: *" + (body.company || "(unnamed)") + "*\n" +
++    (contact ? "Contact: " + contact + "\n" : "") +
++    counts +
++    "<" + url + "|Open the setup brief>";
++
++  UrlFetchApp.fetch("https://slack.com/api/chat.postMessage", {
++    method: "post",
++    contentType: "application/json",
++    headers: { Authorization: "Bearer " + token },
++    payload: JSON.stringify({ channel: channel, text: text }),
++    muteHttpExceptions: true,
++  });
 +}
 +
 +function json_(obj) {
@@ -309,7 +348,7 @@ index 54e6cb7..2e29aa9 100644
      catch (err) { console.error("Failed to save session", err); return json(502, { error: "save_failed" }); }
 diff --git a/netlify/functions/sheet.js b/netlify/functions/sheet.js
 new file mode 100644
-index 0000000..50b9d4a
+index 0000000..efbac40
 --- /dev/null
 +++ b/netlify/functions/sheet.js
 @@ -0,0 +1,181 @@
@@ -421,7 +460,7 @@ index 0000000..50b9d4a
 +  try { body = JSON.parse(rawBody); }
 +  catch { return json(400, { error: "bad_json" }); }
 +
-+  const { xlsxBase64, filename, clientEmail, company } = body || {};
++  const { xlsxBase64, filename, clientEmail, company, contactName, topicsCount, usersCount } = body || {};
 +  if (!xlsxBase64 || typeof xlsxBase64 !== "string") return json(400, { error: "missing_xlsx" });
 +  const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
 +
@@ -434,7 +473,7 @@ index 0000000..50b9d4a
 +    try {
 +      const r = await fetch(appsUrl, {
 +        method: "POST", headers: { "Content-Type": "application/json" },
-+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", xlsxBase64, filename: name, clientEmail: clientEmail || "", company: company || "" }),
++        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", xlsxBase64, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount }),
 +      });
 +      const d = await r.json().catch(() => ({}));
 +      if (!r.ok || !d.url) {
@@ -644,7 +683,7 @@ index c01a95e..bd56c8a 100644
  
    function fillExample() {
 diff --git a/src/lumen.jsx b/src/lumen.jsx
-index a326b55..e828658 100644
+index a326b55..c751462 100644
 --- a/src/lumen.jsx
 +++ b/src/lumen.jsx
 @@ -6,19 +6,25 @@ import * as XLSX from "xlsx";
@@ -1335,7 +1374,7 @@ index a326b55..e828658 100644
 +      const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
 +      const sres = await fetch(SHEET_ENDPOINT, {
 +        method: "POST", headers: { "Content-Type": "application/json" },
-+        body: JSON.stringify({ xlsxBase64, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "" }),
++        body: JSON.stringify({ xlsxBase64, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
 +      });
 +      if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
 +    } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
