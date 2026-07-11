@@ -21,17 +21,8 @@ Three apps on one Netlify site, sharing one session store.
    - `DASHBOARD_TOKEN = <a long random string>` — required for the dashboard.
      Session reads and consultant-notes reads are locked until this is set, and
      the dashboard prompts for it in the browser.
-   - Google Sheet generation (optional; the brief still sends without it). Pick
-     ONE path:
-     - Path D (recommended), Apps Script Web App: deploy
-       `apps-script/onboarding-sheet-webapp.gs` (runs as your Google account, so
-       it writes into the Proserv folder with no service account or admin needed),
-       then set `APPS_SCRIPT_WEBAPP_URL` and `APPS_SCRIPT_SECRET`. This path COPIES
-       the master requirements template and fills in the brief, so the output
-       matches that template exactly (tabs, headings, formatting). The Google-API
-       paths below instead produce the generic multi-tab layout from `buildWorkbook`.
-     - Or a Google-API path below. These need `GOOGLE_DRIVE_FOLDER_ID` set to the
-       target folder, plus ONE of:
+   - Google Sheet generation (optional; the brief still sends without it). Set
+     `GOOGLE_DRIVE_FOLDER_ID` to the target folder, then ONE auth path:
      - Path A, OAuth as a real user (writes into that user's My Drive folder on
        their quota; no Workspace admin needed). Use this to target a folder owned
        by an account you control: `GOOGLE_OAUTH_CLIENT_ID`,

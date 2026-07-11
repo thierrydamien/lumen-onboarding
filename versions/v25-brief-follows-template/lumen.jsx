@@ -715,7 +715,7 @@ class ModalBoundary extends Component {
   }
 }
 
-function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr, sent, sheetLink }) {
+function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr }) {
   // Skipped widgets store the string "__skip__" — returning it caused .join/.map
   // crashes downstream (the "blank screen on Review & send" bug). Treat as null.
   const gw = type => { const es=Object.entries(wState||{}).filter(([k,v])=>k.endsWith(`-${type}`)&&v?.submitted).sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)); const d=es.length?es[es.length-1][1].data:null; return d==="__skip__"?null:d; };
@@ -887,7 +887,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:200,lineHeight:1.4}}>{sendErr}</div>}
           <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Cancel</button>
-          {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>}
+          <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>
           <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
         </div>
       </div>
@@ -921,7 +921,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
           {sent && sheetLink && <a href={sheetLink} target="_blank" rel="noopener noreferrer" style={{background:P,color:"white",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"inline-block"}}>Open your brief (Google Sheet)</a>}
-          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?"Review":"Review / download a copy"):"\ud83d\udce8 Review \u0026 send"}</button>
+          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?"Review / download a copy":"\ud83d\udce8 Review \u0026 send"}</button>
           {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
         </div>
       </div>
@@ -1519,7 +1519,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         </div>
       </div>}
 
-      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink}/></ModalBoundary>}
+      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr}/></ModalBoundary>}
 
       {showPanel && started && <div style={{position:"fixed",top:56,right:0,bottom:0,width:mob?"100%":320,background:C.card,borderLeft:`1px solid ${C.border}`,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":"-4px 0 16px rgba(0,0,0,0.08)"}}>
         <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>

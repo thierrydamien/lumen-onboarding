@@ -26,10 +26,7 @@ Three apps on one Netlify site, sharing one session store.
      - Path D (recommended), Apps Script Web App: deploy
        `apps-script/onboarding-sheet-webapp.gs` (runs as your Google account, so
        it writes into the Proserv folder with no service account or admin needed),
-       then set `APPS_SCRIPT_WEBAPP_URL` and `APPS_SCRIPT_SECRET`. This path COPIES
-       the master requirements template and fills in the brief, so the output
-       matches that template exactly (tabs, headings, formatting). The Google-API
-       paths below instead produce the generic multi-tab layout from `buildWorkbook`.
+       then set `APPS_SCRIPT_WEBAPP_URL` and `APPS_SCRIPT_SECRET`.
      - Or a Google-API path below. These need `GOOGLE_DRIVE_FOLDER_ID` set to the
        target folder, plus ONE of:
      - Path A, OAuth as a real user (writes into that user's My Drive folder on

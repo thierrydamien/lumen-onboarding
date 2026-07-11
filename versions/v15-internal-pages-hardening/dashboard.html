@@ -199,8 +199,6 @@
       html += '<div class="sec">Migrated queries</div><div class="list"><div style="white-space:pre-wrap;font-family:monospace;font-size:12px">' + esc(s.queries) + '</div></div>';
     }
 
-    if (s.sheetUrl) html += '<div class="sec">Editable Google Sheet</div><div class="list"><div><a href="' + esc(s.sheetUrl) + '" target="_blank" rel="noopener noreferrer">Open the client\'s brief in Google Sheets</a></div></div>';
-
     var h = s.handoff;
     if (h) {
       var hrows = [["Maturity", h.maturity], ["Goal in their words", h.goalInOwnWords], ["Hesitations", h.hesitations], ["AI-suggested, unconfirmed", h.aiSuggestedUnconfirmed], ["Follow-ups for the review call", h.followUps], ["Tips for the consultant", h.consultantTips]]

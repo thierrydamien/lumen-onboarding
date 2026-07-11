@@ -3,12 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="robots" content="noindex, nofollow"/>
 <link rel="icon" href="data:,"/>
 <title>Lumen Onboarding — Proserv Dashboard</title>
-<!-- INTERNAL PAGE: session reads require DASHBOARD_TOKEN, but the page itself is
-     ungated. Gate behind Netlify password protection or Identity before production.
-     noindex is a hint to crawlers, not access control. -->
 <style>
   :root { --teal:#012B3A; --cherry:#FF4C46; --mint:#DFFFDE; --border:#e2e8f0; --muted:#5b6b76; }
   * { box-sizing:border-box; }
@@ -198,8 +194,6 @@
     if (s.queries && s.queries !== "__skip__") {
       html += '<div class="sec">Migrated queries</div><div class="list"><div style="white-space:pre-wrap;font-family:monospace;font-size:12px">' + esc(s.queries) + '</div></div>';
     }
-
-    if (s.sheetUrl) html += '<div class="sec">Editable Google Sheet</div><div class="list"><div><a href="' + esc(s.sheetUrl) + '" target="_blank" rel="noopener noreferrer">Open the client\'s brief in Google Sheets</a></div></div>';
 
     var h = s.handoff;
     if (h) {

@@ -21,29 +21,12 @@ Three apps on one Netlify site, sharing one session store.
    - `DASHBOARD_TOKEN = <a long random string>` — required for the dashboard.
      Session reads and consultant-notes reads are locked until this is set, and
      the dashboard prompts for it in the browser.
-   - Google Sheet generation (optional; the brief still sends without it). Pick
-     ONE path:
-     - Path D (recommended), Apps Script Web App: deploy
-       `apps-script/onboarding-sheet-webapp.gs` (runs as your Google account, so
-       it writes into the Proserv folder with no service account or admin needed),
-       then set `APPS_SCRIPT_WEBAPP_URL` and `APPS_SCRIPT_SECRET`. This path COPIES
-       the master requirements template and fills in the brief, so the output
-       matches that template exactly (tabs, headings, formatting). The Google-API
-       paths below instead produce the generic multi-tab layout from `buildWorkbook`.
-     - Or a Google-API path below. These need `GOOGLE_DRIVE_FOLDER_ID` set to the
-       target folder, plus ONE of:
-     - Path A, OAuth as a real user (writes into that user's My Drive folder on
-       their quota; no Workspace admin needed). Use this to target a folder owned
-       by an account you control: `GOOGLE_OAUTH_CLIENT_ID`,
-       `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN`.
-     - Path B, service account + domain-wide delegation (impersonate a real user;
-       a Workspace admin must authorize the SA for the Drive scope):
-       `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`,
-       `GOOGLE_IMPERSONATE_SUBJECT` (the user to act as).
-     - Path C, service account into a Shared Drive (add the SA as Content Manager;
-       no impersonation): `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
-       `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`. A bare SA has no Drive quota, so
-       without a Shared Drive (or Path B impersonation) the upload fails on quota.
+   - Google Sheet generation (optional; the brief still sends without it):
+     - `GOOGLE_SERVICE_ACCOUNT_EMAIL` — a Google Cloud service account address.
+     - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` — its private key (PEM; escaped `\n` ok).
+     - `GOOGLE_DRIVE_FOLDER_ID` — target folder, ideally a Shared Drive the
+       service account belongs to (a bare service account has no Drive quota, so
+       uploads generally must land in a Shared Drive).
 3. Deploy. Build command `npm run build`, publish dir `dist`, functions
    dir `netlify/functions` are already set in `netlify.toml`.
 

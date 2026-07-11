@@ -6,25 +6,19 @@ import * as XLSX from "xlsx";
 // are same-origin relative paths (no CORS).
 const CHAT_ENDPOINT = "/.netlify/functions/chat";
 const SESSION_ENDPOINT = "/.netlify/functions/session";
-const SEED_ENDPOINT = "/.netlify/functions/seed";
-const SHEET_ENDPOINT = "/.netlify/functions/sheet";
 // Demo-only controls (preview / simulate / rewind) are hidden on the live site.
 const DEV = false;
 
-// The Sales page stores the profile server-side and puts only an opaque id in
-// the client link (?s=<id>). Fetch the CLIENT-SAFE fields (no consultant notes;
-// notes are returned only to the token-authenticated dashboard). Returns
-// { seed, seedId } or { seed:null, seedId:null }.
-async function fetchSeedFromURL() {
+// Decode the client profile the Sales page encoded into ?c=<url-safe base64>.
+function decodeSeedFromURL() {
   try {
-    const id = new URLSearchParams(location.search).get("s");
-    if (!id) return { seed: null, seedId: null };
-    const res = await fetch(`${SEED_ENDPOINT}?id=${encodeURIComponent(id)}`);
-    if (!res.ok) return { seed: null, seedId: null };
-    const data = await res.json();
-    const seed = data && data.seed && data.seed.company ? data.seed : null;
-    return { seed, seedId: seed ? id : null };
-  } catch { return { seed: null, seedId: null }; }
+    const p = new URLSearchParams(location.search).get("c");
+    if (!p) return null;
+    let b64 = p.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    const seed = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    return seed && seed.company ? seed : null;
+  } catch { return null; }
 }
 
 const MIN_MS = 1500;
@@ -36,6 +30,7 @@ const LINK = "#6D28D9"; // interactive purple
 const SECTION_KEYS   = ["company","path","topics","channels","reports","users"];
 const SECTION_LABELS = { company:"About you", path:"Approach", topics:"What to track", channels:"Where to look", reports:"Reports", users:"Your team" };
 const WIDGET_MAX     = { OBJECTIVES:3, TIMEZONE:1 };
+const WIDGET_HINTS   = { MARKETS:"Select all that apply.", LANGUAGES:"Select all that apply.", OBJECTIVES:"Pick up to 3, then set their priority — your #1 decides what we build first.", TEAMS:"Select all teams that will use Lumen.", TIMEZONE:"Select your primary timezone." };
 const MARKETS_OPT    = ["United States","United Kingdom","France","Germany","Spain","Italy","Netherlands","Canada","Australia","Brazil","Japan","South Korea","India","Middle East","APAC","LATAM","Global"];
 const LANG_OPT       = ["English","French","German","Spanish","Italian","Dutch","Portuguese","Japanese","Korean","Mandarin","Arabic","Hindi"];
 const OBJ_OPT        = ["Competitive Intelligence","Campaign Optimization","Content Ideation & Recommendation","Reputation Management","Social Measurement","Brand Health Measurement","Issue Tracking","PR Measurement","Influencer Management","Consumer Insights","Trend Research"];
@@ -139,7 +134,7 @@ const I18N = {
     welcomeSub:         "We\u2019ll ask about your goals, markets, and team \u2014 then generate your Lumen setup brief.",
     welcomeSubSeeded:   "Your Lumen team prepared this session for {company}. We\u2019ll talk through your goals, markets, and team \u2014 and build your setup brief as we go.",
     step1Title: "About 15 minutes",
-    step1Desc:  "About 15 minutes. Pause anytime — reopen this link on the same device and you'll pick up where you left off.",
+    step1Desc:  "Plan for about 15 minutes and complete it in one sitting.",
     step2Title: "A conversation, not a form",
     step2Desc:  "We'll cover your goals, what to track, where your audience talks, reports, and your team.",
     step3Title: "Then we take over",
@@ -156,7 +151,7 @@ const I18N = {
     welcomeSub:         "Nous vous poserons des questions sur vos objectifs, vos marchés et votre équipe, puis nous générerons votre brief de configuration Lumen.",
     welcomeSubSeeded:   "Votre équipe Lumen a préparé cette session pour {company}. Nous aborderons vos objectifs, vos marchés et votre équipe, et construirons votre brief au fur et à mesure.",
     step1Title: "Environ 15 minutes",
-    step1Desc:  "Environ 15 minutes. Faites une pause quand vous voulez : rouvrez ce lien sur le même appareil et vous reprendrez là où vous vous étiez arrêté.",
+    step1Desc:  "Prévoyez environ 15 minutes et terminez en une seule fois.",
     step2Title: "Une conversation, pas un formulaire",
     step2Desc:  "Nous aborderons vos objectifs, ce qu'il faut suivre, où votre audience s'exprime, les rapports et votre équipe.",
     step3Title: "Ensuite, nous prenons le relais",
@@ -173,7 +168,7 @@ const I18N = {
     welcomeSub:         "Wir fragen nach Ihren Zielen, Märkten und Ihrem Team und erstellen anschließend Ihr Lumen-Setup-Briefing.",
     welcomeSubSeeded:   "Ihr Lumen-Team hat diese Sitzung für {company} vorbereitet. Wir besprechen Ihre Ziele, Märkte und Ihr Team und erstellen Ihr Setup-Briefing Schritt für Schritt.",
     step1Title: "Etwa 15 Minuten",
-    step1Desc:  "Etwa 15 Minuten. Jederzeit pausieren: Öffnen Sie diesen Link auf demselben Gerät erneut und Sie machen dort weiter, wo Sie aufgehört haben.",
+    step1Desc:  "Planen Sie etwa 15 Minuten ein und schließen Sie das Onboarding in einem Durchgang ab.",
     step2Title: "Ein Gespräch, kein Formular",
     step2Desc:  "Wir behandeln Ihre Ziele, was Sie beobachten möchten, wo Ihr Publikum spricht, Berichte und Ihr Team.",
     step3Title: "Dann übernehmen wir",
@@ -190,7 +185,7 @@ const I18N = {
     welcomeSub:         "Le preguntaremos por sus objetivos, mercados y equipo, y luego generaremos su resumen de configuración de Lumen.",
     welcomeSubSeeded:   "Su equipo de Lumen preparó esta sesión para {company}. Hablaremos de sus objetivos, mercados y equipo, y crearemos su resumen de configuración sobre la marcha.",
     step1Title: "Unos 15 minutos",
-    step1Desc:  "Unos 15 minutos. Haga una pausa cuando quiera: vuelva a abrir este enlace en el mismo dispositivo y continuará donde lo dejó.",
+    step1Desc:  "Reserve unos 15 minutos y complételo de una sola vez.",
     step2Title: "Una conversación, no un formulario",
     step2Desc:  "Cubriremos sus objetivos, qué monitorizar, dónde habla su audiencia, los informes y su equipo.",
     step3Title: "Después nos encargamos nosotros",
@@ -207,7 +202,7 @@ const I18N = {
     welcomeSub:         "Ti chiederemo i tuoi obiettivi, i mercati e il team, poi genereremo il tuo brief di configurazione Lumen.",
     welcomeSubSeeded:   "Il tuo team Lumen ha preparato questa sessione per {company}. Parleremo dei tuoi obiettivi, dei mercati e del team, e costruiremo il tuo brief di configurazione strada facendo.",
     step1Title: "Circa 15 minuti",
-    step1Desc:  "Circa 15 minuti. Metti in pausa quando vuoi: riapri questo link sullo stesso dispositivo e riprenderai da dove avevi lasciato.",
+    step1Desc:  "Prevedi circa 15 minuti e completa il tutto in un'unica sessione.",
     step2Title: "Una conversazione, non un modulo",
     step2Desc:  "Copriremo i tuoi obiettivi, cosa monitorare, dove parla il tuo pubblico, i report e il tuo team.",
     step3Title: "Poi ci pensiamo noi",
@@ -224,7 +219,7 @@ const I18N = {
     welcomeSub:         "سنسألك عن أهدافك وأسواقك وفريقك، ثم ننشئ ملخص إعداد Lumen الخاص بك.",
     welcomeSubSeeded:   "أعدّ فريق Lumen هذه الجلسة لـ {company}. سنتحدث عن أهدافك وأسواقك وفريقك، وننشئ ملخص الإعداد الخاص بك خطوة بخطوة.",
     step1Title: "حوالي 15 دقيقة",
-    step1Desc:  "حوالي 15 دقيقة. توقف مؤقتًا متى شئت: أعد فتح هذا الرابط على الجهاز نفسه وستتابع من حيث توقفت.",
+    step1Desc:  "خصّص حوالي 15 دقيقة وأكمل العملية في جلسة واحدة.",
     step2Title: "محادثة، وليست نموذجًا",
     step2Desc:  "سنغطي أهدافك، وما الذي تريد متابعته، وأين يتحدث جمهورك، والتقارير، وفريقك.",
     step3Title: "ثم نتولى نحن الأمر",
@@ -244,77 +239,38 @@ function L(key, lang, vars) {
   return s;
 }
 
-// Widget-chrome localization. Option VALUES (markets, objectives, teams,
-// timezones) stay in English on purpose — they are Lumen's product taxonomy and
-// are stored in English in the brief. Only the chrome (buttons, hints,
-// placeholders, tooltips) follows the client's language, so a non-English chat
-// no longer renders an all-English form.
-const WI18N = {
-  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your objectives? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"📎 Or import a file (.txt, .csv, .xlsx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you." },
-  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos objectifs ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"📎 Ou importer un fichier (.txt, .csv, .xlsx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous." },
-  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Zielen? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"📎 Oder eine Datei importieren (.txt, .csv, .xlsx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht." },
-  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus objetivos? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"📎 O importe un archivo (.txt, .csv, .xlsx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted." },
-  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sui tuoi obiettivi? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"📎 Oppure importa un file (.txt, .csv, .xlsx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te." },
-  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أهدافك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"📎 أو استورد ملفًا (.txt، .csv، .xlsx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك." },
-};
-function WL(key, lang) {
-  const dict = WI18N[lang] || WI18N.English;
-  return (dict[key] != null ? dict[key] : WI18N.English[key]) || "";
-}
-
-// QUERIES-widget file-import feedback (shown in the expert flow). Parametrized:
-// {name} filename, {n} line cap, {mb} size. QN() substitutes and falls back to English.
-const QN18N = {
-  English: { "importedTruncated":"Imported the first {n} lines of {name}. Hit Submit and I'll pick out what's relevant — with a file this size, double-check the queries you care about most made it in.", "imported":"Imported {name}. Hit Submit and I'll pick out what's relevant — no need to tidy it up.", "noText":"Couldn't find any text in {name}.", "tooLarge":"That file is {mb} MB — too large to read here. Export just the queries (or paste them directly) and try again.", "unsupported":"That file type isn't supported — use .txt, .csv or .xlsx, or paste the queries directly.", "readError":"Couldn't read that file — try pasting the queries directly instead." },
-  French: { "importedTruncated":"Les {n} premières lignes de {name} ont été importées. Cliquez sur Envoyer et je repérerai ce qui est pertinent — avec un fichier de cette taille, vérifiez que les requêtes les plus importantes y figurent.", "imported":"{name} importé. Cliquez sur Envoyer et je repérerai ce qui est pertinent — inutile de faire le tri.", "noText":"Aucun texte trouvé dans {name}.", "tooLarge":"Ce fichier fait {mb} Mo — trop volumineux pour être lu ici. Exportez uniquement les requêtes (ou collez-les directement) et réessayez.", "unsupported":"Ce type de fichier n'est pas pris en charge — utilisez .txt, .csv ou .xlsx, ou collez les requêtes directement.", "readError":"Impossible de lire ce fichier — essayez plutôt de coller les requêtes directement." },
-  German: { "importedTruncated":"Die ersten {n} Zeilen von {name} wurden importiert. Klicken Sie auf Senden und ich filtere das Relevante heraus — prüfen Sie bei einer Datei dieser Größe, ob die wichtigsten Abfragen enthalten sind.", "imported":"{name} importiert. Klicken Sie auf Senden und ich filtere das Relevante heraus — Aufräumen ist nicht nötig.", "noText":"In {name} wurde kein Text gefunden.", "tooLarge":"Diese Datei ist {mb} MB groß — zu groß, um sie hier zu lesen. Exportieren Sie nur die Abfragen (oder fügen Sie sie direkt ein) und versuchen Sie es erneut.", "unsupported":"Dieser Dateityp wird nicht unterstützt — verwenden Sie .txt, .csv oder .xlsx, oder fügen Sie die Abfragen direkt ein.", "readError":"Diese Datei konnte nicht gelesen werden — fügen Sie die Abfragen stattdessen direkt ein." },
-  Spanish: { "importedTruncated":"Se importaron las primeras {n} líneas de {name}. Pulse Enviar y seleccionaré lo relevante — con un archivo de este tamaño, compruebe que se incluyeron las consultas que más le importan.", "imported":"{name} importado. Pulse Enviar y seleccionaré lo relevante — no hace falta ordenarlo.", "noText":"No se encontró texto en {name}.", "tooLarge":"Este archivo ocupa {mb} MB — demasiado grande para leerlo aquí. Exporte solo las consultas (o péguelas directamente) e inténtelo de nuevo.", "unsupported":"Ese tipo de archivo no es compatible — use .txt, .csv o .xlsx, o pegue las consultas directamente.", "readError":"No se pudo leer ese archivo — pruebe a pegar las consultas directamente." },
-  Italian: { "importedTruncated":"Importate le prime {n} righe di {name}. Premi Invia e selezionerò ciò che è pertinente — con un file di queste dimensioni, verifica che le query più importanti siano incluse.", "imported":"{name} importato. Premi Invia e selezionerò ciò che è pertinente — non serve riordinare.", "noText":"Nessun testo trovato in {name}.", "tooLarge":"Questo file è di {mb} MB — troppo grande da leggere qui. Esporta solo le query (o incollale direttamente) e riprova.", "unsupported":"Questo tipo di file non è supportato — usa .txt, .csv o .xlsx, oppure incolla le query direttamente.", "readError":"Impossibile leggere il file — prova a incollare le query direttamente." },
-  Arabic: { "importedTruncated":"تم استيراد أول {n} سطرًا من {name}. اضغط إرسال وسأختار ما هو مهم — مع ملف بهذا الحجم، تأكّد من أن أهم الاستعلامات قد أُدرجت.", "imported":"تم استيراد {name}. اضغط إرسال وسأختار ما هو مهم — لا حاجة للترتيب.", "noText":"لم يُعثر على نص في {name}.", "tooLarge":"حجم هذا الملف {mb} ميغابايت — أكبر من أن يُقرأ هنا. صدّر الاستعلامات فقط (أو الصقها مباشرة) وحاول مرة أخرى.", "unsupported":"نوع الملف غير مدعوم — استخدم ‎.txt أو ‎.csv أو ‎.xlsx، أو الصق الاستعلامات مباشرة.", "readError":"تعذّرت قراءة الملف — جرّب لصق الاستعلامات مباشرة بدلاً من ذلك." },
-};
-function QN(key, lang, vars) {
-  const dict = QN18N[lang] || QN18N.English;
-  let s = (dict[key] != null ? dict[key] : QN18N.English[key]) || "";
-  if (vars) for (const k in vars) s = s.split("{"+k+"}").join(vars[k]);
-  return s;
-}
-
 
 const gts   = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// In-progress autosave to localStorage for same-device pause/resume. Keyed by the
-// seed id when present, else a single default slot. Best-effort: any failure
-// (private mode, quota, storage disabled) degrades to no-resume without throwing.
-const LS_PREFIX = "lumen_onb_v1_";
-const lsKey = seedId => LS_PREFIX + (seedId || "default");
-function lsLoadDraft(seedId) {
-  try {
-    const raw = localStorage.getItem(lsKey(seedId));
-    if (!raw) return null;
-    const o = JSON.parse(raw);
-    return (o && Array.isArray(o.messages) && o.messages.length && o.progress && (o.progress.percent || 0) < 100) ? o : null;
-  } catch { return null; }
-}
-function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), JSON.stringify(snap)); } catch {} }
-function lsClearDraft(seedId) { try { localStorage.removeItem(lsKey(seedId)); } catch {} }
-
 // Pure fold of one parsed reply's markers onto a cdata object. Used live and to
 // rebuild cdata from surviving messages after a rewind.
-// Arrays REPLACE wholesale: the system prompt re-emits the FULL array each time,
-// so a new non-empty array is the complete current set. (An earlier attempt to
-// union by name silently collapsed distinct entries that share a key — e.g. one
-// brand's Instagram/X/TikTok channels all keyed on author "Nike" — so it was
-// reverted. The rare partial re-emit is recoverable in the editable review modal.)
+// Union two marker arrays by name (author for channels), so a later PARTIAL
+// re-emit updates matching entries and appends new ones instead of replacing the
+// whole set (which silently dropped everything the partial re-emit omitted).
+function mergeByName(base, next) {
+  if (!Array.isArray(next)) return base;
+  if (!Array.isArray(base) || !base.length) return next;
+  const key = x => String((x && (x.name || x.author)) || "").trim().toLowerCase();
+  const out = base.map(b => ({...b}));
+  const idx = {};
+  out.forEach((b,i) => { const k = key(b); if (k) idx[k] = i; });
+  next.forEach(n => {
+    const k = key(n);
+    if (k && idx[k] !== undefined) out[idx[k]] = {...out[idx[k]], ...n};
+    else out.push(n);
+  });
+  return out;
+}
 function mergeCdata(base, pr) {
   const { companyData,topicsData,channelsData,reportsData,alertsData,handoffData } = pr;
   if (!(companyData||topicsData||channelsData||reportsData||alertsData||handoffData)) return base;
   return {...base,
     company: companyData?{...base.company,...companyData}:base.company,
     topics: topicsData||base.topics,
-    channels: channelsData||base.channels,
-    reports: reportsData||base.reports,
-    alerts: alertsData||base.alerts,
+    channels: channelsData?mergeByName(base.channels, channelsData):base.channels,
+    reports: reportsData?mergeByName(base.reports, reportsData):base.reports,
+    alerts: alertsData?mergeByName(base.alerts, alertsData):base.alerts,
     handoff: handoffData||base.handoff};
 }
 const emptyCdata = () => ({company:{},topics:[],channels:[],reports:[],alerts:[]});
@@ -461,28 +417,28 @@ function Stepper({ progress, dark, compact }) {
   })}</div>;
 }
 
-function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, hint, initialData=[], lang }) {
+function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, hint, initialData=[] }) {
   const [sel,setSel] = useState(initialData);
   const [custom,setCustom] = useState("");
   const atLim = sel.length >= max;
   const toggle = o => { if (sel.includes(o)) setSel(s=>s.filter(x=>x!==o)); else if (!atLim) setSel(s=>[...s,o]); };
   const addC = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
+    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>max {max}</span>}</div>}
     <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} style={{padding:"5px 12px",borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{o}</button>)}</div>
     <div style={{display:"flex",gap:6,marginBottom:10}}>
-      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||WL("customValue",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
-      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
+      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||"Type a custom value…"} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
+      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>+ Add</button>
     </div>
-    {max<99 && <div style={{fontSize:11,color:atLim?"#dc2626":"#94a3b8",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>}
+    {max<99 && <div style={{fontSize:11,color:atLim?"#dc2626":"#94a3b8",marginBottom:10}}>{sel.length}/{max} selected{atLim?" — limit reached":""}</div>}
     <div style={{display:"flex",gap:8}}>
-      <button onClick={()=>sel.length>0&&onSubmit(sel)} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirm",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>sel.length>0&&onSubmit(sel)} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>Confirm</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Skip</button>}
     </div>
   </div>;
 }
 
-function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData, lang }) {
+function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData }) {
   const init = normObjectives(initialData);
   const [sel,setSel]       = useState(init.ranked);
   const [details,setDetails]= useState(init.details);
@@ -492,14 +448,14 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData, l
   const move   = (i,dir) => setSel(s => { const n=[...s], j=i+dir; if (j<0||j>=n.length) return s; [n[i],n[j]]=[n[j],n[i]]; return n; });
   const addC   = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span></div>}
+    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>max {max}</span></div>}
     <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} style={{padding:"5px 12px",borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{o}</button>)}</div>
     <div style={{display:"flex",gap:6,marginBottom:10}}>
-      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={WL("somethingElse",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
-      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
+      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder="Something else? Type it here…" style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
+      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>+ Add</button>
     </div>
     {sel.length>0 && <div style={{background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#64748b",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>{WL("prioritiesHdr",lang)}</div>
+      <div style={{fontSize:11,fontWeight:700,color:"#64748b",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>Your priorities — #1 is where we start</div>
       {sel.map((o,i) => <div key={o} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderTop:i>0?"1px solid #eef1f5":"none"}}>
         <span style={{width:22,height:22,borderRadius:"50%",background:i===0?A:P,color:"white",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
         <span style={{flex:1,fontSize:13,color:"#1e293b",fontWeight:i===0?600:400}}>{o}</span>
@@ -508,42 +464,42 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData, l
         <button onClick={()=>toggle(o)} aria-label={`Remove ${o}`} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12}}>✕</button>
       </div>)}
     </div>}
-    <textarea value={details} onChange={e=>setDetails(e.target.value)} rows={2} placeholder={WL("objDetailsPh",lang)} style={{width:"100%",background:"white",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
-    <div style={{fontSize:11,color:atLim?"#dc2626":"#94a3b8",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>
+    <textarea value={details} onChange={e=>setDetails(e.target.value)} rows={2} placeholder="Anything else about your objectives? (optional)" style={{width:"100%",background:"white",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
+    <div style={{fontSize:11,color:atLim?"#dc2626":"#94a3b8",marginBottom:10}}>{sel.length}/{max} selected{atLim?" — limit reached":""}</div>
     <div style={{display:"flex",gap:8}}>
-      <button onClick={()=>sel.length>0&&onSubmit({ranked:sel,details:details.trim()})} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirmPriorities",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>sel.length>0&&onSubmit({ranked:sel,details:details.trim()})} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>Confirm priorities</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Skip</button>}
     </div>
   </div>;
 }
 
-function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
+function UserForm({ onSubmit, onSkip, initialData=[] }) {
   const empty = () => ({ firstName:"", lastName:"", email:"", role:"", access:"Full Tool" });
   const [users,setUsers] = useState(initialData.length>0?initialData:[empty()]);
   const [errors,setErrors] = useState({});
   const upd = (i,k,v) => setUsers(u=>u.map((x,j)=>j===i?{...x,[k]:v}:x));
-  const vEmail = (i,v) => setErrors(e=>({...e,[`${i}-email`]:v&&!EMAIL_RE.test(v)?WL("invalidEmail",lang):""}));
+  const vEmail = (i,v) => setErrors(e=>({...e,[`${i}-email`]:v&&!EMAIL_RE.test(v)?"Invalid email":""}));
   const valid = users.every(u=>u.firstName&&u.email&&EMAIL_RE.test(u.email));
   return <div style={{marginTop:8}}>
     {users.map((u,i) => <div key={i} style={{background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8,marginBottom:8}}>
-        {[["firstName",WL("firstName",lang)],["lastName",WL("lastName",lang)],["role",WL("roleDept",lang)]].map(([k,ph]) => <input key={k} value={u[k]} onChange={e=>upd(i,k,e.target.value)} placeholder={ph} style={{background:"white",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>)}
+        {[["firstName","First name"],["lastName","Last name"],["role","Role / dept"]].map(([k,ph]) => <input key={k} value={u[k]} onChange={e=>upd(i,k,e.target.value)} placeholder={ph} style={{background:"white",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>)}
         <div>
-          <input value={u.email} onChange={e=>upd(i,"email",e.target.value)} onBlur={e=>vEmail(i,e.target.value)} placeholder={WL("email",lang)} style={{background:"white",border:`1px solid ${errors[`${i}-email`]?"#ef4444":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",width:"100%"}}/>
+          <input value={u.email} onChange={e=>upd(i,"email",e.target.value)} onBlur={e=>vEmail(i,e.target.value)} placeholder="Email" style={{background:"white",border:`1px solid ${errors[`${i}-email`]?"#ef4444":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",width:"100%"}}/>
           {errors[`${i}-email`] && <div style={{fontSize:10,color:"#ef4444",marginTop:3}}>{errors[`${i}-email`]}</div>}
         </div>
       </div>
       <div style={{display:"flex",gap:6}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#64748b"}}>{a}</button>)}</div>
     </div>)}
     <div style={{display:"flex",gap:8,marginTop:4}}>
-      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 14px",color:"#64748b",cursor:"pointer",fontSize:12}}>{WL("addUser",lang)}</button>
-      <button onClick={()=>valid&&onSubmit(users)} disabled={!valid} style={{background:valid?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 20px",fontSize:13,fontWeight:600,cursor:valid?"pointer":"default"}}>{WL("confirmUsers",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 14px",color:"#64748b",cursor:"pointer",fontSize:12}}>+ Add user</button>
+      <button onClick={()=>valid&&onSubmit(users)} disabled={!valid} style={{background:valid?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 20px",fontSize:13,fontWeight:600,cursor:valid?"pointer":"default"}}>Confirm users</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Skip</button>}
     </div>
   </div>;
 }
 
-function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
+function TopicCards({ suggestions, onConfirm, onSkip }) {
   const [cards,setCards] = useState(suggestions.map(s=>({...s,status:"pending",id:Math.random().toString(36).substr(2,9)})));
   const [dragIdx,setDragIdx] = useState(null);
   const upd  = (i,f,v) => setCards(c=>c.map((x,j)=>j===i?{...x,[f]:v}:x));
@@ -551,8 +507,8 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
   const kept = cards.filter(c=>c.status==="kept");
   return <div style={{marginTop:8}}>
     <div style={{fontSize:11,color:"#64748b",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
-      <span>{kept.length} {WL("kept",lang)} · {cards.filter(c=>c.status==="discarded").length} {WL("discarded",lang)} · {cards.filter(c=>c.status==="pending").length} {WL("pending",lang)}</span>
-      <span>☰ {WL("dragPrioritize",lang)}</span>
+      <span>{kept.length} kept · {cards.filter(c=>c.status==="discarded").length} discarded · {cards.filter(c=>c.status==="pending").length} pending</span>
+      <span>Drag ☰ to prioritize</span>
     </div>
     {cards.map((c,i) => <div key={c.id} draggable
       onDragStart={e=>{setDragIdx(i);e.dataTransfer.effectAllowed="move";}}
@@ -561,8 +517,8 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
       style={{background:c.status==="kept"?"#f0fdf4":c.status==="discarded"?"#fef2f2":"#f8f9fa",border:`1px solid ${c.status==="kept"?"#bbf7d0":c.status==="discarded"?"#fecaca":"#e2e8f0"}`,borderRadius:10,padding:"12px 14px",marginBottom:8,opacity:c.status==="discarded"?0.5:1,display:"flex",alignItems:"center",gap:8}}>
       <div style={{cursor:"grab",padding:"0 8px",color:"#64748b",userSelect:"none"}}>☰</div>
       <div style={{flex:1}}>
-        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder={WL("topicName",lang)} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
-        <input value={c.keywords} onChange={e=>upd(i,"keywords",e.target.value)} placeholder={WL("keywordsPh",lang)} disabled={c.status==="discarded"} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
+        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder="Topic name" style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
+        <input value={c.keywords} onChange={e=>upd(i,"keywords",e.target.value)} placeholder="Keywords…" disabled={c.status==="discarded"} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
         <div style={{fontSize:11,color:"#64748b",fontStyle:"italic"}}>{c.rationale}</div>
       </div>
       <div style={{display:"flex",gap:6,flexShrink:0}}>
@@ -571,8 +527,8 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
       </div>
     </div>)}
     <div style={{display:"flex",gap:8,marginTop:4}}>
-      <button onClick={()=>kept.length>0&&onConfirm(kept)} disabled={kept.length===0} style={{background:kept.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:kept.length>0?"pointer":"default"}}>{WL("confirm",lang)} ({kept.length})</button>
-      <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>
+      <button onClick={()=>kept.length>0&&onConfirm(kept)} disabled={kept.length===0} style={{background:kept.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:kept.length>0?"pointer":"default"}}>Confirm {kept.length} topic{kept.length!==1?"s":""}</button>
+      <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Skip</button>
     </div>
   </div>;
 }
@@ -592,17 +548,17 @@ function capQueryText(t) {
   if (out.length > Q_MAX_CHARS) { out = out.slice(0, Q_MAX_CHARS); out = out.slice(0, out.lastIndexOf("\n") > 0 ? out.lastIndexOf("\n") : out.length); truncated = true; }
   return { text: out, truncated };
 }
-function QueriesWidget({ onSubmit, initialData, lang }) {
+function QueriesWidget({ onSubmit, initialData }) {
   const [text,setText] = useState(initialData==="__skip__"||!initialData?"":initialData);
   const [note,setNote] = useState(null);
   const fileRef = useRef(null);
   const ingest = (raw, name) => {
     const { text: capped, truncated } = capQueryText(raw);
-    if (!capped) { setNote(QN("noText", lang, { name })); return; }
+    if (!capped) { setNote(`Couldn't find any text in ${name}.`); return; }
     setText(t => (t.trim() ? t.trimEnd()+"\n" : "") + capped);
     setNote(truncated
-      ? QN("importedTruncated", lang, { n: Q_MAX_LINES, name })
-      : QN("imported", lang, { name }));
+      ? `Imported the first ${Q_MAX_LINES} lines of ${name}. Hit Submit and I'll pick out what's relevant — though with a file this size, double-check the queries you care about most made it in.`
+      : `Imported ${name}. Hit Submit and I'll pick out what's relevant — no need to tidy it up.`);
   };
   const onFile = async e => {
     const f = e.target.files?.[0];
@@ -612,7 +568,7 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
     // Guard before reading: XLSX.read / f.text() load the whole file into memory,
     // so a huge workbook freezes the tab before the line/char cap ever applies.
     if (f.size > Q_MAX_FILE_BYTES) {
-      setNote(QN("tooLarge", lang, { mb: (f.size/1048576).toFixed(1) }));
+      setNote(`That file is ${(f.size/1048576).toFixed(1)} MB — too large to read here. Export just the queries (or paste them directly) and try again.`);
       return;
     }
     try {
@@ -631,21 +587,21 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
       } else if (ext === "txt" || ext === "csv" || f.type.startsWith("text/")) {
         ingest(await f.text(), f.name);
       } else {
-        setNote(QN("unsupported", lang));
+        setNote("That file type isn't supported — use .txt, .csv or .xlsx, or paste the queries directly.");
       }
     } catch (err) {
       console.error("Query file import failed:", err);
-      setNote(QN("readError", lang));
+      setNote("Couldn't read that file — try pasting the queries directly instead.");
     }
   };
   return <div style={{marginTop:8}}>
-    <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={WL("pasteQueries",lang)} rows={4} style={{width:"100%",background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+    <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Paste your existing queries here…" rows={4} style={{width:"100%",background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
     <input ref={fileRef} type="file" accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv" onChange={onFile} style={{display:"none"}} aria-hidden="true"/>
     {note && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:7,padding:"6px 10px",marginTop:6}}>{note}</div>}
     <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
-      <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{WL("submitQueries",lang)}</button>
-      <button onClick={()=>onSubmit("__skip__")} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("noQueries",lang)}</button>
-      <button onClick={()=>fileRef.current?.click()} style={{background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:"8px 4px"}}>{WL("importFile",lang)}</button>
+      <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>Submit queries</button>
+      <button onClick={()=>onSubmit("__skip__")} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>No queries</button>
+      <button onClick={()=>fileRef.current?.click()} style={{background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:"8px 4px"}}>📎 Or import a file (.txt, .csv, .xlsx)</button>
     </div>
   </div>;
 }
@@ -715,7 +671,7 @@ class ModalBoundary extends Component {
   }
 }
 
-function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr, sent, sheetLink }) {
+function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr }) {
   // Skipped widgets store the string "__skip__" — returning it caused .join/.map
   // crashes downstream (the "blank screen on Review & send" bug). Treat as null.
   const gw = type => { const es=Object.entries(wState||{}).filter(([k,v])=>k.endsWith(`-${type}`)&&v?.submitted).sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)); const d=es.length?es[es.length-1][1].data:null; return d==="__skip__"?null:d; };
@@ -887,7 +843,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:200,lineHeight:1.4}}>{sendErr}</div>}
           <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Cancel</button>
-          {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>}
+          <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>
           <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
         </div>
       </div>
@@ -914,14 +870,11 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
         <div style={{fontWeight:700,fontSize:15,color:C.text,marginBottom:6}}>{sent?"Brief sent to your Lumen team":"Setup brief ready"}</div>
         <div style={{fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
           {sent
-            ? (sheetLink
-                ? "Your setup brief has been sent to your Lumen team, and we've shared an editable Google Sheet with you (check your email). Update it anytime before your review call, and your consultant will see the changes. A consultant will be in touch within 2 business days."
-                : "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below.")
-            : "Review your brief, then send it straight to your Lumen team\u2014 nothing to download or email."}
+            ? "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below."
+            : "Review your brief, then send it straight to your Lumen team \u2014 nothing to download or email."}
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-          {sent && sheetLink && <a href={sheetLink} target="_blank" rel="noopener noreferrer" style={{background:P,color:"white",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"inline-block"}}>Open your brief (Google Sheet)</a>}
-          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?"Review":"Review / download a copy"):"\ud83d\udce8 Review \u0026 send"}</button>
+          <button onClick={()=>setShowExport(true)} style={{background:A,color:"white",border:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?"Review / download a copy":"\ud83d\udce8 Review \u0026 send"}</button>
           {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
         </div>
       </div>
@@ -929,7 +882,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
   );
 }
 
-function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
+function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
   const [theme,setTheme]       = useState("light");
   const [sound,setSound]       = useState(false);
   const [persona,setPersona]   = useState("strategist");
@@ -988,22 +941,9 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   useEffect(() => { botRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
   useEffect(() => { if (progress.percent===100&&prevPct.current<100&&sndRef.current) chime(); prevPct.current=progress.percent; }, [progress.percent, chime]);
 
-  // On mount, offer to resume an in-progress draft saved on this device.
-  useEffect(() => {
-    const draft = lsLoadDraft(seedId);
-    if (draft) setSaved(draft);
-    setChecked(true);
-  }, []);
+  useEffect(() => { setChecked(true); }, []); // demo: no session backend
 
-  // Autosave the in-progress draft (debounced) after each turn, until sent.
-  useEffect(() => {
-    if (!started || sent || messages.length === 0) return;
-    if (saveT.current) clearTimeout(saveT.current);
-    saveT.current = setTimeout(() => {
-      lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, savedAt: Date.now() });
-    }, 600);
-    return () => { if (saveT.current) clearTimeout(saveT.current); };
-  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId]);
+  // demo: auto-save to the session store is simulated
 
   const resetSession = useCallback(() => {
     sidRef.current = crypto.randomUUID();
@@ -1208,31 +1148,14 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
 
   const handleSend = useCallback(async (merged, users) => {
     setSending(true); setSendErr(null);
-    const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
+    const { filename } = buildWorkbook(XLSX, merged, users || []);
     const sentAt = new Date();
-
-    // Generate the editable Google Sheet from the brief's workbook. Best-effort:
-    // if Sheets isn't configured (501) or the call fails, the brief still sends;
-    // the client just doesn't get a Sheet link. Never blocks the confirmation.
-    let sheetUrl = null;
-    try {
-      const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      const sres = await fetch(SHEET_ENDPOINT, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
-      });
-      if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
-    } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
-    setSheetLink(sheetUrl);
-
     const record = {
       id: sidRef.current,
       merged, users: users || [],
       handoff: cdata.handoff || null,
       queries: merged.queries || "",
       seed: seed || null,
-      seedId: seedId || null,
-      sheetUrl,
       durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
       apiCalls: apiCountRef.current,
       status: "completed",
@@ -1253,14 +1176,13 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     }
     onBriefSent?.({ ...record, filename, sentAt });
     setSent(true); setShowExport(false);
-    lsClearDraft(seedId); // brief is in; nothing left to resume on this device
     // Bring the "Brief sent" confirmation into view — without this the modal just
     // closes and the client is left looking at empty scroll space (reads as a blank
     // screen / no confirmation).
     requestAnimationFrame(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; });
     if (sndRef.current) chime();
     setSending(false);
-  }, [chime, cdata, onBriefSent, seed, seedId, uiLang]);
+  }, [chime, cdata, onBriefSent, seed]);
 
   const maybeDivider = useCallback(prog => {
     const sec = prog?.section;
@@ -1397,9 +1319,6 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const resumeConvo = useCallback(async () => {
     init(); if (!saved) return;
     setStarted(true); setLoading(true); setSaved(null);
-    if (saved.uiLang) setUiLang(saved.uiLang);
-    if (saved.sid) sidRef.current = saved.sid;
-    startedAtRef.current = saved.startedAt || Date.now();
     setMessages(saved.messages); setProgress(saved.progress); setWState(saved.wState||{});
     prevSecRef.current = saved.progress?.section || null;
     if (saved.cdata) setCdata(saved.cdata);
@@ -1455,20 +1374,20 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       lastName:(cdata.company.contact||"").split(" ").slice(1).join(" "),
       email:cdata.company.email, role:"", access:"Admin"
     }] : []);
-    const WHY = { MARKETS:WL("whyMarkets",uiLang), TEAMS:WL("whyTeams",uiLang), USERS:WL("whyUsers",uiLang), QUERIES:WL("whyQueries",uiLang), TOPICS:WL("whyTopics",uiLang) };
+    const WHY = { MARKETS:"So results are scoped to the regions you actually operate in.", TEAMS:"Helps us tailor dashboards to the people who'll use them.", USERS:"Who should have access — just you for now is fine.", QUERIES:"If you already track queries elsewhere, we can migrate them.", TOPICS:"Topics are the subjects Lumen will monitor for you." };
     return <div>
       {WHY[type] && <div style={{fontSize:11,color:C.muted,margin:"0 0 6px",fontStyle:"italic"}}>{WHY[type]}</div>}
       {type==="PATH"      && <PathChoice onSubmit={d=>onWSubmit(mi,type,d)}/>}
-      {type==="QUERIES"   && <QueriesWidget onSubmit={os} initialData={pd} lang={uiLang}/>}
-      {type==="TOPICS"    && topicSuggestions?.length>0 && <TopicCards suggestions={topicSuggestions} onConfirm={os} onSkip={sk} lang={uiLang}/>}
-      {type==="MARKETS"   && <ChipSelector options={MARKETS_OPT}  onSubmit={os} onSkip={sk} placeholder={WL("phMarket",uiLang)}   hint={WL("hintSelectAll",uiLang)}    initialData={pd||[]} lang={uiLang}/>}
-      {type==="LANGUAGES" && <ChipSelector options={LANG_OPT}     onSubmit={os} onSkip={sk} placeholder={WL("phLanguage",uiLang)} hint={WL("hintSelectAll",uiLang)}  initialData={pd||[]} lang={uiLang}/>}
-      {type==="OBJECTIVES"&& <RankedSelector options={OBJ_OPT}   onSubmit={os} onSkip={sk} max={WIDGET_MAX.OBJECTIVES}    hint={WL("hintObjectives",uiLang)} initialData={pd} lang={uiLang}/>}
-      {type==="TEAMS"     && <ChipSelector options={TEAM_OPT}     onSubmit={os} onSkip={sk} placeholder={WL("phTeam",uiLang)}     hint={WL("hintTeams",uiLang)}      initialData={pd||[]} lang={uiLang}/>}
-      {type==="TIMEZONE"  && <ChipSelector options={TZ_OPT}       onSubmit={os} onSkip={sk} max={WIDGET_MAX.TIMEZONE}      hint={WL("hintTimezone",uiLang)}   initialData={pd||[]} lang={uiLang}/>}
-      {type==="USERS"     && <UserForm onSubmit={os} onSkip={sk} initialData={userPrefill} lang={uiLang}/>}
+      {type==="QUERIES"   && <QueriesWidget onSubmit={os} initialData={pd}/>}
+      {type==="TOPICS"    && topicSuggestions?.length>0 && <TopicCards suggestions={topicSuggestions} onConfirm={os} onSkip={sk}/>}
+      {type==="MARKETS"   && <ChipSelector options={MARKETS_OPT}  onSubmit={os} onSkip={sk} placeholder="Type a market…"   hint={WIDGET_HINTS.MARKETS}    initialData={pd||[]}/>}
+      {type==="LANGUAGES" && <ChipSelector options={LANG_OPT}     onSubmit={os} onSkip={sk} placeholder="Type a language…" hint={WIDGET_HINTS.LANGUAGES}  initialData={pd||[]}/>}
+      {type==="OBJECTIVES"&& <RankedSelector options={OBJ_OPT}   onSubmit={os} onSkip={sk} max={WIDGET_MAX.OBJECTIVES}    hint={WIDGET_HINTS.OBJECTIVES} initialData={pd}/>}
+      {type==="TEAMS"     && <ChipSelector options={TEAM_OPT}     onSubmit={os} onSkip={sk} placeholder="Type a team…"     hint={WIDGET_HINTS.TEAMS}      initialData={pd||[]}/>}
+      {type==="TIMEZONE"  && <ChipSelector options={TZ_OPT}       onSubmit={os} onSkip={sk} max={WIDGET_MAX.TIMEZONE}      hint={WIDGET_HINTS.TIMEZONE}   initialData={pd||[]}/>}
+      {type==="USERS"     && <UserForm onSubmit={os} onSkip={sk} initialData={userPrefill}/>}
     </div>;
-  }, [wState, onWSubmit, onWSkip, C, cdata, uiLang]);
+  }, [wState, onWSubmit, onWSkip, C, cdata]);
 
   if (!checked) return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>Loading…</div>;
 
@@ -1519,7 +1438,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         </div>
       </div>}
 
-      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink}/></ModalBoundary>}
+      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr}/></ModalBoundary>}
 
       {showPanel && started && <div style={{position:"fixed",top:56,right:0,bottom:0,width:mob?"100%":320,background:C.card,borderLeft:`1px solid ${C.border}`,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":"-4px 0 16px rgba(0,0,0,0.08)"}}>
         <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>
@@ -1570,7 +1489,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       {started && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
         <div style={{maxWidth:640,margin:"0 auto",display:"flex",alignItems:"flex-end",gap:16}}>
           <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob}/></div>
-          {!mob && !sent && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>✓ Saved on this device</div>}
+          {/* in-progress auto-save / resume is not implemented in this build; no persistence claim shown */}
         </div>
       </div>}
 
@@ -1619,7 +1538,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
             <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{saved?.progress?.percent||0}% complete</p>
             <div style={{display:"flex",gap:12}}>
               <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>Resume session</button>
-              <button onClick={()=>{lsClearDraft(seedId);resetSession();}} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
+              <button onClick={resetSession} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
             </div>
           </div>
         )}
@@ -2110,23 +2029,16 @@ export default function Demo() {
 }
 
 // ================= LIVE CLIENT CHAT ENTRY =================
-// Standalone client-facing page: no demo tab shell. Fetches the client-safe seed
-// the Sales page stored under ?s=<id> (consultant notes never reach the browser),
-// then runs the onboarding chat full-bleed. onBriefSent writes to the session
-// store (handled inside OnboardingApp.handleSend); here we just need a no-op sink
-// and no "see Proserv" navigation.
+// Standalone client-facing page: no demo tab shell. Decodes the seed the Sales
+// page put in ?c=, then runs the onboarding chat full-bleed. onBriefSent writes
+// to the session store (handled inside OnboardingApp.handleSend); here we just
+// need a no-op sink and no "see Proserv" navigation.
 export function LiveChat() {
-  const [state, setState] = useState({ loading: true, seed: null, seedId: null });
-  useEffect(() => {
-    let alive = true;
-    fetchSeedFromURL().then(r => { if (alive) setState({ loading: false, seed: r.seed, seedId: r.seedId }); });
-    return () => { alive = false; };
-  }, []);
-  if (state.loading) return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Inter', Arial, sans-serif",color:"#64748b"}}>Loading…</div>;
+  const seed = decodeSeedFromURL();
   return (
     <div style={{height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{flex:1,minHeight:0}}>
-        <OnboardingApp seed={state.seed} seedId={state.seedId} onBriefSent={()=>{}} onSeeProserv={null}/>
+        <OnboardingApp seed={seed} onBriefSent={()=>{}} onSeeProserv={null}/>
       </div>
     </div>
   );

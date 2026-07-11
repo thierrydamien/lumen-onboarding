@@ -3,12 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="robots" content="noindex, nofollow"/>
 <link rel="icon" href="data:,"/>
 <title>Lumen Onboarding — Proserv Dashboard</title>
-<!-- INTERNAL PAGE: session reads require DASHBOARD_TOKEN, but the page itself is
-     ungated. Gate behind Netlify password protection or Identity before production.
-     noindex is a hint to crawlers, not access control. -->
 <style>
   :root { --teal:#012B3A; --cherry:#FF4C46; --mint:#DFFFDE; --border:#e2e8f0; --muted:#5b6b76; }
   * { box-sizing:border-box; }
@@ -60,7 +56,6 @@
 
 <script>
   var SESSION_ENDPOINT = "/.netlify/functions/session";
-  var SEED_ENDPOINT = "/.netlify/functions/seed";
   var $ = function (id) { return document.getElementById(id); };
 
   // ---- Access token gate ----
@@ -124,7 +119,7 @@
         '<td>' + fmtDuration(s.durationMs) + '</td>' +
         '<td>' + (s.apiCalls != null ? s.apiCalls : "—") + '</td>' +
         '<td>' + s.topicCount + ' topics · ' + s.channelCount + ' channels</td>' +
-        '<td class="muted">' + esc(fmtDate(s.sentAt || s.savedAt)) + '</td>' +
+        '<td class="muted">' + fmtDate(s.sentAt || s.savedAt) + '</td>' +
       '</tr>';
     }).join("");
     $("body").innerHTML =
@@ -140,22 +135,8 @@
     $("modal").classList.add("show");
     authedFetch(SESSION_ENDPOINT + "?id=" + encodeURIComponent(id))
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (data) { renderSheet(data.session); loadSeedNotes(data.session); })
+      .then(function (data) { renderSheet(data.session); })
       .catch(function (e) { $("sheet").innerHTML = '<div class="err">Could not open session (' + esc(e.message) + ').</div>'; });
-  }
-
-  // Consultant notes live in the seed store, not the session record, and are
-  // returned only to a token-authenticated caller. Fetch them separately.
-  function loadSeedNotes(s) {
-    if (!s || !s.seedId) return;
-    var el = $("seedNotes"); if (!el) return;
-    authedFetch(SEED_ENDPOINT + "?id=" + encodeURIComponent(s.seedId))
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        var notes = d && d.seed && d.seed.notes;
-        el.innerHTML = notes ? '<div style="white-space:pre-wrap">' + esc(notes) + '</div>' : '<div class="muted">No notes.</div>';
-      })
-      .catch(function () { el.innerHTML = '<div class="muted">Could not load notes.</div>'; });
   }
 
   function renderSheet(s) {
@@ -197,20 +178,6 @@
 
     if (s.queries && s.queries !== "__skip__") {
       html += '<div class="sec">Migrated queries</div><div class="list"><div style="white-space:pre-wrap;font-family:monospace;font-size:12px">' + esc(s.queries) + '</div></div>';
-    }
-
-    if (s.sheetUrl) html += '<div class="sec">Editable Google Sheet</div><div class="list"><div><a href="' + esc(s.sheetUrl) + '" target="_blank" rel="noopener noreferrer">Open the client\'s brief in Google Sheets</a></div></div>';
-
-    var h = s.handoff;
-    if (h) {
-      var hrows = [["Maturity", h.maturity], ["Goal in their words", h.goalInOwnWords], ["Hesitations", h.hesitations], ["AI-suggested, unconfirmed", h.aiSuggestedUnconfirmed], ["Follow-ups for the review call", h.followUps], ["Tips for the consultant", h.consultantTips]]
-        .filter(function (r) { return r[1]; })
-        .map(function (r) { return '<div><strong>' + esc(r[0]) + ':</strong> ' + esc(r[1]) + '</div>'; }).join("");
-      if (hrows) html += '<div class="sec">Consultant handoff</div><div class="list">' + hrows + '</div>';
-    }
-
-    if (s.seedId) {
-      html += '<div class="sec">Consultant notes (from Sales)</div><div class="list" id="seedNotes"><div class="muted">Loading…</div></div>';
     }
 
     $("sheet").innerHTML = html;

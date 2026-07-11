@@ -7,7 +7,6 @@ import * as XLSX from "xlsx";
 const CHAT_ENDPOINT = "/.netlify/functions/chat";
 const SESSION_ENDPOINT = "/.netlify/functions/session";
 const SEED_ENDPOINT = "/.netlify/functions/seed";
-const SHEET_ENDPOINT = "/.netlify/functions/sheet";
 // Demo-only controls (preview / simulate / rewind) are hidden on the live site.
 const DEV = false;
 
@@ -36,6 +35,7 @@ const LINK = "#6D28D9"; // interactive purple
 const SECTION_KEYS   = ["company","path","topics","channels","reports","users"];
 const SECTION_LABELS = { company:"About you", path:"Approach", topics:"What to track", channels:"Where to look", reports:"Reports", users:"Your team" };
 const WIDGET_MAX     = { OBJECTIVES:3, TIMEZONE:1 };
+const WIDGET_HINTS   = { MARKETS:"Select all that apply.", LANGUAGES:"Select all that apply.", OBJECTIVES:"Pick up to 3, then set their priority — your #1 decides what we build first.", TEAMS:"Select all teams that will use Lumen.", TIMEZONE:"Select your primary timezone." };
 const MARKETS_OPT    = ["United States","United Kingdom","France","Germany","Spain","Italy","Netherlands","Canada","Australia","Brazil","Japan","South Korea","India","Middle East","APAC","LATAM","Global"];
 const LANG_OPT       = ["English","French","German","Spanish","Italian","Dutch","Portuguese","Japanese","Korean","Mandarin","Arabic","Hindi"];
 const OBJ_OPT        = ["Competitive Intelligence","Campaign Optimization","Content Ideation & Recommendation","Reputation Management","Social Measurement","Brand Health Measurement","Issue Tracking","PR Measurement","Influencer Management","Consumer Insights","Trend Research"];
@@ -139,7 +139,7 @@ const I18N = {
     welcomeSub:         "We\u2019ll ask about your goals, markets, and team \u2014 then generate your Lumen setup brief.",
     welcomeSubSeeded:   "Your Lumen team prepared this session for {company}. We\u2019ll talk through your goals, markets, and team \u2014 and build your setup brief as we go.",
     step1Title: "About 15 minutes",
-    step1Desc:  "About 15 minutes. Pause anytime — reopen this link on the same device and you'll pick up where you left off.",
+    step1Desc:  "Plan for about 15 minutes and complete it in one sitting.",
     step2Title: "A conversation, not a form",
     step2Desc:  "We'll cover your goals, what to track, where your audience talks, reports, and your team.",
     step3Title: "Then we take over",
@@ -156,7 +156,7 @@ const I18N = {
     welcomeSub:         "Nous vous poserons des questions sur vos objectifs, vos marchés et votre équipe, puis nous générerons votre brief de configuration Lumen.",
     welcomeSubSeeded:   "Votre équipe Lumen a préparé cette session pour {company}. Nous aborderons vos objectifs, vos marchés et votre équipe, et construirons votre brief au fur et à mesure.",
     step1Title: "Environ 15 minutes",
-    step1Desc:  "Environ 15 minutes. Faites une pause quand vous voulez : rouvrez ce lien sur le même appareil et vous reprendrez là où vous vous étiez arrêté.",
+    step1Desc:  "Prévoyez environ 15 minutes et terminez en une seule fois.",
     step2Title: "Une conversation, pas un formulaire",
     step2Desc:  "Nous aborderons vos objectifs, ce qu'il faut suivre, où votre audience s'exprime, les rapports et votre équipe.",
     step3Title: "Ensuite, nous prenons le relais",
@@ -173,7 +173,7 @@ const I18N = {
     welcomeSub:         "Wir fragen nach Ihren Zielen, Märkten und Ihrem Team und erstellen anschließend Ihr Lumen-Setup-Briefing.",
     welcomeSubSeeded:   "Ihr Lumen-Team hat diese Sitzung für {company} vorbereitet. Wir besprechen Ihre Ziele, Märkte und Ihr Team und erstellen Ihr Setup-Briefing Schritt für Schritt.",
     step1Title: "Etwa 15 Minuten",
-    step1Desc:  "Etwa 15 Minuten. Jederzeit pausieren: Öffnen Sie diesen Link auf demselben Gerät erneut und Sie machen dort weiter, wo Sie aufgehört haben.",
+    step1Desc:  "Planen Sie etwa 15 Minuten ein und schließen Sie das Onboarding in einem Durchgang ab.",
     step2Title: "Ein Gespräch, kein Formular",
     step2Desc:  "Wir behandeln Ihre Ziele, was Sie beobachten möchten, wo Ihr Publikum spricht, Berichte und Ihr Team.",
     step3Title: "Dann übernehmen wir",
@@ -190,7 +190,7 @@ const I18N = {
     welcomeSub:         "Le preguntaremos por sus objetivos, mercados y equipo, y luego generaremos su resumen de configuración de Lumen.",
     welcomeSubSeeded:   "Su equipo de Lumen preparó esta sesión para {company}. Hablaremos de sus objetivos, mercados y equipo, y crearemos su resumen de configuración sobre la marcha.",
     step1Title: "Unos 15 minutos",
-    step1Desc:  "Unos 15 minutos. Haga una pausa cuando quiera: vuelva a abrir este enlace en el mismo dispositivo y continuará donde lo dejó.",
+    step1Desc:  "Reserve unos 15 minutos y complételo de una sola vez.",
     step2Title: "Una conversación, no un formulario",
     step2Desc:  "Cubriremos sus objetivos, qué monitorizar, dónde habla su audiencia, los informes y su equipo.",
     step3Title: "Después nos encargamos nosotros",
@@ -207,7 +207,7 @@ const I18N = {
     welcomeSub:         "Ti chiederemo i tuoi obiettivi, i mercati e il team, poi genereremo il tuo brief di configurazione Lumen.",
     welcomeSubSeeded:   "Il tuo team Lumen ha preparato questa sessione per {company}. Parleremo dei tuoi obiettivi, dei mercati e del team, e costruiremo il tuo brief di configurazione strada facendo.",
     step1Title: "Circa 15 minuti",
-    step1Desc:  "Circa 15 minuti. Metti in pausa quando vuoi: riapri questo link sullo stesso dispositivo e riprenderai da dove avevi lasciato.",
+    step1Desc:  "Prevedi circa 15 minuti e completa il tutto in un'unica sessione.",
     step2Title: "Una conversazione, non un modulo",
     step2Desc:  "Copriremo i tuoi obiettivi, cosa monitorare, dove parla il tuo pubblico, i report e il tuo team.",
     step3Title: "Poi ci pensiamo noi",
@@ -224,7 +224,7 @@ const I18N = {
     welcomeSub:         "سنسألك عن أهدافك وأسواقك وفريقك، ثم ننشئ ملخص إعداد Lumen الخاص بك.",
     welcomeSubSeeded:   "أعدّ فريق Lumen هذه الجلسة لـ {company}. سنتحدث عن أهدافك وأسواقك وفريقك، وننشئ ملخص الإعداد الخاص بك خطوة بخطوة.",
     step1Title: "حوالي 15 دقيقة",
-    step1Desc:  "حوالي 15 دقيقة. توقف مؤقتًا متى شئت: أعد فتح هذا الرابط على الجهاز نفسه وستتابع من حيث توقفت.",
+    step1Desc:  "خصّص حوالي 15 دقيقة وأكمل العملية في جلسة واحدة.",
     step2Title: "محادثة، وليست نموذجًا",
     step2Desc:  "سنغطي أهدافك، وما الذي تريد متابعته، وأين يتحدث جمهورك، والتقارير، وفريقك.",
     step3Title: "ثم نتولى نحن الأمر",
@@ -262,42 +262,9 @@ function WL(key, lang) {
   return (dict[key] != null ? dict[key] : WI18N.English[key]) || "";
 }
 
-// QUERIES-widget file-import feedback (shown in the expert flow). Parametrized:
-// {name} filename, {n} line cap, {mb} size. QN() substitutes and falls back to English.
-const QN18N = {
-  English: { "importedTruncated":"Imported the first {n} lines of {name}. Hit Submit and I'll pick out what's relevant — with a file this size, double-check the queries you care about most made it in.", "imported":"Imported {name}. Hit Submit and I'll pick out what's relevant — no need to tidy it up.", "noText":"Couldn't find any text in {name}.", "tooLarge":"That file is {mb} MB — too large to read here. Export just the queries (or paste them directly) and try again.", "unsupported":"That file type isn't supported — use .txt, .csv or .xlsx, or paste the queries directly.", "readError":"Couldn't read that file — try pasting the queries directly instead." },
-  French: { "importedTruncated":"Les {n} premières lignes de {name} ont été importées. Cliquez sur Envoyer et je repérerai ce qui est pertinent — avec un fichier de cette taille, vérifiez que les requêtes les plus importantes y figurent.", "imported":"{name} importé. Cliquez sur Envoyer et je repérerai ce qui est pertinent — inutile de faire le tri.", "noText":"Aucun texte trouvé dans {name}.", "tooLarge":"Ce fichier fait {mb} Mo — trop volumineux pour être lu ici. Exportez uniquement les requêtes (ou collez-les directement) et réessayez.", "unsupported":"Ce type de fichier n'est pas pris en charge — utilisez .txt, .csv ou .xlsx, ou collez les requêtes directement.", "readError":"Impossible de lire ce fichier — essayez plutôt de coller les requêtes directement." },
-  German: { "importedTruncated":"Die ersten {n} Zeilen von {name} wurden importiert. Klicken Sie auf Senden und ich filtere das Relevante heraus — prüfen Sie bei einer Datei dieser Größe, ob die wichtigsten Abfragen enthalten sind.", "imported":"{name} importiert. Klicken Sie auf Senden und ich filtere das Relevante heraus — Aufräumen ist nicht nötig.", "noText":"In {name} wurde kein Text gefunden.", "tooLarge":"Diese Datei ist {mb} MB groß — zu groß, um sie hier zu lesen. Exportieren Sie nur die Abfragen (oder fügen Sie sie direkt ein) und versuchen Sie es erneut.", "unsupported":"Dieser Dateityp wird nicht unterstützt — verwenden Sie .txt, .csv oder .xlsx, oder fügen Sie die Abfragen direkt ein.", "readError":"Diese Datei konnte nicht gelesen werden — fügen Sie die Abfragen stattdessen direkt ein." },
-  Spanish: { "importedTruncated":"Se importaron las primeras {n} líneas de {name}. Pulse Enviar y seleccionaré lo relevante — con un archivo de este tamaño, compruebe que se incluyeron las consultas que más le importan.", "imported":"{name} importado. Pulse Enviar y seleccionaré lo relevante — no hace falta ordenarlo.", "noText":"No se encontró texto en {name}.", "tooLarge":"Este archivo ocupa {mb} MB — demasiado grande para leerlo aquí. Exporte solo las consultas (o péguelas directamente) e inténtelo de nuevo.", "unsupported":"Ese tipo de archivo no es compatible — use .txt, .csv o .xlsx, o pegue las consultas directamente.", "readError":"No se pudo leer ese archivo — pruebe a pegar las consultas directamente." },
-  Italian: { "importedTruncated":"Importate le prime {n} righe di {name}. Premi Invia e selezionerò ciò che è pertinente — con un file di queste dimensioni, verifica che le query più importanti siano incluse.", "imported":"{name} importato. Premi Invia e selezionerò ciò che è pertinente — non serve riordinare.", "noText":"Nessun testo trovato in {name}.", "tooLarge":"Questo file è di {mb} MB — troppo grande da leggere qui. Esporta solo le query (o incollale direttamente) e riprova.", "unsupported":"Questo tipo di file non è supportato — usa .txt, .csv o .xlsx, oppure incolla le query direttamente.", "readError":"Impossibile leggere il file — prova a incollare le query direttamente." },
-  Arabic: { "importedTruncated":"تم استيراد أول {n} سطرًا من {name}. اضغط إرسال وسأختار ما هو مهم — مع ملف بهذا الحجم، تأكّد من أن أهم الاستعلامات قد أُدرجت.", "imported":"تم استيراد {name}. اضغط إرسال وسأختار ما هو مهم — لا حاجة للترتيب.", "noText":"لم يُعثر على نص في {name}.", "tooLarge":"حجم هذا الملف {mb} ميغابايت — أكبر من أن يُقرأ هنا. صدّر الاستعلامات فقط (أو الصقها مباشرة) وحاول مرة أخرى.", "unsupported":"نوع الملف غير مدعوم — استخدم ‎.txt أو ‎.csv أو ‎.xlsx، أو الصق الاستعلامات مباشرة.", "readError":"تعذّرت قراءة الملف — جرّب لصق الاستعلامات مباشرة بدلاً من ذلك." },
-};
-function QN(key, lang, vars) {
-  const dict = QN18N[lang] || QN18N.English;
-  let s = (dict[key] != null ? dict[key] : QN18N.English[key]) || "";
-  if (vars) for (const k in vars) s = s.split("{"+k+"}").join(vars[k]);
-  return s;
-}
-
 
 const gts   = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-// In-progress autosave to localStorage for same-device pause/resume. Keyed by the
-// seed id when present, else a single default slot. Best-effort: any failure
-// (private mode, quota, storage disabled) degrades to no-resume without throwing.
-const LS_PREFIX = "lumen_onb_v1_";
-const lsKey = seedId => LS_PREFIX + (seedId || "default");
-function lsLoadDraft(seedId) {
-  try {
-    const raw = localStorage.getItem(lsKey(seedId));
-    if (!raw) return null;
-    const o = JSON.parse(raw);
-    return (o && Array.isArray(o.messages) && o.messages.length && o.progress && (o.progress.percent || 0) < 100) ? o : null;
-  } catch { return null; }
-}
-function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), JSON.stringify(snap)); } catch {} }
-function lsClearDraft(seedId) { try { localStorage.removeItem(lsKey(seedId)); } catch {} }
 
 // Pure fold of one parsed reply's markers onto a cdata object. Used live and to
 // rebuild cdata from surviving messages after a rewind.
@@ -598,11 +565,11 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
   const fileRef = useRef(null);
   const ingest = (raw, name) => {
     const { text: capped, truncated } = capQueryText(raw);
-    if (!capped) { setNote(QN("noText", lang, { name })); return; }
+    if (!capped) { setNote(`Couldn't find any text in ${name}.`); return; }
     setText(t => (t.trim() ? t.trimEnd()+"\n" : "") + capped);
     setNote(truncated
-      ? QN("importedTruncated", lang, { n: Q_MAX_LINES, name })
-      : QN("imported", lang, { name }));
+      ? `Imported the first ${Q_MAX_LINES} lines of ${name}. Hit Submit and I'll pick out what's relevant — though with a file this size, double-check the queries you care about most made it in.`
+      : `Imported ${name}. Hit Submit and I'll pick out what's relevant — no need to tidy it up.`);
   };
   const onFile = async e => {
     const f = e.target.files?.[0];
@@ -612,7 +579,7 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
     // Guard before reading: XLSX.read / f.text() load the whole file into memory,
     // so a huge workbook freezes the tab before the line/char cap ever applies.
     if (f.size > Q_MAX_FILE_BYTES) {
-      setNote(QN("tooLarge", lang, { mb: (f.size/1048576).toFixed(1) }));
+      setNote(`That file is ${(f.size/1048576).toFixed(1)} MB — too large to read here. Export just the queries (or paste them directly) and try again.`);
       return;
     }
     try {
@@ -631,11 +598,11 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
       } else if (ext === "txt" || ext === "csv" || f.type.startsWith("text/")) {
         ingest(await f.text(), f.name);
       } else {
-        setNote(QN("unsupported", lang));
+        setNote("That file type isn't supported — use .txt, .csv or .xlsx, or paste the queries directly.");
       }
     } catch (err) {
       console.error("Query file import failed:", err);
-      setNote(QN("readError", lang));
+      setNote("Couldn't read that file — try pasting the queries directly instead.");
     }
   };
   return <div style={{marginTop:8}}>
@@ -715,7 +682,7 @@ class ModalBoundary extends Component {
   }
 }
 
-function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr, sent, sheetLink }) {
+function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr }) {
   // Skipped widgets store the string "__skip__" — returning it caused .join/.map
   // crashes downstream (the "blank screen on Review & send" bug). Treat as null.
   const gw = type => { const es=Object.entries(wState||{}).filter(([k,v])=>k.endsWith(`-${type}`)&&v?.submitted).sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)); const d=es.length?es[es.length-1][1].data:null; return d==="__skip__"?null:d; };
@@ -887,7 +854,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:200,lineHeight:1.4}}>{sendErr}</div>}
           <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Cancel</button>
-          {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>}
+          <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>
           <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
         </div>
       </div>
@@ -914,14 +881,11 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
         <div style={{fontWeight:700,fontSize:15,color:C.text,marginBottom:6}}>{sent?"Brief sent to your Lumen team":"Setup brief ready"}</div>
         <div style={{fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
           {sent
-            ? (sheetLink
-                ? "Your setup brief has been sent to your Lumen team, and we've shared an editable Google Sheet with you (check your email). Update it anytime before your review call, and your consultant will see the changes. A consultant will be in touch within 2 business days."
-                : "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below.")
-            : "Review your brief, then send it straight to your Lumen team\u2014 nothing to download or email."}
+            ? "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below."
+            : "Review your brief, then send it straight to your Lumen team \u2014 nothing to download or email."}
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-          {sent && sheetLink && <a href={sheetLink} target="_blank" rel="noopener noreferrer" style={{background:P,color:"white",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"inline-block"}}>Open your brief (Google Sheet)</a>}
-          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?"Review":"Review / download a copy"):"\ud83d\udce8 Review \u0026 send"}</button>
+          <button onClick={()=>setShowExport(true)} style={{background:A,color:"white",border:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?"Review / download a copy":"\ud83d\udce8 Review \u0026 send"}</button>
           {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
         </div>
       </div>
@@ -988,22 +952,9 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   useEffect(() => { botRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
   useEffect(() => { if (progress.percent===100&&prevPct.current<100&&sndRef.current) chime(); prevPct.current=progress.percent; }, [progress.percent, chime]);
 
-  // On mount, offer to resume an in-progress draft saved on this device.
-  useEffect(() => {
-    const draft = lsLoadDraft(seedId);
-    if (draft) setSaved(draft);
-    setChecked(true);
-  }, []);
+  useEffect(() => { setChecked(true); }, []); // demo: no session backend
 
-  // Autosave the in-progress draft (debounced) after each turn, until sent.
-  useEffect(() => {
-    if (!started || sent || messages.length === 0) return;
-    if (saveT.current) clearTimeout(saveT.current);
-    saveT.current = setTimeout(() => {
-      lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, savedAt: Date.now() });
-    }, 600);
-    return () => { if (saveT.current) clearTimeout(saveT.current); };
-  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId]);
+  // demo: auto-save to the session store is simulated
 
   const resetSession = useCallback(() => {
     sidRef.current = crypto.randomUUID();
@@ -1208,23 +1159,8 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
 
   const handleSend = useCallback(async (merged, users) => {
     setSending(true); setSendErr(null);
-    const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
+    const { filename } = buildWorkbook(XLSX, merged, users || []);
     const sentAt = new Date();
-
-    // Generate the editable Google Sheet from the brief's workbook. Best-effort:
-    // if Sheets isn't configured (501) or the call fails, the brief still sends;
-    // the client just doesn't get a Sheet link. Never blocks the confirmation.
-    let sheetUrl = null;
-    try {
-      const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      const sres = await fetch(SHEET_ENDPOINT, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
-      });
-      if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
-    } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
-    setSheetLink(sheetUrl);
-
     const record = {
       id: sidRef.current,
       merged, users: users || [],
@@ -1232,7 +1168,6 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       queries: merged.queries || "",
       seed: seed || null,
       seedId: seedId || null,
-      sheetUrl,
       durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
       apiCalls: apiCountRef.current,
       status: "completed",
@@ -1253,14 +1188,13 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     }
     onBriefSent?.({ ...record, filename, sentAt });
     setSent(true); setShowExport(false);
-    lsClearDraft(seedId); // brief is in; nothing left to resume on this device
     // Bring the "Brief sent" confirmation into view — without this the modal just
     // closes and the client is left looking at empty scroll space (reads as a blank
     // screen / no confirmation).
     requestAnimationFrame(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; });
     if (sndRef.current) chime();
     setSending(false);
-  }, [chime, cdata, onBriefSent, seed, seedId, uiLang]);
+  }, [chime, cdata, onBriefSent, seed, seedId]);
 
   const maybeDivider = useCallback(prog => {
     const sec = prog?.section;
@@ -1397,9 +1331,6 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const resumeConvo = useCallback(async () => {
     init(); if (!saved) return;
     setStarted(true); setLoading(true); setSaved(null);
-    if (saved.uiLang) setUiLang(saved.uiLang);
-    if (saved.sid) sidRef.current = saved.sid;
-    startedAtRef.current = saved.startedAt || Date.now();
     setMessages(saved.messages); setProgress(saved.progress); setWState(saved.wState||{});
     prevSecRef.current = saved.progress?.section || null;
     if (saved.cdata) setCdata(saved.cdata);
@@ -1519,7 +1450,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         </div>
       </div>}
 
-      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink}/></ModalBoundary>}
+      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr}/></ModalBoundary>}
 
       {showPanel && started && <div style={{position:"fixed",top:56,right:0,bottom:0,width:mob?"100%":320,background:C.card,borderLeft:`1px solid ${C.border}`,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":"-4px 0 16px rgba(0,0,0,0.08)"}}>
         <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>
@@ -1570,7 +1501,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       {started && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
         <div style={{maxWidth:640,margin:"0 auto",display:"flex",alignItems:"flex-end",gap:16}}>
           <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob}/></div>
-          {!mob && !sent && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>✓ Saved on this device</div>}
+          {/* in-progress auto-save / resume is not implemented in this build; no persistence claim shown */}
         </div>
       </div>}
 
@@ -1619,7 +1550,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
             <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{saved?.progress?.percent||0}% complete</p>
             <div style={{display:"flex",gap:12}}>
               <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>Resume session</button>
-              <button onClick={()=>{lsClearDraft(seedId);resetSession();}} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
+              <button onClick={resetSession} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
             </div>
           </div>
         )}

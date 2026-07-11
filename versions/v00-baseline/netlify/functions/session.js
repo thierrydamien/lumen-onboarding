@@ -36,22 +36,9 @@ export default async (req) => {
     catch { return json(400, { error: "bad_json" }); }
 
     const session = body && body.session;
-    if (!session || typeof session !== "object" || Array.isArray(session)) return json(400, { error: "missing_session" });
+    if (!session || typeof session !== "object") return json(400, { error: "missing_session" });
 
-    // Structural sanity + caps. The 400KB body cap bounds total size; this keeps
-    // individual collections from ballooning and rejects an obviously malformed
-    // shape before it reaches the store. Client input is otherwise stored as data
-    // (the dashboard HTML-escapes everything on render).
-    const merged = session.merged;
-    if (merged != null && (typeof merged !== "object" || Array.isArray(merged))) return json(400, { error: "bad_merged" });
-    const capArr = (o, k, n) => { if (o && Array.isArray(o[k]) && o[k].length > n) o[k] = o[k].slice(0, n); };
-    if (merged) ["topics", "channels", "reports", "alerts"].forEach((k) => capArr(merged, k, 300));
-    capArr(session, "users", 200);
-    const capStr = (o, k, n) => { if (o && typeof o[k] === "string" && o[k].length > n) o[k] = o[k].slice(0, n); };
-    capStr(session, "queries", 80_000);
-    if (merged) capStr(merged, "queries", 80_000);
-
-    const id = (typeof session.id === "string" && session.id) || genId();
+    const id = session.id || genId();
     const record = { ...session, id, savedAt: new Date().toISOString() };
     try { await store.setJSON(id, record); }
     catch (err) { console.error("Failed to save session", err); return json(502, { error: "save_failed" }); }

@@ -7,7 +7,6 @@ import * as XLSX from "xlsx";
 const CHAT_ENDPOINT = "/.netlify/functions/chat";
 const SESSION_ENDPOINT = "/.netlify/functions/session";
 const SEED_ENDPOINT = "/.netlify/functions/seed";
-const SHEET_ENDPOINT = "/.netlify/functions/sheet";
 // Demo-only controls (preview / simulate / rewind) are hidden on the live site.
 const DEV = false;
 
@@ -715,7 +714,7 @@ class ModalBoundary extends Component {
   }
 }
 
-function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr, sent, sheetLink }) {
+function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sending, sendErr }) {
   // Skipped widgets store the string "__skip__" — returning it caused .join/.map
   // crashes downstream (the "blank screen on Review & send" bug). Treat as null.
   const gw = type => { const es=Object.entries(wState||{}).filter(([k,v])=>k.endsWith(`-${type}`)&&v?.submitted).sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)); const d=es.length?es[es.length-1][1].data:null; return d==="__skip__"?null:d; };
@@ -887,7 +886,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:200,lineHeight:1.4}}>{sendErr}</div>}
           <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Cancel</button>
-          {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>}
+          <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>
           <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
         </div>
       </div>
@@ -906,7 +905,7 @@ function doExport(merged, users, rawMessages) {
   XLSX.writeFile(wb, filename);
 }
 
-function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, sheetLink, onSeeProserv }) {
+function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, onSeeProserv }) {
   return (
     <div style={{display:"flex",justifyContent:"center",marginBottom:24,animation:"slideUpFade 0.5s ease-out forwards"}}>
       <div style={{background:`linear-gradient(135deg,${P}15,${P}08)`,border:`1.5px solid ${P}`,borderRadius:14,padding:"20px 28px",textAlign:"center",maxWidth:460}}>
@@ -914,14 +913,11 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
         <div style={{fontWeight:700,fontSize:15,color:C.text,marginBottom:6}}>{sent?"Brief sent to your Lumen team":"Setup brief ready"}</div>
         <div style={{fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
           {sent
-            ? (sheetLink
-                ? "Your setup brief has been sent to your Lumen team, and we've shared an editable Google Sheet with you (check your email). Update it anytime before your review call, and your consultant will see the changes. A consultant will be in touch within 2 business days."
-                : "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below.")
-            : "Review your brief, then send it straight to your Lumen team\u2014 nothing to download or email."}
+            ? "Your setup brief has been sent to your Lumen team. A consultant will be in touch within 2 business days to book your review call, where you'll finalise the setup together. You can review or download a copy of your brief below."
+            : "Review your brief, then send it straight to your Lumen team \u2014 nothing to download or email."}
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-          {sent && sheetLink && <a href={sheetLink} target="_blank" rel="noopener noreferrer" style={{background:P,color:"white",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"inline-block"}}>Open your brief (Google Sheet)</a>}
-          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?"Review":"Review / download a copy"):"\ud83d\udce8 Review \u0026 send"}</button>
+          <button onClick={()=>setShowExport(true)} style={{background:A,color:"white",border:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?"Review / download a copy":"\ud83d\udce8 Review \u0026 send"}</button>
           {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
         </div>
       </div>
@@ -954,7 +950,6 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const [sent,setSent]         = useState(false);
   const [sending,setSending]   = useState(false);
   const [sendErr,setSendErr]   = useState(null);
-  const [sheetLink,setSheetLink] = useState(null);
   const [streamTxt,setStreamTxt] = useState("");
   const [ww,setWw] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => { const f = () => setWw(window.innerWidth); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
@@ -1208,23 +1203,8 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
 
   const handleSend = useCallback(async (merged, users) => {
     setSending(true); setSendErr(null);
-    const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
+    const { filename } = buildWorkbook(XLSX, merged, users || []);
     const sentAt = new Date();
-
-    // Generate the editable Google Sheet from the brief's workbook. Best-effort:
-    // if Sheets isn't configured (501) or the call fails, the brief still sends;
-    // the client just doesn't get a Sheet link. Never blocks the confirmation.
-    let sheetUrl = null;
-    try {
-      const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      const sres = await fetch(SHEET_ENDPOINT, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
-      });
-      if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
-    } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
-    setSheetLink(sheetUrl);
-
     const record = {
       id: sidRef.current,
       merged, users: users || [],
@@ -1232,7 +1212,6 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       queries: merged.queries || "",
       seed: seed || null,
       seedId: seedId || null,
-      sheetUrl,
       durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
       apiCalls: apiCountRef.current,
       status: "completed",
@@ -1260,7 +1239,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     requestAnimationFrame(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; });
     if (sndRef.current) chime();
     setSending(false);
-  }, [chime, cdata, onBriefSent, seed, seedId, uiLang]);
+  }, [chime, cdata, onBriefSent, seed, seedId]);
 
   const maybeDivider = useCallback(prog => {
     const sec = prog?.section;
@@ -1519,7 +1498,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         </div>
       </div>}
 
-      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink}/></ModalBoundary>}
+      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr}/></ModalBoundary>}
 
       {showPanel && started && <div style={{position:"fixed",top:56,right:0,bottom:0,width:mob?"100%":320,background:C.card,borderLeft:`1px solid ${C.border}`,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":"-4px 0 16px rgba(0,0,0,0.08)"}}>
         <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>
@@ -1681,7 +1660,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
           </div>
         </div>}
 
-        {done && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} sheetLink={sheetLink} onSeeProserv={onSeeProserv}/>}
+        {done && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} onSeeProserv={onSeeProserv}/>}
 
         <div ref={botRef}/>
       </div>
