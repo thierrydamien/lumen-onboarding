@@ -1,3 +1,4 @@
+8dc0414 v22: support OAuth / delegation / Shared Drive auth for Sheet generation
 5262a50 v21: generate an editable Google Sheet from the sent brief
 25d062d v20: real pause/resume via localStorage (same device)
 aff0f8f chore: untrack node_modules and dist (add .gitignore)

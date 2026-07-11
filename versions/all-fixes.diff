@@ -7,10 +7,10 @@ index 0000000..b947077
 +node_modules/
 +dist/
 diff --git a/README.md b/README.md
-index ca56bb7..dd46fe9 100644
+index ca56bb7..483f4f1 100644
 --- a/README.md
 +++ b/README.md
-@@ -7,40 +7,68 @@ Three apps on one Netlify site, sharing one session store.
+@@ -7,40 +7,76 @@ Three apps on one Netlify site, sharing one session store.
  - `public/dashboard.html` — Proserv dashboard (static, no build)
  - `netlify/functions/chat.js` — Anthropic proxy (holds the API key)
  - `netlify/functions/session.js` — session store (Netlify Blobs)
@@ -29,12 +29,20 @@ index ca56bb7..dd46fe9 100644
 +   - `DASHBOARD_TOKEN = <a long random string>` — required for the dashboard.
 +     Session reads and consultant-notes reads are locked until this is set, and
 +     the dashboard prompts for it in the browser.
-+   - Google Sheet generation (optional; the brief still sends without it):
-+     - `GOOGLE_SERVICE_ACCOUNT_EMAIL` — a Google Cloud service account address.
-+     - `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` — its private key (PEM; escaped `\n` ok).
-+     - `GOOGLE_DRIVE_FOLDER_ID` — target folder, ideally a Shared Drive the
-+       service account belongs to (a bare service account has no Drive quota, so
-+       uploads generally must land in a Shared Drive).
++   - Google Sheet generation (optional; the brief still sends without it). Set
++     `GOOGLE_DRIVE_FOLDER_ID` to the target folder, then ONE auth path:
++     - Path A, OAuth as a real user (writes into that user's My Drive folder on
++       their quota; no Workspace admin needed). Use this to target a folder owned
++       by an account you control: `GOOGLE_OAUTH_CLIENT_ID`,
++       `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN`.
++     - Path B, service account + domain-wide delegation (impersonate a real user;
++       a Workspace admin must authorize the SA for the Drive scope):
++       `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`,
++       `GOOGLE_IMPERSONATE_SUBJECT` (the user to act as).
++     - Path C, service account into a Shared Drive (add the SA as Content Manager;
++       no impersonation): `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
++       `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`. A bare SA has no Drive quota, so
++       without a Shared Drive (or Path B impersonation) the upload fails on quota.
  3. Deploy. Build command `npm run build`, publish dir `dist`, functions
     dir `netlify/functions` are already set in `netlify.toml`.
  
@@ -228,20 +236,29 @@ index 54e6cb7..2e29aa9 100644
      catch (err) { console.error("Failed to save session", err); return json(502, { error: "save_failed" }); }
 diff --git a/netlify/functions/sheet.js b/netlify/functions/sheet.js
 new file mode 100644
-index 0000000..300b700
+index 0000000..7a68cf6
 --- /dev/null
 +++ b/netlify/functions/sheet.js
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,153 @@
 +// Google Sheet generation (Netlify Functions v2).
 +//   POST /.netlify/functions/sheet  { xlsxBase64, filename, clientEmail?, company? }
 +//     -> { url }   (a Google Sheet converted from the brief's XLSX)
 +//
-+// SETUP REQUIRED (this function is inert until configured):
-+//   - GOOGLE_SERVICE_ACCOUNT_EMAIL      service account address
-+//   - GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY  its private key (PEM; \n may be escaped)
-+//   - GOOGLE_DRIVE_FOLDER_ID (recommended) target folder, ideally a Shared Drive
-+//     the service account is a member of (a bare service account has no personal
-+//     Drive quota, so uploads generally MUST land in a Shared Drive).
++// SETUP (inert until one auth path below is configured). GOOGLE_DRIVE_FOLDER_ID
++// sets the target folder in all paths.
++//   Path A - OAuth as a real user (writes into that user's My Drive folder, on
++//     their quota; no Workspace admin needed):
++//       GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN
++//   Path B - Service account + domain-wide delegation (impersonate a real user;
++//     needs a Workspace admin to authorize the SA for the Drive scope):
++//       GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
++//       GOOGLE_IMPERSONATE_SUBJECT (the user to act as)
++//   Path C - Service account into a Shared Drive (SA is a Content Manager; no
++//     impersonation). A bare SA has no personal Drive quota, so without a Shared
++//     Drive or impersonation the create fails on quota:
++//       GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
++// Selection: if a refresh token is set, Path A is used; else the service account
++// (Path B if GOOGLE_IMPERSONATE_SUBJECT is set, else Path C).
 +// GOVERNANCE: this writes client data (possibly PII) into Google Drive. Confirm
 +// folder location, sharing scope, and retention with the ISO 42001 owner before
 +// enabling in production.
@@ -257,27 +274,51 @@ index 0000000..300b700
 +const b64url = (buf) =>
 +  Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 +
-+async function getAccessToken(email, privateKey) {
-+  const now = Math.floor(Date.now() / 1000);
-+  const header = { alg: "RS256", typ: "JWT" };
-+  const claim = {
-+    iss: email,
-+    scope: "https://www.googleapis.com/auth/drive",
-+    aud: "https://oauth2.googleapis.com/token",
-+    iat: now,
-+    exp: now + 3600,
-+  };
-+  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`;
-+  const signature = crypto.createSign("RSA-SHA256").update(unsigned).sign(privateKey);
-+  const assertion = `${unsigned}.${b64url(signature)}`;
-+  const res = await fetch("https://oauth2.googleapis.com/token", {
++const TOKEN_URL = "https://oauth2.googleapis.com/token";
++const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
++
++// True if any auth path is configured, so an unconfigured deploy degrades (501).
++function sheetsConfigured() {
++  return !!(process.env.GOOGLE_OAUTH_REFRESH_TOKEN ||
++    (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY));
++}
++
++async function tokenFrom(params) {
++  const res = await fetch(TOKEN_URL, {
 +    method: "POST",
 +    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
++    body: new URLSearchParams(params),
 +  });
 +  const data = await res.json().catch(() => ({}));
 +  if (!res.ok || !data.access_token) throw new Error("token_failed:" + (data.error || res.status));
 +  return data.access_token;
++}
++
++// Path A: OAuth refresh token for a real user.
++function getOAuthToken(clientId, clientSecret, refreshToken) {
++  return tokenFrom({ grant_type: "refresh_token", client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken });
++}
++
++// Paths B/C: service account JWT. `subject` set = domain-wide delegation (act as
++// that user); unset = act as the service account itself (needs a Shared Drive).
++function getServiceAccountToken(email, privateKey, subject) {
++  const now = Math.floor(Date.now() / 1000);
++  const header = { alg: "RS256", typ: "JWT" };
++  const claim = { iss: email, scope: DRIVE_SCOPE, aud: TOKEN_URL, iat: now, exp: now + 3600 };
++  if (subject) claim.sub = subject;
++  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claim))}`;
++  const signature = crypto.createSign("RSA-SHA256").update(unsigned).sign(privateKey);
++  const assertion = `${unsigned}.${b64url(signature)}`;
++  return tokenFrom({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion });
++}
++
++// Resolve an access token from whichever path is configured (A > B/C).
++function resolveAccessToken() {
++  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
++  if (refreshToken) return getOAuthToken(process.env.GOOGLE_OAUTH_CLIENT_ID, process.env.GOOGLE_OAUTH_CLIENT_SECRET, refreshToken);
++  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
++  const privateKey = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
++  return getServiceAccountToken(email, privateKey, process.env.GOOGLE_IMPERSONATE_SUBJECT || "");
 +}
 +
 +export default async (req) => {
@@ -290,10 +331,8 @@ index 0000000..300b700
 +    return json(403, { error: "forbidden_origin" });
 +  }
 +
-+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-+  const privateKey = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").replace(/\\n/g, "\n");
 +  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
-+  if (!email || !privateKey) {
++  if (!sheetsConfigured()) {
 +    // Not configured — let the client degrade gracefully (brief still sends).
 +    return json(501, { error: "sheets_not_configured" });
 +  }
@@ -309,7 +348,7 @@ index 0000000..300b700
 +  const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
 +
 +  try {
-+    const token = await getAccessToken(email, privateKey);
++    const token = await resolveAccessToken();
 +
 +    // Multipart upload of the XLSX with a Google-Sheets target mimeType, so Drive
 +    // converts it to a native Sheet on the way in.
