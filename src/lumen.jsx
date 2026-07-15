@@ -15,11 +15,21 @@ const DEV = false;
 // the client link (?s=<id>). Fetch the CLIENT-SAFE fields (no consultant notes;
 // notes are returned only to the token-authenticated dashboard). Returns
 // { seed, seedId } or { seed:null, seedId:null }.
+// fetch with a hard timeout so a hung request never freezes the UI (a spinner
+// that never resolves, a Send button stuck disabled). Aborts after `ms` and
+// rejects like any network error; every caller already handles fetch rejection.
+async function fetchWithTimeout(url, opts = {}, ms = 30000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  try { return await fetch(url, { ...opts, signal: ac.signal }); }
+  finally { clearTimeout(t); }
+}
+
 async function fetchSeedFromURL() {
   try {
     const id = new URLSearchParams(location.search).get("s");
     if (!id) return { seed: null, seedId: null };
-    const res = await fetch(`${SEED_ENDPOINT}?id=${encodeURIComponent(id)}`);
+    const res = await fetchWithTimeout(`${SEED_ENDPOINT}?id=${encodeURIComponent(id)}`, {}, 15000);
     if (!res.ok) return { seed: null, seedId: null };
     const data = await res.json();
     const seed = data && data.seed && data.seed.company ? data.seed : null;
@@ -309,14 +319,28 @@ function lsClearDraft(seedId) { try { localStorage.removeItem(lsKey(seedId)); } 
 function mergeCdata(base, pr) {
   const { companyData,topicsData,channelsData,reportsData,alertsData,handoffData } = pr;
   if (!(companyData||topicsData||channelsData||reportsData||alertsData||handoffData)) return base;
+  // Wipe guards: a stray re-emit of an EMPTY array (model slip) must not erase
+  // data already captured — arrays replace wholesale only when the new one has
+  // items. Objects (company/handoff) merge field-by-field with blanks dropped,
+  // so a re-emit that forgot a field can't null out a value we already have.
+  // The editable review modal remains the human backstop for true removals.
+  const keepArr = (next, prev) => (Array.isArray(next) && next.length) ? next : prev;
+  const mergeObj = (next, prev) => next ? { ...prev, ...pruneEmpty(next) } : prev;
   return {...base,
-    company: companyData?{...base.company,...companyData}:base.company,
-    topics: topicsData||base.topics,
-    channels: channelsData||base.channels,
-    reports: reportsData||base.reports,
-    alerts: alertsData||base.alerts,
-    handoff: handoffData||base.handoff};
+    company: mergeObj(companyData, base.company),
+    topics: keepArr(topicsData, base.topics),
+    channels: keepArr(channelsData, base.channels),
+    reports: keepArr(reportsData, base.reports),
+    alerts: keepArr(alertsData, base.alerts),
+    handoff: mergeObj(handoffData, base.handoff)};
 }
+// Drop null/undefined/blank values so a marker re-emit with empty fields never
+// overwrites a previously captured value.
+const pruneEmpty = o => {
+  const r = {};
+  for (const k in o) { const v = o[k]; if (v != null && v !== "") r[k] = v; }
+  return r;
+};
 const emptyCdata = () => ({company:{},topics:[],channels:[],reports:[],alerts:[]});
 function pProg(t) { const m = t.match(/%%PROGRESS%%([\s\S]*?)%%END%%/); try { return m ? JSON.parse(m[1]) : null; } catch { return null; } }
 function pMark(t, k) { const m = t.match(new RegExp("%%"+k+"%%(\\[?[\\s\\S]*?\\]?)%%END%%")); try { return m ? JSON.parse(m[1]) : null; } catch { return null; } }
@@ -326,6 +350,14 @@ function pMark(t, k) { const m = t.match(new RegExp("%%"+k+"%%(\\[?[\\s\\S]*?\\]
 // truncate and silently drop that field. Collapsing runs of %% to a single %
 // keeps ordinary "50%" intact while removing any delimiter a client could inject.
 const sanitizeIn = s => String(s == null ? "" : s).replace(/%%+/g, "%");
+// The prompt requires a hidden <thought> block on every reply. It is only needed
+// for that turn's planning; re-sending past thoughts back in the history wastes
+// input tokens on every call. Strip them before an assistant turn re-enters history
+// (markers/widgets stay, so the model keeps the structured context it needs).
+const stripThoughtForHistory = t => String(t == null ? "" : t)
+  .replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/g, "")
+  .replace(/<(thought|thoughts|thinking|think)>[\s\S]*$/, "")
+  .trim();
 function stripAll(t) {
   let s = t
     .replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "")
@@ -548,11 +580,14 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
   const [dragIdx,setDragIdx] = useState(null);
   const upd  = (i,f,v) => setCards(c=>c.map((x,j)=>j===i?{...x,[f]:v}:x));
   const setSt = (i,s) => setCards(c=>c.map((x,j)=>j===i?{...x,status:s}:x));
+  // Native HTML5 drag does not fire on touch, so give a tap-friendly reorder too.
+  const move = (i,dir) => setCards(c=>{ const n=[...c], j=i+dir; if (j<0||j>=n.length) return c; [n[i],n[j]]=[n[j],n[i]]; return n; });
+  const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || (navigator.maxTouchPoints||0) > 0);
   const kept = cards.filter(c=>c.status==="kept");
   return <div style={{marginTop:8}}>
     <div style={{fontSize:11,color:"#64748b",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
       <span>{kept.length} {WL("kept",lang)} · {cards.filter(c=>c.status==="discarded").length} {WL("discarded",lang)} · {cards.filter(c=>c.status==="pending").length} {WL("pending",lang)}</span>
-      <span>☰ {WL("dragPrioritize",lang)}</span>
+      {!isTouch && <span>☰ {WL("dragPrioritize",lang)}</span>}
     </div>
     {cards.map((c,i) => <div key={c.id} draggable
       onDragStart={e=>{setDragIdx(i);e.dataTransfer.effectAllowed="move";}}
@@ -566,6 +601,8 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
         <div style={{fontSize:11,color:"#64748b",fontStyle:"italic"}}>{c.rationale}</div>
       </div>
       <div style={{display:"flex",gap:6,flexShrink:0}}>
+        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label="Move topic up" style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===0?"#cbd5e1":"#64748b",cursor:i===0?"default":"pointer",fontSize:12}}>▲</button>
+        <button onClick={()=>move(i,1)} disabled={i===cards.length-1} aria-label="Move topic down" style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===cards.length-1?"#cbd5e1":"#64748b",cursor:i===cards.length-1?"default":"pointer",fontSize:12}}>▼</button>
         <button onClick={()=>setSt(i,c.status==="kept"?"pending":"kept")} style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="kept"?"#bbf7d0":"#e2e8f0"}`,background:c.status==="kept"?"#dcfce7":"transparent",color:c.status==="kept"?"#166534":"#64748b",cursor:"pointer",fontSize:16}}>✓</button>
         <button onClick={()=>setSt(i,c.status==="discarded"?"pending":"discarded")} style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="discarded"?"#fecaca":"#e2e8f0"}`,background:c.status==="discarded"?"#fee2e2":"transparent",color:c.status==="discarded"?"#991b1b":"#64748b",cursor:"pointer",fontSize:16}}>✕</button>
       </div>
@@ -726,11 +763,11 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   }, [messages]);
   const objW = normObjectives(gw("OBJECTIVES"));
   const [co,setCo]     = useState({name:"",email:"",industry:"",useCase:"",contact:"",...cdata.company,name:cdata.company?.name||historyName});
-  const [mkts,setMkts] = useState((gw("MARKETS")||[]).join(", "));
+  const [mkts,setMkts] = useState((gw("MARKETS")||[]).join(", ")||cdata.company?.markets||"");
   const [langs,setLangs]= useState((gw("LANGUAGES")||[]).join(", ")||cdata.company?.languages||"");
   const [objs,setObjs] = useState(fmtRanked(objW)||cdata.company?.objectives||"");
   const [objDetails,setObjDetails] = useState(objW.details||"");
-  const [teams,setTeams]= useState((gw("TEAMS")||[]).join(", "));
+  const [teams,setTeams]= useState((gw("TEAMS")||[]).join(", ")||cdata.company?.teams||"");
   const [tz,setTz]     = useState(Array.isArray(gw("TIMEZONE"))?gw("TIMEZONE")[0]:(gw("TIMEZONE")||cdata.company?.timezone||""));
   const [users,setUsers]= useState(gw("USERS")||[]);
   // Topics can arrive two ways: the confirmed topic cards (name/keywords/rationale
@@ -747,6 +784,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
       return { name:tp.name||m.name||"", keywords:tp.keywords||m.keywords||"",
         rationale:tp.rationale||m.rationale||"", urls:tp.urls||m.urls||"",
         hashtags:tp.hashtags||m.hashtags||"", comments:tp.comments||m.comments||"",
+        group:tp.group||m.group||"",
         id:i, confirmed:!(isGuess(tp)||isGuess(m)) };
     });
   });
@@ -885,7 +923,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
       <div style={{padding:"16px 24px",borderTop:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexShrink:0}}>
         <div style={{fontSize:11,color:ready?"#16a34a":"#92400e"}}>{ready?"✓ Ready to download":`${gaps.length} item${gaps.length!==1?"s":""} to resolve first`}</div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:200,lineHeight:1.4}}>{sendErr}</div>}
+          {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?"We couldn’t send your brief just now. Please check your connection and press Send again.":sendErr}</div>}
           <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>Cancel</button>
           {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} title={ready?"":"Resolve the readiness gaps first"} style={{background:"transparent",border:`1px solid ${ready?P:"#e2e8f0"}`,color:ready?P:"#94a3b8",borderRadius:8,padding:"9px 18px",fontSize:13,fontWeight:600,cursor:ready?"pointer":"not-allowed"}}>⬇ Download a copy</button>}
           <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
@@ -970,6 +1008,8 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const prevSecRef = useRef(null);
   const sidRef  = useRef(null);
   const apiCountRef = useRef(0);
+  const usageRef = useRef({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+  const sendingRef = useRef(false); // synchronous double-send guard (state lags a fast double-click)
   const startedAtRef = useRef(null);
   const saveT   = useRef(null);
   const wRef    = useRef(wState);
@@ -1012,6 +1052,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     setWState({}); setCdata(emptyCdata());
     setSaved(null); setRetryMsg(null); histRef.current = [];
     prevSecRef.current = null; prevPct.current = 0;
+    apiCountRef.current = 0; usageRef.current = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   }, []);
 
   const loadTestSession = useCallback(() => {
@@ -1111,13 +1152,20 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     apiCountRef.current += 1;
     // The system prompt lives server-side in the chat function; the client only
     // flags whether the OVERSTATE correction pass is needed.
-    const res = await fetch(CHAT_ENDPOINT, {
+    const res = await fetchWithTimeout(CHAT_ENDPOINT, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ messages:trimmed, maxTokens:4000, overstateFix: !!sysExtra })
-    });
+    }, 60000);
     if (!res.ok) throw new Error(`api_${res.status}`);
     const d = await res.json();
     if (d.error) throw new Error("api_error");
+    if (d.usage) {
+      const u = usageRef.current;
+      u.input     += d.usage.input_tokens || 0;
+      u.output    += d.usage.output_tokens || 0;
+      u.cacheRead += d.usage.cache_read_input_tokens || 0;
+      u.cacheWrite+= d.usage.cache_creation_input_tokens || 0;
+    }
     return (d.content||[]).map(b=>b.text||"").join("");
   }, []);
 
@@ -1194,7 +1242,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       if (prog) setProgress(prog);
       else setProgress(p=>({...p,percent:Math.max(p.percent,inferPct())}));
       applyCdata(pr);
-      histRef.current.push({role:"assistant",content:raw});
+      histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       if (sndRef.current) pop();
       const dv = maybeDivider(prog);
       setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
@@ -1207,59 +1255,92 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   }, [callAPI, pop, inferPct, applyCdata]);
 
   const handleSend = useCallback(async (merged, users) => {
+    // Double-send guard: `sending` is React state and lags a fast double-click,
+    // so a ref (updates synchronously) is what actually prevents two records,
+    // two Sheets, or two Slack alerts from one impatient double-tap.
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true); setSendErr(null);
-    const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
-    const sentAt = new Date();
-
-    // Generate the editable Google Sheet from the brief's workbook. Best-effort:
-    // if Sheets isn't configured (501) or the call fails, the brief still sends;
-    // the client just doesn't get a Sheet link. Never blocks the confirmation.
-    let sheetUrl = null;
     try {
-      const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      const sres = await fetch(SHEET_ENDPOINT, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
-      });
-      if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
-    } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
-    setSheetLink(sheetUrl);
+      const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
+      const sentAt = new Date();
 
-    const record = {
-      id: sidRef.current,
-      merged, users: users || [],
-      handoff: cdata.handoff || null,
-      queries: merged.queries || "",
-      seed: seed || null,
-      seedId: seedId || null,
-      sheetUrl,
-      durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
-      apiCalls: apiCountRef.current,
-      status: "completed",
-      sentAt: sentAt.toISOString(),
-    };
-    try {
-      const res = await fetch(SESSION_ENDPOINT, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ session: record })
-      });
-      if (!res.ok) throw new Error(`save_${res.status}`);
+      // Generate the editable Google Sheet from the brief's workbook. Best-effort:
+      // if Sheets isn't configured (501) or the call fails, the brief still sends;
+      // the client just doesn't get a Sheet link. Never blocks the confirmation.
+      let sheetUrl = null;
+      try {
+        const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+        const sres = await fetchWithTimeout(SHEET_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
+        }, 45000);
+        if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
+      } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
+      setSheetLink(sheetUrl);
+
+      const record = {
+        id: sidRef.current,
+        merged, users: users || [],
+        handoff: cdata.handoff || {
+          maturity: "",
+          goalInOwnWords: merged.company?.useCase || "",
+          hesitations: "",
+          aiSuggestedUnconfirmed: "",
+          followUps: "Session sent before the assistant produced a full handoff — review the brief directly and confirm the gaps at the call.",
+          consultantTips: "",
+        },
+        queries: merged.queries || "",
+        seed: seed || null,
+        seedId: seedId || null,
+        sheetUrl,
+        durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
+        apiCalls: apiCountRef.current,
+        tokens: { ...usageRef.current },
+        status: "completed",
+        sentAt: sentAt.toISOString(),
+      };
+
+      let saveOk = false;
+      try {
+        const res = await fetchWithTimeout(SESSION_ENDPOINT, {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ session: record })
+        }, 15000);
+        if (!res.ok) throw new Error(`save_${res.status}`);
+        saveOk = true;
+      } catch (e) { console.error("Session save failed", e); }
+
+      // "Delivered" = it reached Proserv by at least one durable channel: the
+      // session store (dashboard) OR the Sheet (which also fires the Slack alert
+      // and drops the file in the Proserv folder). If BOTH failed, don't show a
+      // false "sent" — keep the draft and the modal open so the client can retry
+      // instead of walking away thinking it went through.
+      if (!saveOk && !sheetUrl) {
+        setSendErr("send-failed");
+        return; // the `finally` below still re-enables the Send button
+      }
+
+      onBriefSent?.({ ...record, filename, sentAt });
+      setSent(true); setShowExport(false);
+      // Clear the resume draft only once the record is safely stored; if the save
+      // failed but the Sheet carried it through, keep the draft so the session can
+      // still be re-sent later to populate the dashboard.
+      if (saveOk) lsClearDraft(seedId);
+      // Bring the "Brief sent" confirmation into view — without this the modal just
+      // closes and the client is left looking at empty scroll space (reads as a blank
+      // screen / no confirmation).
+      requestAnimationFrame(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; });
+      if (sndRef.current) chime();
     } catch (e) {
-      // The brief was built and the client should still see success; a store
-      // failure is our problem, not theirs. Log it, flag it quietly for retry,
-      // but do not block the confirmation.
-      console.error("Session save failed", e);
-      setSendErr("saved-locally");
+      // Catastrophic (e.g. buildWorkbook / XLSX threw before anything was sent).
+      // Never leave the client on a stuck spinner or a false success.
+      console.error("Send failed", e);
+      setSendErr("send-failed");
+    } finally {
+      setSending(false);
+      sendingRef.current = false;
     }
-    onBriefSent?.({ ...record, filename, sentAt });
-    setSent(true); setShowExport(false);
-    lsClearDraft(seedId); // brief is in; nothing left to resume on this device
-    // Bring the "Brief sent" confirmation into view — without this the modal just
-    // closes and the client is left looking at empty scroll space (reads as a blank
-    // screen / no confirmation).
-    requestAnimationFrame(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; });
-    if (sndRef.current) chime();
-    setSending(false);
   }, [chime, cdata, onBriefSent, seed, seedId, uiLang]);
 
   const maybeDivider = useCallback(prog => {
@@ -1388,7 +1469,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     const raw = await callAPILive([ini]);
     const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
     if (prog) setProgress(prog);
-    histRef.current.push({role:"assistant",content:raw});
+    histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
     prevSecRef.current = prog?.section || "company";
     setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
     setLoading(false);
@@ -1408,7 +1489,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     const raw = await callAPILive(histRef.current);
     const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
     if (prog) setProgress(prog);
-    histRef.current.push({role:"assistant",content:raw});
+    histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
     if (sndRef.current) pop();
     const dv = maybeDivider(prog);
     setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
@@ -1624,7 +1705,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
           </div>
         )}
 
-        {canCollapse && collapsed && <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20,paddingLeft:38}}>
+        {canCollapse && collapsed && <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20,paddingInlineStart:38}}>
           <div style={{height:1,width:20,background:C.border}}/>
           <button onClick={()=>setCollapsed(false)} style={{background:"transparent",border:"none",padding:0,fontSize:12,color:C.muted,cursor:"pointer",textDecoration:"underline"}}>Show {messages.length-SHOW} earlier messages</button>
         </div>}
@@ -1638,7 +1719,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
             <div style={{flex:1,height:1,background:C.border}}/>
           </div>;
           return <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:18,animation:m.role==="assistant"?"slideUpFade 0.4s ease-out forwards":"none"}}>
-            {m.role==="assistant" && <div style={{flexShrink:0,marginRight:10,marginTop:2}}><LumenIcon size={28}/></div>}
+            {m.role==="assistant" && <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><LumenIcon size={28}/></div>}
             <div style={{maxWidth:m.role==="assistant"?"min(88%, 580px)":"78%"}}>
               {m.content && <div>
                 <div style={{background:m.role==="user"?(m.isWidget?C.hi:C.uBg):(dark?C.card:"#F5F3FB"),border:`1px solid ${m.role==="user"?(m.isWidget?P:C.border):(dark?C.border:"#E5E0F3")}`,color:m.role==="user"?(m.isWidget?C.wTx:C.uTx):C.text,borderRadius:14,padding:"11px 15px",fontSize:14,lineHeight:1.7,boxShadow:m.role==="assistant"?"0 1px 3px rgba(1,43,58,0.06)":"none"}}>
@@ -1663,20 +1744,20 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
           </div>;
         })}
 
-        {showQR && !loading && <div style={{display:"flex",flexWrap:"wrap",gap:8,margin:"-8px 0 18px 38px"}}>
+        {showQR && !loading && <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:-8,marginBottom:18,marginInlineStart:38,marginInlineEnd:0}}>
           {last.quickReplies.map((qr,idx) => <button key={idx} onClick={()=>sendMsg(qr,qr)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{qr}</button>)}
         </div>}
         {loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
-          <div style={{flexShrink:0,marginRight:10,marginTop:2}}><LumenIcon size={28}/></div>
+          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><LumenIcon size={28}/></div>
           <div style={{background:dark?C.card:"#F5F3FB",border:`1px solid ${dark?C.border:"#E5E0F3"}`,borderRadius:14,padding:"14px 18px",maxWidth:"88%",boxShadow:"0 1px 3px rgba(1,43,58,0.06)"}}>
             {streamTxt ? <div style={{fontSize:14,lineHeight:1.65,color:C.text,whiteSpace:"pre-wrap"}}>{renderText(streamTxt)}<span style={{opacity:0.5}}>▍</span></div> : <TypingIndicator lang={uiLang}/>}
           </div>
         </div>}
 
         {retryMsg && !loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
-          <div style={{flexShrink:0,marginRight:10,marginTop:2}}><LumenIcon size={28}/></div>
+          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><LumenIcon size={28}/></div>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:13,color:C.muted}}>Taking a moment — give me one second…</span>
+            <span style={{fontSize:13,color:C.muted}}>That didn't go through. Tap Try again to resend.</span>
             <button onClick={()=>sendToAPI(retryMsg,true)} style={{background:P,color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Try again</button>
           </div>
         </div>}
