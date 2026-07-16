@@ -106,7 +106,7 @@ export default async (req) => {
   try { body = JSON.parse(rawBody); }
   catch { return json(400, { error: "bad_json" }); }
 
-  const { xlsxBase64, brief, filename, clientEmail, company, contactName, topicsCount, usersCount } = body || {};
+  const { xlsxBase64, brief, filename, clientEmail, company, contactName, topicsCount, usersCount, sessionId } = body || {};
   const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
 
   // Path D (preferred when set): hand off to an Apps Script Web App that runs as a
@@ -119,7 +119,7 @@ export default async (req) => {
     try {
       const r = await fetch(appsUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount }),
+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "" }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.url) {
