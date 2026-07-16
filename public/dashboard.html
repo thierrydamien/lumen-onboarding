@@ -29,6 +29,27 @@
   .muted { color:var(--muted); }
   .empty, .err { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
   .err { color:var(--cherry); }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:10px; margin-bottom:16px; }
+  .kpi { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+  .kpi .v { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .kpi .l { font-size:10.5px; color:var(--muted); margin-top:3px; line-height:1.4; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  th.num { text-align:right; }
+  .sub2 { font-size:10.5px; color:var(--muted); }
+  .chip { display:inline-block; margin-left:6px; padding:0 6px; border-radius:20px; font-size:9.5px; font-weight:700; background:#eef1f5; color:var(--muted); vertical-align:middle; }
+  .rep a { color:#0b6b3a; font-weight:700; text-decoration:underline; font-size:12px; }
+  .rep .ho { font-size:11px; color:var(--muted); }
+  .rep .none { color:var(--muted); }
+  .note { font-size:11px; color:var(--muted); margin:14px 2px 0; line-height:1.5; }
+  .filters { display:flex; gap:14px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .filters label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .filters select { font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--teal); cursor:pointer; }
+  .fclear { background:transparent; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--muted); }
+  .pill.inprog { background:#E8F1FE; color:#1d4ed8; }
+  .pill.stalled { background:#FEF3E2; color:#92400e; }
+  .tscroll { overflow-x:auto; }
+  .pbar { width:84px; height:6px; background:#eef1f4; border-radius:3px; overflow:hidden; }
+  .pbar i { display:block; height:100%; background:var(--teal); border-radius:3px; }
   .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; }
   .modal.show { display:flex; }
   .sheet { background:#fff; border-radius:14px; max-width:640px; width:100%; max-height:86vh; overflow:auto; padding:24px; }
@@ -51,6 +72,8 @@
   </div>
   <div class="wrap">
     <h1>Client onboarding sessions</h1>
+    <div id="kpis" class="kpis" hidden></div>
+    <div id="filters" class="filters" hidden></div>
     <div id="body"><div class="empty">Loading…</div></div>
   </div>
 
@@ -84,9 +107,9 @@
   }
 
   function fmtDuration(ms) {
+    ms = num(ms);
     if (!ms) return "—";
-    var m = Math.round(ms / 60000);
-    return m + " min";
+    return Math.round(ms / 60000) + " min";
   }
   function fmtDate(iso) {
     if (!iso) return "—";
@@ -97,42 +120,172 @@
       return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
     });
   }
+  // Only allow http(s) links to render as clickable. The session record is POSTed
+  // by the client, so a tampered sheetUrl (e.g. a "javascript:" URI) must never
+  // become a live href. esc() alone doesn't stop the scheme.
+  function safeUrl(u) {
+    u = String(u == null ? "" : u).trim();
+    return /^https?:\/\//i.test(u) ? u : "";
+  }
+  // Per-MTok rates for the model the proxy runs (claude-sonnet-4-x class):
+  // input $3, output $15, cache write $3.75, cache read $0.30. Estimate only.
+  var RATES = { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 };
+  // Coerce to a finite number; a non-numeric token field must never reach the
+  // math (|| 0 lets a truthy string through and yields NaN tiles).
+  function num(x) { x = +x; return Number.isFinite(x) ? x : 0; }
+  function costOf(t) {
+    if (!t) return null;
+    return (num(t.input) * RATES.input + num(t.output) * RATES.output +
+      num(t.cacheWrite) * RATES.cacheWrite + num(t.cacheRead) * RATES.cacheRead) / 1e6;
+  }
+  function totalTokens(t) {
+    if (!t) return null;
+    return num(t.input) + num(t.output) + num(t.cacheWrite) + num(t.cacheRead);
+  }
+  var STALE_MS = 48 * 3600 * 1000; // in-progress + idle past this reads as "stalled"
+  function displayStatus(s) {
+    if (s.status === "completed") return "completed";
+    var la = s.lastActiveAt ? Date.parse(s.lastActiveAt) : NaN;
+    if (isFinite(la) && (Date.now() - la) > STALE_MS) return "stalled";
+    return "in_progress";
+  }
+  var STATUS_META = {
+    completed:   { l: "Completed",   c: "completed" },
+    in_progress: { l: "In progress", c: "inprog" },
+    stalled:     { l: "Stalled",     c: "stalled" },
+  };
+  function fmtCost(c) { return c == null ? "—" : "$" + c.toFixed(2); }
+  function fmtTokens(n) {
+    if (n == null) return "—";
+    return n >= 1000 ? Math.round(n / 1000) + "k" : String(n);
+  }
+  function median(nums) {
+    var a = nums.filter(function (n) { return n != null; }).sort(function (x, y) { return x - y; });
+    if (!a.length) return null;
+    var mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+  }
 
   function load() {
     if (!getToken() && !askToken()) { $("body").innerHTML = '<div class="err">Access token required.</div>'; return; }
     $("body").innerHTML = '<div class="empty">Loading…</div>';
     authedFetch(SESSION_ENDPOINT)
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (data) { render(data.sessions || []); })
+      .then(function (data) {
+        render(data.sessions || []);
+        // Deep link from the Slack "View full session" link: ?id=<sessionId> opens
+        // that session's detail straight away (independent of the list).
+        var deepId = new URLSearchParams(location.search).get("id");
+        if (deepId) openSession(deepId);
+      })
       .catch(function (e) {
+        $("kpis").hidden = true; $("filters").hidden = true;
         $("body").innerHTML = '<div class="err">Could not load sessions (' + esc(e.message) + '). Check the session function is deployed.</div>';
         $("count").textContent = "";
       });
   }
 
+  var SESSIONS = [];
+  var FILTER = { status: "all", minPct: 0 };
+
+  function renderKpis(sessions) {
+    var box = $("kpis");
+    var total = sessions.length;
+    var completed = sessions.filter(function (s) { return s.status === "completed"; });
+    var compN = completed.length;
+    var rate = total ? Math.round(compN / total * 100) : 0;
+    // Median + time-saved are over completed briefs that have a known duration,
+    // so records with no timing neither move the median nor inflate the saving.
+    var durs = completed.map(function (s) { return s.durationMs; }).filter(function (n) { return n != null; });
+    var medMs = median(durs);
+    var medMin = medMs != null ? Math.round(medMs / 60000) : null;
+    var savedH = medMin != null ? (durs.length * Math.max(0, 90 - medMin)) / 60 : null;
+    var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
+    var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
+    var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
+    var kpis = [
+      [String(total), total === 1 ? "session" : "sessions"],
+      [compN + (total ? " (" + rate + "%)" : ""), "completed"],
+      [medMin != null ? medMin + " min" : "—", "median time, start to submit"],
+      [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 90 min manual)"],
+      [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
+    ];
+    box.innerHTML = kpis.map(function (k) {
+      return '<div class="kpi"><div class="v">' + esc(k[0]) + '</div><div class="l">' + esc(k[1]) + '</div></div>';
+    }).join("");
+    box.hidden = false;
+  }
+
+  function renderFilters() {
+    var statusOpts = [["all", "All statuses"], ["completed", "Completed"], ["in_progress", "In progress"], ["stalled", "Stalled"]];
+    var pctOpts = [["0", "Any progress"], ["25", "25% or more"], ["50", "50% or more"], ["75", "75% or more"], ["100", "100% progress"]];
+    function sel(id, opts, cur) {
+      return '<label>' + (id === "fStatus" ? "Status" : "Progress") + ' <select id="' + id + '">' +
+        opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(cur) === o[0] ? " selected" : "") + '>' + esc(o[1]) + '</option>'; }).join("") +
+        '</select></label>';
+    }
+    var box = $("filters");
+    box.innerHTML = sel("fStatus", statusOpts, FILTER.status) + sel("fPct", pctOpts, FILTER.minPct) +
+      '<button type="button" id="fClear" class="fclear">Clear</button>';
+    box.hidden = false;
+    $("fStatus").addEventListener("change", function (e) { FILTER.status = e.target.value; renderTable(); });
+    $("fPct").addEventListener("change", function (e) { FILTER.minPct = parseInt(e.target.value, 10) || 0; renderTable(); });
+    $("fClear").addEventListener("click", function () { FILTER = { status: "all", minPct: 0 }; renderFilters(); renderTable(); });
+  }
+
+  function rowHtml(s) {
+    var ds = displayStatus(s), meta = STATUS_META[ds] || STATUS_META.in_progress;
+    var pct = s.percent != null ? s.percent : 0;
+    var url = safeUrl(s.sheetUrl);
+    var rep = url
+      ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" data-link="1">Open Sheet ⤓</a>' + (s.hasHandoff ? '<div class="ho">+ handoff</div>' : "")
+      : (s.hasHandoff ? '<span class="ho">Handoff ready</span>' : '<span class="none">—</span>');
+    var tok = totalTokens(s.tokens);
+    return '<tr class="row" data-id="' + esc(s.id) + '">' +
+      '<td><strong>' + esc(s.company) + '</strong>' + (s.seeded ? '<span class="chip">seeded</span>' : "") +
+        '<div class="muted">' + esc(s.contact || s.email || "") + '</div></td>' +
+      '<td><span class="pill ' + meta.c + '">' + esc(meta.l) + '</span></td>' +
+      '<td><div class="pbar"><i style="width:' + pct + '%"></i></div><div class="sub2">' + pct + '%</div></td>' +
+      '<td>' + s.topicCount + ' topics · ' + s.channelCount + ' channels · ' + (s.userCount != null ? s.userCount : 0) + ' users</td>' +
+      '<td>' + fmtDuration(s.durationMs) + '</td>' +
+      '<td class="num">' + fmtTokens(tok) + '<div class="sub2">' + fmtCost(costOf(s.tokens)) + (typeof s.apiCalls === "number" ? ' · ' + s.apiCalls + ' calls' : "") + '</div></td>' +
+      '<td class="muted">' + esc(fmtDate(s.lastActiveAt || s.sentAt || s.savedAt)) + '</td>' +
+      '<td class="rep">' + rep + '</td>' +
+    '</tr>';
+  }
+
+  function renderTable() {
+    var list = SESSIONS.filter(function (s) {
+      if (FILTER.status !== "all" && displayStatus(s) !== FILTER.status) return false;
+      if (FILTER.minPct > 0 && (s.percent != null ? s.percent : 0) < FILTER.minPct) return false;
+      return true;
+    });
+    var head = '<table><thead><tr><th>Client</th><th>Status</th><th>Progress</th><th>Captured</th>' +
+      '<th>Time</th><th class="num">Tokens / cost</th><th>Last active</th><th>Report</th></tr></thead><tbody>';
+    var bodyRows = list.length ? list.map(rowHtml).join("")
+      : '<tr><td colspan="8" class="empty" style="padding:24px">No sessions match this filter.</td></tr>';
+    $("body").innerHTML =
+      '<div class="tscroll">' + head + bodyRows + '</tbody></table></div>' +
+      '<div class="note">A session is stored from the client\'s first real answer (marked in progress) and updated as they go; the completed record replaces it on send. "Stalled" = in progress with no activity for 48h. AI cost is an estimate from per-call token metering at $' + RATES.input + '/$' + RATES.output + ' per MTok in/out (plus cache rates).</div>';
+    Array.prototype.forEach.call(document.querySelectorAll("tr.row"), function (tr) {
+      tr.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest('a[data-link]')) return; // let the Sheet link open on its own
+        openSession(tr.getAttribute("data-id"));
+      });
+    });
+  }
+
   function render(sessions) {
+    SESSIONS = sessions;
     $("count").textContent = sessions.length + (sessions.length === 1 ? " session" : " sessions");
     if (!sessions.length) {
-      $("body").innerHTML = '<div class="empty">No completed onboarding sessions yet.</div>';
+      $("kpis").hidden = true; $("filters").hidden = true;
+      $("body").innerHTML = '<div class="empty">No onboarding sessions yet.</div>';
       return;
     }
-    var rows = sessions.map(function (s) {
-      var pillClass = s.status === "completed" ? "completed" : "other";
-      return '<tr class="row" data-id="' + esc(s.id) + '">' +
-        '<td><strong>' + esc(s.company) + '</strong><div class="muted">' + esc(s.contact || "") + '</div></td>' +
-        '<td><span class="pill ' + pillClass + '">' + esc(s.status) + '</span></td>' +
-        '<td>' + fmtDuration(s.durationMs) + '</td>' +
-        '<td>' + (s.apiCalls != null ? s.apiCalls : "—") + '</td>' +
-        '<td>' + s.topicCount + ' topics · ' + s.channelCount + ' channels</td>' +
-        '<td class="muted">' + esc(fmtDate(s.sentAt || s.savedAt)) + '</td>' +
-      '</tr>';
-    }).join("");
-    $("body").innerHTML =
-      '<table><thead><tr><th>Client</th><th>Status</th><th>Time</th><th>AI calls</th><th>Captured</th><th>Submitted</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>';
-    Array.prototype.forEach.call(document.querySelectorAll("tr.row"), function (tr) {
-      tr.addEventListener("click", function () { openSession(tr.getAttribute("data-id")); });
-    });
+    renderKpis(sessions);
+    renderFilters();
+    renderTable();
   }
 
   function openSession(id) {
@@ -160,9 +313,9 @@
 
   function renderSheet(s) {
     var c = (s.merged && s.merged.company) || {};
-    var topics = (s.merged && s.merged.topics) || [];
-    var channels = (s.merged && s.merged.channels) || [];
-    var users = s.users || [];
+    var topics = (s.merged && Array.isArray(s.merged.topics)) ? s.merged.topics : [];
+    var channels = (s.merged && Array.isArray(s.merged.channels)) ? s.merged.channels : [];
+    var users = Array.isArray(s.users) ? s.users : [];
     var html = '<button class="close" id="close">Close</button>' +
       '<h2>' + esc(c.name || "(unnamed)") + '</h2>' +
       '<div class="sub">' + esc(c.contact || "") + (c.email ? " · " + esc(c.email) : "") + '</div>' +
@@ -199,7 +352,8 @@
       html += '<div class="sec">Migrated queries</div><div class="list"><div style="white-space:pre-wrap;font-family:monospace;font-size:12px">' + esc(s.queries) + '</div></div>';
     }
 
-    if (s.sheetUrl) html += '<div class="sec">Editable Google Sheet</div><div class="list"><div><a href="' + esc(s.sheetUrl) + '" target="_blank" rel="noopener noreferrer">Open the client\'s brief in Google Sheets</a></div></div>';
+    var sUrl = safeUrl(s.sheetUrl);
+    if (sUrl) html += '<div class="sec">Editable Google Sheet</div><div class="list"><div><a href="' + esc(sUrl) + '" target="_blank" rel="noopener noreferrer">Open the client\'s brief in Google Sheets</a></div></div>';
 
     var h = s.handoff;
     if (h) {
