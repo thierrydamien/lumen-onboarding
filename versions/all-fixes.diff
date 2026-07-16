@@ -110,10 +110,10 @@ index ca56bb7..fc769eb 100644
    store error, check the package version against current Netlify docs.
 diff --git a/apps-script/onboarding-sheet-webapp.gs b/apps-script/onboarding-sheet-webapp.gs
 new file mode 100644
-index 0000000..a30d133
+index 0000000..303a38f
 --- /dev/null
 +++ b/apps-script/onboarding-sheet-webapp.gs
-@@ -0,0 +1,421 @@
+@@ -0,0 +1,437 @@
 +/**
 + * Lumen onboarding -> Google Sheet (Apps Script Web App).
 + *
@@ -185,6 +185,7 @@ index 0000000..a30d133
 +    safe_(function () { fillTopics_(ss, brief.topics || []); });
 +    safe_(function () { fillChannels_(ss, brief.channels || []); });
 +    safe_(function () { fillReportsAlerts_(ss, brief.reports || [], brief.alerts || []); });
++    safe_(function () { fillQueries_(ss, brief.queries || ""); });
 +    SpreadsheetApp.flush();
 +
 +    const url = copy.getUrl();
@@ -226,6 +227,8 @@ index 0000000..a30d133
 +    [/relevant geographic markets/, c.markets || ""],
 +    [/key languages/, c.languages || ""],
 +    [/business objectives/, c.objectives || ""],
++    [/objective detail/, c.objectiveDetails || ""],
++    [/^industry|industry\/vertical|industry sector/, c.industry || ""],
 +    [/planned use cases/, c.useCase || ""],
 +    [/preferred onboarding language/, c.onboardingLanguage || "English"],
 +    [/preferred time zone/, c.timezone || ""],
@@ -325,6 +328,19 @@ index 0000000..a30d133
 +      return { name: a.name || "", type: a.type || "", details: a.details || "", comments: a.comments || "" };
 +    });
 +  }
++}
++
++// Migrated queries: the master template has no dedicated tab, so the client's
++// pasted/uploaded existing setup was dropped on this path. Add a tab for it when
++// present (mirrors the fallback XLSX's "Migrated queries" sheet).
++function fillQueries_(ss, queries) {
++  const q = String(queries == null ? "" : queries).trim();
++  if (!q || q === "__skip__") return;
++  const sh = ss.insertSheet("Migrated queries");
++  sh.getRange(1, 1).setValue("Migrated queries (client's original content, as submitted)");
++  sh.getRange(2, 1).setValue("Reference for rebuilding queries in Lumen. May contain untranslated syntax from the client's previous tool.");
++  const lines = q.split("\n");
++  for (let i = 0; i < lines.length; i++) sh.getRange(4 + i, 1).setValue(lines[i]);
 +}
 +
 +function todayStr_() {
@@ -536,7 +552,7 @@ index 0000000..a30d133
 +  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 +}
 diff --git a/netlify/functions/chat.js b/netlify/functions/chat.js
-index 7197384..dbe2887 100644
+index 7197384..68b6355 100644
 --- a/netlify/functions/chat.js
 +++ b/netlify/functions/chat.js
 @@ -16,7 +16,7 @@ const MAX_MESSAGES = 40;
@@ -548,7 +564,7 @@ index 7197384..dbe2887 100644
  
  const OVERSTATE_FIX = "\n\nCORRECTION — REWRITE REQUIRED: Your previous reply implied the setup is already live, running, or delivering results. It is NOT — nothing is active until the consultant activates it at the review call. Rewrite your reply keeping all %% markers identical, but change the visible prose to use only future or conditional framing (\"once your consultant activates this, you'll…\", \"this will be set up to…\"). Do not use \"is now set up\", \"you're now getting\", \"will now get\", \"delivered on a schedule\", \"up and running\", or \"you're all set\".";
  
-@@ -59,7 +59,14 @@ export default async (req) => {
+@@ -59,7 +59,27 @@ export default async (req) => {
  
    const requested = Number(maxTokens) || MAX_TOKENS_CEILING;
    const max_tokens = Math.min(Math.max(requested, 1), MAX_TOKENS_CEILING);
@@ -561,10 +577,32 @@ index 7197384..dbe2887 100644
 +    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
 +    ...(overstateFix ? [{ type: "text", text: OVERSTATE_FIX }] : []),
 +  ];
++
++  // Cache the conversation prefix too, not just the system prompt. Putting a
++  // cache breakpoint on the last message means every prior turn is billed at the
++  // cache-read rate (~10% of input) on the next call instead of full input rate.
++  // The history is otherwise re-sent in full on all ~15-25 calls of a chat, so
++  // this is the biggest lever here — and it is a pure billing/latency change: the
++  // model receives byte-identical tokens, so output quality is unaffected.
++  // (Anthropic serves the longest cached prefix; ≤4 breakpoints, we use 2.)
++  const cachedMessages = messages.map((m, i) =>
++    i === messages.length - 1
++      ? { role: m.role, content: [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }] }
++      : m
++  );
  
    try {
      const res = await fetch(ANTHROPIC_URL, {
-@@ -77,7 +84,7 @@ export default async (req) => {
+@@ -69,7 +89,7 @@ export default async (req) => {
+         "x-api-key": key,
+         "anthropic-version": ANTHROPIC_VERSION,
+       },
+-      body: JSON.stringify({ model: MODEL, max_tokens, system, messages }),
++      body: JSON.stringify({ model: MODEL, max_tokens, system, messages: cachedMessages }),
+     });
+ 
+     const data = await res.json();
+@@ -77,7 +97,7 @@ export default async (req) => {
        console.error("Anthropic error", res.status, JSON.stringify(data && data.error));
        return json(res.status === 200 ? 502 : res.status, { error: "upstream_error", status: res.status });
      }
@@ -2737,7 +2775,7 @@ index 0000000..44949af
 +  }
 +}
 diff --git a/public/dashboard.html b/public/dashboard.html
-index 7d6d6c7..37cb8c6 100644
+index 7d6d6c7..aff19e7 100644
 --- a/public/dashboard.html
 +++ b/public/dashboard.html
 @@ -3,8 +3,12 @@
@@ -2753,7 +2791,7 @@ index 7d6d6c7..37cb8c6 100644
  <style>
    :root { --teal:#012B3A; --cherry:#FF4C46; --mint:#DFFFDE; --border:#e2e8f0; --muted:#5b6b76; }
    * { box-sizing:border-box; }
-@@ -25,6 +29,27 @@
+@@ -25,6 +29,31 @@
    .muted { color:var(--muted); }
    .empty, .err { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
    .err { color:var(--cherry); }
@@ -2772,6 +2810,10 @@ index 7d6d6c7..37cb8c6 100644
 +  .filters { display:flex; gap:14px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
 +  .filters label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
 +  .filters select { font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--teal); cursor:pointer; }
++  .filters input[type="search"] { font-family:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; color:var(--teal); min-width:220px; outline:none; }
++  .filters input[type="search"]:focus { border-color:#7c6fe0; }
++  th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
++  th.sortable:hover { color:var(--teal); }
 +  .fclear { background:transparent; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--muted); }
 +  .pill.inprog { background:#E8F1FE; color:#1d4ed8; }
 +  .pill.stalled { background:#FEF3E2; color:#92400e; }
@@ -2781,7 +2823,7 @@ index 7d6d6c7..37cb8c6 100644
    .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:20px; }
    .modal.show { display:flex; }
    .sheet { background:#fff; border-radius:14px; max-width:640px; width:100%; max-height:86vh; overflow:auto; padding:24px; }
-@@ -47,6 +72,8 @@
+@@ -47,6 +76,8 @@
    </div>
    <div class="wrap">
      <h1>Client onboarding sessions</h1>
@@ -2790,7 +2832,7 @@ index 7d6d6c7..37cb8c6 100644
      <div id="body"><div class="empty">Loading…</div></div>
    </div>
  
-@@ -56,6 +83,7 @@
+@@ -56,6 +87,7 @@
  
  <script>
    var SESSION_ENDPOINT = "/.netlify/functions/session";
@@ -2798,7 +2840,7 @@ index 7d6d6c7..37cb8c6 100644
    var $ = function (id) { return document.getElementById(id); };
  
    // ---- Access token gate ----
-@@ -79,9 +107,9 @@
+@@ -79,9 +111,9 @@
    }
  
    function fmtDuration(ms) {
@@ -2810,7 +2852,7 @@ index 7d6d6c7..37cb8c6 100644
    }
    function fmtDate(iso) {
      if (!iso) return "—";
-@@ -92,42 +120,172 @@
+@@ -92,42 +124,217 @@
        return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
      });
    }
@@ -2881,7 +2923,17 @@ index 7d6d6c7..37cb8c6 100644
    }
  
 +  var SESSIONS = [];
-+  var FILTER = { status: "all", minPct: 0 };
++  var FILTER = { status: "all", minPct: 0, q: "", sortKey: "lastActive", sortDir: "desc" };
++  // Value a row sorts by for a given column key.
++  function sortVal(s, key) {
++    if (key === "company") return (s.company || "").toLowerCase();
++    if (key === "status") return ({ completed: 0, in_progress: 1, stalled: 2 })[displayStatus(s)] ?? 9;
++    if (key === "percent") return s.percent != null ? s.percent : 0;
++    if (key === "time") return s.durationMs || 0;
++    if (key === "tokens") return totalTokens(s.tokens) || 0;
++    if (key === "lastActive") return Date.parse(s.lastActiveAt || s.sentAt || s.savedAt || "") || 0;
++    return 0;
++  }
 +
 +  function renderKpis(sessions) {
 +    var box = $("kpis");
@@ -2920,12 +2972,17 @@ index 7d6d6c7..37cb8c6 100644
 +        '</select></label>';
 +    }
 +    var box = $("filters");
-+    box.innerHTML = sel("fStatus", statusOpts, FILTER.status) + sel("fPct", pctOpts, FILTER.minPct) +
++    box.innerHTML =
++      '<input id="fSearch" type="search" placeholder="Search client, contact, email…" value="' + esc(FILTER.q) + '"/>' +
++      sel("fStatus", statusOpts, FILTER.status) + sel("fPct", pctOpts, FILTER.minPct) +
 +      '<button type="button" id="fClear" class="fclear">Clear</button>';
 +    box.hidden = false;
++    // #filters is a separate container from #body, so re-rendering the table on
++    // each keystroke does not steal focus from this input.
++    $("fSearch").addEventListener("input", function (e) { FILTER.q = e.target.value; renderTable(); });
 +    $("fStatus").addEventListener("change", function (e) { FILTER.status = e.target.value; renderTable(); });
 +    $("fPct").addEventListener("change", function (e) { FILTER.minPct = parseInt(e.target.value, 10) || 0; renderTable(); });
-+    $("fClear").addEventListener("click", function () { FILTER = { status: "all", minPct: 0 }; renderFilters(); renderTable(); });
++    $("fClear").addEventListener("click", function () { FILTER = { status: "all", minPct: 0, q: "", sortKey: "lastActive", sortDir: "desc" }; renderFilters(); renderTable(); });
 +  }
 +
 +  function rowHtml(s) {
@@ -2949,19 +3006,49 @@ index 7d6d6c7..37cb8c6 100644
 +    '</tr>';
 +  }
 +
++  var COLS = [
++    { label: "Client", key: "company" }, { label: "Status", key: "status" },
++    { label: "Progress", key: "percent" }, { label: "Captured", key: null },
++    { label: "Time", key: "time" }, { label: "Tokens / cost", key: "tokens", cls: "num" },
++    { label: "Last active", key: "lastActive" }, { label: "Report", key: null },
++  ];
++
 +  function renderTable() {
++    var q = FILTER.q.trim().toLowerCase();
 +    var list = SESSIONS.filter(function (s) {
 +      if (FILTER.status !== "all" && displayStatus(s) !== FILTER.status) return false;
 +      if (FILTER.minPct > 0 && (s.percent != null ? s.percent : 0) < FILTER.minPct) return false;
++      if (q) {
++        var hay = ((s.company || "") + " " + (s.contact || "") + " " + (s.email || "")).toLowerCase();
++        if (hay.indexOf(q) === -1) return false;
++      }
 +      return true;
 +    });
-+    var head = '<table><thead><tr><th>Client</th><th>Status</th><th>Progress</th><th>Captured</th>' +
-+      '<th>Time</th><th class="num">Tokens / cost</th><th>Last active</th><th>Report</th></tr></thead><tbody>';
++    var dir = FILTER.sortDir === "asc" ? 1 : -1;
++    list.sort(function (a, b) {
++      var va = sortVal(a, FILTER.sortKey), vb = sortVal(b, FILTER.sortKey);
++      if (typeof va === "string") return va.localeCompare(vb) * dir;
++      return (va - vb) * dir;
++    });
++    var arrow = FILTER.sortDir === "asc" ? " ▲" : " ▼";
++    var head = '<table><thead><tr>' + COLS.map(function (c) {
++      if (!c.key) return '<th' + (c.cls ? ' class="' + c.cls + '"' : "") + '>' + esc(c.label) + '</th>';
++      var active = FILTER.sortKey === c.key;
++      return '<th class="sortable' + (c.cls ? " " + c.cls : "") + '" data-sort="' + c.key + '">' + esc(c.label) + (active ? arrow : "") + '</th>';
++    }).join("") + '</tr></thead><tbody>';
 +    var bodyRows = list.length ? list.map(rowHtml).join("")
-+      : '<tr><td colspan="8" class="empty" style="padding:24px">No sessions match this filter.</td></tr>';
++      : '<tr><td colspan="8" class="empty" style="padding:24px">No sessions match.</td></tr>';
 +    $("body").innerHTML =
 +      '<div class="tscroll">' + head + bodyRows + '</tbody></table></div>' +
-+      '<div class="note">A session is stored from the client\'s first real answer (marked in progress) and updated as they go; the completed record replaces it on send. "Stalled" = in progress with no activity for 48h. AI cost is an estimate from per-call token metering at $' + RATES.input + '/$' + RATES.output + ' per MTok in/out (plus cache rates).</div>';
++      '<div class="note">Showing ' + list.length + ' of ' + SESSIONS.length + '. A session is stored from the client\'s first real answer (marked in progress) and updated as they go; the completed record replaces it on send. "Stalled" = in progress with no activity for 48h. AI cost is an estimate at $' + RATES.input + '/$' + RATES.output + ' per MTok in/out (plus cache rates).</div>';
++    Array.prototype.forEach.call(document.querySelectorAll("th.sortable"), function (th) {
++      th.addEventListener("click", function () {
++        var k = th.getAttribute("data-sort");
++        if (FILTER.sortKey === k) { FILTER.sortDir = FILTER.sortDir === "asc" ? "desc" : "asc"; }
++        else { FILTER.sortKey = k; FILTER.sortDir = k === "company" ? "asc" : "desc"; }
++        renderTable();
++      });
++    });
 +    Array.prototype.forEach.call(document.querySelectorAll("tr.row"), function (tr) {
 +      tr.addEventListener("click", function (e) {
 +        if (e.target.closest && e.target.closest('a[data-link]')) return; // let the Sheet link open on its own
@@ -3002,7 +3089,7 @@ index 7d6d6c7..37cb8c6 100644
    }
  
    function openSession(id) {
-@@ -135,15 +293,29 @@
+@@ -135,15 +342,29 @@
      $("modal").classList.add("show");
      authedFetch(SESSION_ENDPOINT + "?id=" + encodeURIComponent(id))
        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
@@ -3036,7 +3123,16 @@ index 7d6d6c7..37cb8c6 100644
      var html = '<button class="close" id="close">Close</button>' +
        '<h2>' + esc(c.name || "(unnamed)") + '</h2>' +
        '<div class="sub">' + esc(c.contact || "") + (c.email ? " · " + esc(c.email) : "") + '</div>' +
-@@ -180,6 +352,21 @@
+@@ -156,6 +377,8 @@
+         kv("Timezone", c.timezone) +
+         kv("Time spent", fmtDuration(s.durationMs)) +
+         kv("AI calls", s.apiCalls != null ? s.apiCalls : "—") +
++        kv("Tokens", s.tokens ? (fmtTokens(totalTokens(s.tokens)) + " — " + num(s.tokens.input) + " in / " + num(s.tokens.output) + " out / " + num(s.tokens.cacheRead) + " cached-read") : "—") +
++        kv("Est. cost", s.tokens ? fmtCost(costOf(s.tokens)) : "—") +
+         kv("Submitted", fmtDate(s.sentAt)) +
+       '</div>';
+ 
+@@ -180,6 +403,21 @@
        html += '<div class="sec">Migrated queries</div><div class="list"><div style="white-space:pre-wrap;font-family:monospace;font-size:12px">' + esc(s.queries) + '</div></div>';
      }
  
@@ -3059,7 +3155,7 @@ index 7d6d6c7..37cb8c6 100644
      $("close").addEventListener("click", function () { $("modal").classList.remove("show"); });
    }
 diff --git a/public/sales.html b/public/sales.html
-index c01a95e..bd56c8a 100644
+index c01a95e..32ba9ff 100644
 --- a/public/sales.html
 +++ b/public/sales.html
 @@ -3,8 +3,12 @@
@@ -3126,11 +3222,48 @@ index c01a95e..bd56c8a 100644
    }
  
    function fillExample() {
+@@ -134,6 +145,7 @@
+     $("email").value = "jane@acmecorp.com";
+     $("industry").value = "Consumer goods — footwear and apparel";
+     $("notes").value = "Enterprise tier. Main interest is competitive intelligence; key competitor is Nike.";
++    $("out").classList.remove("show"); // programmatic fill doesn't fire input events, so clear any stale link here too
+   }
+ 
+   function copyLink() {
+@@ -147,6 +159,15 @@
+   $("gen").addEventListener("click", generate);
+   $("example").addEventListener("click", fillExample);
+   $("copy").addEventListener("click", copyLink);
++
++  // Clear a stale link the moment the form is edited, so a consultant can never
++  // copy a link that points to a different client's seed than what's on screen.
++  ["company", "contactName", "email", "industry", "notes", "language"].forEach(function (id) {
++    var el = $(id);
++    if (!el) return;
++    el.addEventListener("input", function () { $("out").classList.remove("show"); });
++    el.addEventListener("change", function () { $("out").classList.remove("show"); });
++  });
+ </script>
+ </body>
+ </html>
 diff --git a/src/lumen.jsx b/src/lumen.jsx
-index a326b55..817d9a4 100644
+index a326b55..00c2dd3 100644
 --- a/src/lumen.jsx
 +++ b/src/lumen.jsx
-@@ -6,19 +6,35 @@ import * as XLSX from "xlsx";
+@@ -1,24 +1,55 @@
+ import { useState, useRef, useEffect, useCallback, useMemo, memo, Component } from "react";
+-import * as XLSX from "xlsx";
++// xlsx is the bulk of the JS bundle and is only needed when a client uploads a
++// file (QUERIES) or exports/sends the brief — never on first paint. Load it
++// lazily so it code-splits into its own chunk and doesn't tax the initial load.
++let _xlsxMod = null;
++async function loadXLSX() {
++  if (!_xlsxMod) { const m = await import("xlsx"); _xlsxMod = m.default || m; }
++  return _xlsxMod;
++}
+ 
+ // ================= LIVE CONFIG =================
+ // Frontends are served from the same Netlify site as the functions, so these
  // are same-origin relative paths (no CORS).
  const CHAT_ENDPOINT = "/.netlify/functions/chat";
  const SESSION_ENDPOINT = "/.netlify/functions/session";
@@ -3141,6 +3274,14 @@ index a326b55..817d9a4 100644
  
 -// Decode the client profile the Sales page encoded into ?c=<url-safe base64>.
 -function decodeSeedFromURL() {
+-  try {
+-    const p = new URLSearchParams(location.search).get("c");
+-    if (!p) return null;
+-    let b64 = p.replace(/-/g, "+").replace(/_/g, "/");
+-    while (b64.length % 4) b64 += "=";
+-    const seed = JSON.parse(decodeURIComponent(escape(atob(b64))));
+-    return seed && seed.company ? seed : null;
+-  } catch { return null; }
 +// The Sales page stores the profile server-side and puts only an opaque id in
 +// the client link (?s=<id>). Fetch the CLIENT-SAFE fields (no consultant notes;
 +// notes are returned only to the token-authenticated dashboard). Returns
@@ -3156,26 +3297,27 @@ index a326b55..817d9a4 100644
 +}
 +
 +async function fetchSeedFromURL() {
-   try {
--    const p = new URLSearchParams(location.search).get("c");
--    if (!p) return null;
--    let b64 = p.replace(/-/g, "+").replace(/_/g, "/");
--    while (b64.length % 4) b64 += "=";
--    const seed = JSON.parse(decodeURIComponent(escape(atob(b64))));
--    return seed && seed.company ? seed : null;
--  } catch { return null; }
-+    const id = new URLSearchParams(location.search).get("s");
-+    if (!id) return { seed: null, seedId: null };
-+    const res = await fetchWithTimeout(`${SEED_ENDPOINT}?id=${encodeURIComponent(id)}`, {}, 15000);
-+    if (!res.ok) return { seed: null, seedId: null };
-+    const data = await res.json();
-+    const seed = data && data.seed && data.seed.company ? data.seed : null;
-+    return { seed, seedId: seed ? id : null };
-+  } catch { return { seed: null, seedId: null }; }
++  const id = new URLSearchParams(location.search).get("s");
++  if (!id) return { seed: null, seedId: null };
++  // Retry once on a transient failure. If it still fails, KEEP the seedId so the
++  // consultant-notes linkage survives (the completed record can still be joined
++  // to the seed store) rather than silently downgrading a prepared session to a
++  // generic one and orphaning the notes.
++  for (let attempt = 0; attempt < 2; attempt++) {
++    try {
++      const res = await fetchWithTimeout(`${SEED_ENDPOINT}?id=${encodeURIComponent(id)}`, {}, 15000);
++      if (res.ok) {
++        const data = await res.json();
++        const seed = data && data.seed && data.seed.company ? data.seed : null;
++        return { seed, seedId: id, seedError: !seed };
++      }
++    } catch { /* fall through to retry */ }
++  }
++  return { seed: null, seedId: id, seedError: true };
  }
  
  const MIN_MS = 1500;
-@@ -30,7 +46,6 @@ const LINK = "#6D28D9"; // interactive purple
+@@ -30,7 +61,6 @@ const LINK = "#6D28D9"; // interactive purple
  const SECTION_KEYS   = ["company","path","topics","channels","reports","users"];
  const SECTION_LABELS = { company:"About you", path:"Approach", topics:"What to track", channels:"Where to look", reports:"Reports", users:"Your team" };
  const WIDGET_MAX     = { OBJECTIVES:3, TIMEZONE:1 };
@@ -3183,7 +3325,7 @@ index a326b55..817d9a4 100644
  const MARKETS_OPT    = ["United States","United Kingdom","France","Germany","Spain","Italy","Netherlands","Canada","Australia","Brazil","Japan","South Korea","India","Middle East","APAC","LATAM","Global"];
  const LANG_OPT       = ["English","French","German","Spanish","Italian","Dutch","Portuguese","Japanese","Korean","Mandarin","Arabic","Hindi"];
  const OBJ_OPT        = ["Competitive Intelligence","Campaign Optimization","Content Ideation & Recommendation","Reputation Management","Social Measurement","Brand Health Measurement","Issue Tracking","PR Measurement","Influencer Management","Consumer Insights","Trend Research"];
-@@ -50,116 +65,6 @@ const SMOKE_PERSONAS = [
+@@ -50,116 +80,6 @@ const SMOKE_PERSONAS = [
    { key:"offtopic", label:"Off-topic wanderer", emoji:"🦋" },
  ];
  
@@ -3300,7 +3442,7 @@ index a326b55..817d9a4 100644
  
  const CLIENT_BASE = "You are role-playing a CLIENT being onboarded onto Lumen, a social listening tool. Your profile: Jane Smith, Marketing Director at Acme Corp, a consumer goods (footwear and apparel) company. Email jane@acmecorp.com. Competitors: Nike, Adidas, Puma. Markets: US and UK.";
  
-@@ -244,7 +149,7 @@ const I18N = {
+@@ -244,7 +164,7 @@ const I18N = {
      welcomeSub:         "We\u2019ll ask about your goals, markets, and team \u2014 then generate your Lumen setup brief.",
      welcomeSubSeeded:   "Your Lumen team prepared this session for {company}. We\u2019ll talk through your goals, markets, and team \u2014 and build your setup brief as we go.",
      step1Title: "About 15 minutes",
@@ -3309,7 +3451,7 @@ index a326b55..817d9a4 100644
      step2Title: "A conversation, not a form",
      step2Desc:  "We'll cover your goals, what to track, where your audience talks, reports, and your team.",
      step3Title: "Then we take over",
-@@ -261,7 +166,7 @@ const I18N = {
+@@ -261,7 +181,7 @@ const I18N = {
      welcomeSub:         "Nous vous poserons des questions sur vos objectifs, vos marchés et votre équipe, puis nous générerons votre brief de configuration Lumen.",
      welcomeSubSeeded:   "Votre équipe Lumen a préparé cette session pour {company}. Nous aborderons vos objectifs, vos marchés et votre équipe, et construirons votre brief au fur et à mesure.",
      step1Title: "Environ 15 minutes",
@@ -3318,7 +3460,7 @@ index a326b55..817d9a4 100644
      step2Title: "Une conversation, pas un formulaire",
      step2Desc:  "Nous aborderons vos objectifs, ce qu'il faut suivre, où votre audience s'exprime, les rapports et votre équipe.",
      step3Title: "Ensuite, nous prenons le relais",
-@@ -278,7 +183,7 @@ const I18N = {
+@@ -278,7 +198,7 @@ const I18N = {
      welcomeSub:         "Wir fragen nach Ihren Zielen, Märkten und Ihrem Team und erstellen anschließend Ihr Lumen-Setup-Briefing.",
      welcomeSubSeeded:   "Ihr Lumen-Team hat diese Sitzung für {company} vorbereitet. Wir besprechen Ihre Ziele, Märkte und Ihr Team und erstellen Ihr Setup-Briefing Schritt für Schritt.",
      step1Title: "Etwa 15 Minuten",
@@ -3327,7 +3469,7 @@ index a326b55..817d9a4 100644
      step2Title: "Ein Gespräch, kein Formular",
      step2Desc:  "Wir behandeln Ihre Ziele, was Sie beobachten möchten, wo Ihr Publikum spricht, Berichte und Ihr Team.",
      step3Title: "Dann übernehmen wir",
-@@ -295,7 +200,7 @@ const I18N = {
+@@ -295,7 +215,7 @@ const I18N = {
      welcomeSub:         "Le preguntaremos por sus objetivos, mercados y equipo, y luego generaremos su resumen de configuración de Lumen.",
      welcomeSubSeeded:   "Su equipo de Lumen preparó esta sesión para {company}. Hablaremos de sus objetivos, mercados y equipo, y crearemos su resumen de configuración sobre la marcha.",
      step1Title: "Unos 15 minutos",
@@ -3336,7 +3478,7 @@ index a326b55..817d9a4 100644
      step2Title: "Una conversación, no un formulario",
      step2Desc:  "Cubriremos sus objetivos, qué monitorizar, dónde habla su audiencia, los informes y su equipo.",
      step3Title: "Después nos encargamos nosotros",
-@@ -312,7 +217,7 @@ const I18N = {
+@@ -312,7 +232,7 @@ const I18N = {
      welcomeSub:         "Ti chiederemo i tuoi obiettivi, i mercati e il team, poi genereremo il tuo brief di configurazione Lumen.",
      welcomeSubSeeded:   "Il tuo team Lumen ha preparato questa sessione per {company}. Parleremo dei tuoi obiettivi, dei mercati e del team, e costruiremo il tuo brief di configurazione strada facendo.",
      step1Title: "Circa 15 minuti",
@@ -3345,7 +3487,7 @@ index a326b55..817d9a4 100644
      step2Title: "Una conversazione, non un modulo",
      step2Desc:  "Copriremo i tuoi obiettivi, cosa monitorare, dove parla il tuo pubblico, i report e il tuo team.",
      step3Title: "Poi ci pensiamo noi",
-@@ -329,7 +234,7 @@ const I18N = {
+@@ -329,7 +249,7 @@ const I18N = {
      welcomeSub:         "سنسألك عن أهدافك وأسواقك وفريقك، ثم ننشئ ملخص إعداد Lumen الخاص بك.",
      welcomeSubSeeded:   "أعدّ فريق Lumen هذه الجلسة لـ {company}. سنتحدث عن أهدافك وأسواقك وفريقك، وننشئ ملخص الإعداد الخاص بك خطوة بخطوة.",
      step1Title: "حوالي 15 دقيقة",
@@ -3354,7 +3496,7 @@ index a326b55..817d9a4 100644
      step2Title: "محادثة، وليست نموذجًا",
      step2Desc:  "سنغطي أهدافك، وما الذي تريد متابعته، وأين يتحدث جمهورك، والتقارير، وفريقك.",
      step3Title: "ثم نتولى نحن الأمر",
-@@ -349,24 +254,110 @@ function L(key, lang, vars) {
+@@ -349,24 +269,114 @@ function L(key, lang, vars) {
    return s;
  }
  
@@ -3410,7 +3552,11 @@ index a326b55..817d9a4 100644
 +    return (o && Array.isArray(o.messages) && o.messages.length && o.progress && (o.progress.percent || 0) < 100) ? o : null;
 +  } catch { return null; }
 +}
-+function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), JSON.stringify(snap)); } catch {} }
++function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), JSON.stringify(snap)); return true; } catch { return false; } }
++// Is localStorage actually writable? (Private mode / quota / disabled storage
++// all throw.) Used so the "Saved on this device" badge isn't shown when saving
++// silently fails.
++function lsProbe() { try { const k = "__lumen_probe__"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch { return false; } }
 +function lsClearDraft(seedId) { try { localStorage.removeItem(lsKey(seedId)); } catch {} }
 +
  // Pure fold of one parsed reply's markers onto a cdata object. Used live and to
@@ -3469,7 +3615,7 @@ index a326b55..817d9a4 100644
  function stripAll(t) {
    let s = t
      .replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "")
-@@ -502,28 +493,28 @@ function Stepper({ progress, dark, compact }) {
+@@ -502,28 +512,28 @@ function Stepper({ progress, dark, compact }) {
    })}</div>;
  }
  
@@ -3482,8 +3628,9 @@ index a326b55..817d9a4 100644
    const addC = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
    return <div style={{marginTop:8}}>
 -    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>max {max}</span>}</div>}
+-    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} style={{padding:"5px 12px",borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{o}</button>)}</div>
 +    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
-     <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} style={{padding:"5px 12px",borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{o}</button>)}</div>
++    <div role="group" style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{o}</button>)}</div>
      <div style={{display:"flex",gap:6,marginBottom:10}}>
 -      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||"Type a custom value…"} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
 -      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>+ Add</button>
@@ -3506,7 +3653,7 @@ index a326b55..817d9a4 100644
    const init = normObjectives(initialData);
    const [sel,setSel]       = useState(init.ranked);
    const [details,setDetails]= useState(init.details);
-@@ -533,14 +524,14 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData })
+@@ -533,14 +543,14 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData })
    const move   = (i,dir) => setSel(s => { const n=[...s], j=i+dir; if (j<0||j>=n.length) return s; [n[i],n[j]]=[n[j],n[i]]; return n; });
    const addC   = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
    return <div style={{marginTop:8}}>
@@ -3525,7 +3672,7 @@ index a326b55..817d9a4 100644
        {sel.map((o,i) => <div key={o} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderTop:i>0?"1px solid #eef1f5":"none"}}>
          <span style={{width:22,height:22,borderRadius:"50%",background:i===0?A:P,color:"white",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
          <span style={{flex:1,fontSize:13,color:"#1e293b",fontWeight:i===0?600:400}}>{o}</span>
-@@ -549,51 +540,54 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData })
+@@ -549,51 +559,54 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData })
          <button onClick={()=>toggle(o)} aria-label={`Remove ${o}`} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12}}>✕</button>
        </div>)}
      </div>}
@@ -3594,7 +3741,7 @@ index a326b55..817d9a4 100644
      </div>
      {cards.map((c,i) => <div key={c.id} draggable
        onDragStart={e=>{setDragIdx(i);e.dataTransfer.effectAllowed="move";}}
-@@ -602,18 +596,20 @@ function TopicCards({ suggestions, onConfirm, onSkip }) {
+@@ -602,18 +615,20 @@ function TopicCards({ suggestions, onConfirm, onSkip }) {
        style={{background:c.status==="kept"?"#f0fdf4":c.status==="discarded"?"#fef2f2":"#f8f9fa",border:`1px solid ${c.status==="kept"?"#bbf7d0":c.status==="discarded"?"#fecaca":"#e2e8f0"}`,borderRadius:10,padding:"12px 14px",marginBottom:8,opacity:c.status==="discarded"?0.5:1,display:"flex",alignItems:"center",gap:8}}>
        <div style={{cursor:"grab",padding:"0 8px",color:"#64748b",userSelect:"none"}}>☰</div>
        <div style={{flex:1}}>
@@ -3619,7 +3766,7 @@ index a326b55..817d9a4 100644
      </div>
    </div>;
  }
-@@ -633,17 +629,17 @@ function capQueryText(t) {
+@@ -633,17 +648,17 @@ function capQueryText(t) {
    if (out.length > Q_MAX_CHARS) { out = out.slice(0, Q_MAX_CHARS); out = out.slice(0, out.lastIndexOf("\n") > 0 ? out.lastIndexOf("\n") : out.length); truncated = true; }
    return { text: out, truncated };
  }
@@ -3641,7 +3788,7 @@ index a326b55..817d9a4 100644
    };
    const onFile = async e => {
      const f = e.target.files?.[0];
-@@ -653,7 +649,7 @@ function QueriesWidget({ onSubmit, initialData }) {
+@@ -653,13 +668,14 @@ function QueriesWidget({ onSubmit, initialData }) {
      // Guard before reading: XLSX.read / f.text() load the whole file into memory,
      // so a huge workbook freezes the tab before the line/char cap ever applies.
      if (f.size > Q_MAX_FILE_BYTES) {
@@ -3650,7 +3797,14 @@ index a326b55..817d9a4 100644
        return;
      }
      try {
-@@ -672,21 +668,21 @@ function QueriesWidget({ onSubmit, initialData }) {
+       const ext = (f.name.split(".").pop()||"").toLowerCase();
+       if (ext === "xlsx" || ext === "xls") {
+         const buf = await f.arrayBuffer();
++        const XLSX = await loadXLSX();
+         const wb = XLSX.read(buf, {type:"array"});
+         const rows = [];
+         wb.SheetNames.forEach(sn => {
+@@ -672,21 +688,21 @@ function QueriesWidget({ onSubmit, initialData }) {
        } else if (ext === "txt" || ext === "csv" || f.type.startsWith("text/")) {
          ingest(await f.text(), f.name);
        } else {
@@ -3678,7 +3832,7 @@ index a326b55..817d9a4 100644
      </div>
    </div>;
  }
-@@ -756,10 +752,10 @@ class ModalBoundary extends Component {
+@@ -756,10 +772,10 @@ class ModalBoundary extends Component {
    }
  }
  
@@ -3691,7 +3845,7 @@ index a326b55..817d9a4 100644
    const historyName = useMemo(() => {
      const m = messages.filter(m=>m.role==="user").map(m=>String(m.content||"")).join(" ")
        .match(/(?:company|we are|we're|I'm from|I work at)[^\w]*([A-Z][A-Za-z0-9& ]{1,40})/);
-@@ -767,17 +763,38 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
+@@ -767,17 +783,38 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
    }, [messages]);
    const objW = normObjectives(gw("OBJECTIVES"));
    const [co,setCo]     = useState({name:"",email:"",industry:"",useCase:"",contact:"",...cdata.company,name:cdata.company?.name||historyName});
@@ -3733,16 +3887,28 @@ index a326b55..817d9a4 100644
    const emptyTopic = () => ({ name:"",keywords:"",rationale:"",comments:"",id:Date.now(),confirmed:true });
    const confirmTopic = (i,v) => setTopics(ts=>ts.map((x,j)=>j===i?{...x,confirmed:v,comments:v?(x.comments||"").replace(GUESS_RE,"").replace(/^[\s,-]+|[\s,-]+$/g,"")||"Confirmed by client":x.comments}:x));
    const unconfirmed = topics.filter(t=>!t.confirmed).length;
-@@ -805,7 +822,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
+@@ -805,9 +842,18 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
        : <input value={val} onChange={e=>set(e.target.value)} style={{width:"100%",border:`1px solid ${req&&!val?"#fca5a5":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>}
    </div>;
    const addBtn = (label,onClick) => <button onClick={onClick} style={{background:"transparent",border:`1px dashed ${LINK}`,color:LINK,borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",marginTop:6}}>{label}</button>;
 -  const merged = { company:{...co,markets:mkts,languages:langs,objectives:objs,objectiveDetails:objDetails,teams,timezone:tz}, topics:topics.map(({confirmed,id,...t})=>t), channels:chans, reports:cdata.reports, alerts:cdata.alerts, queries:gw("QUERIES")||"" };
 +  const merged = { company:{...co,markets:mkts,languages:langs,objectives:objs,objectiveDetails:objDetails,teams,timezone:tz}, topics:topics.map(({confirmed,id,...t})=>t), channels:chans.map(({id,...c})=>c), reports:reports.map(({id,...r})=>r), alerts:alerts.map(({id,...a})=>a), queries:gw("QUERIES")||"" };
++  const dialogRef = useRef(null);
++  useEffect(() => {
++    // Dialog a11y: close on Escape and move focus into the dialog on open, so
++    // keyboard and screen-reader users aren't stranded behind the chat.
++    const onKey = e => { if (e.key === "Escape") onClose(); };
++    document.addEventListener("keydown", onKey);
++    dialogRef.current && dialogRef.current.focus();
++    return () => document.removeEventListener("keydown", onKey);
++  }, [onClose]);
    return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16}}>
-     <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 16px 48px rgba(0,0,0,0.2)"}}>
+-    <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 16px 48px rgba(0,0,0,0.2)"}}>
++    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Your setup brief" tabIndex={-1} style={{background:"white",borderRadius:16,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 16px 48px rgba(0,0,0,0.2)",outline:"none"}}>
        <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-@@ -823,7 +840,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
+         <div><div style={{fontWeight:700,fontSize:16,color:"#1e293b"}}>Your setup brief</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>Everything you've shared, in one place. Open a section to adjust anything.</div></div>
+         <button onClick={onClose} aria-label="Close review" style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#94a3b8"}}>✕</button>
+@@ -823,7 +869,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
            </div>
            <div style={{flex:1,minWidth:0}}>
              <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{ready?"Ready to send":"Almost there"}</div>
@@ -3751,7 +3917,7 @@ index a326b55..817d9a4 100644
              {ready
                ? <div style={{fontSize:12,color:"#166534"}}>All required fields complete and all topics confirmed.</div>
                : <div style={{fontSize:12,color:"#92400e"}}>Still needed: {gaps.join(", ")}</div>}
-@@ -886,13 +903,29 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
+@@ -886,13 +932,29 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
            {addBtn("+ Add channel", ()=>setChans(cs=>[...cs,{...emptyChan(),id:Date.now()}]))}
            <PasteImport label="Have a list already? Paste it" placeholder={"One channel per line — a URL, a name, or both, e.g. Nike https://twitter.com/nike"} onImport={lines=>setChans(cs=>[...cs,...lines.map((l,i)=>{ const u=l.match(URL_RE)?.[0]||""; const author=l.replace(u,"").replace(/[|,]/g," ").trim(); return {author:author||"",type:guessChanType(u),url:u,owned:"",id:Date.now()+i}; })])}/>
          </Section>
@@ -3783,7 +3949,23 @@ index a326b55..817d9a4 100644
            <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} title={ready?"":"Resolve the readiness gaps first"} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?"Sending\u2026":"\ud83d\udce8 Send to my Lumen team"}</button>
          </div>
        </div>
-@@ -919,12 +952,14 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent,
+@@ -900,13 +962,14 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
+   </div>;
+ }
+ 
+-function doExport(merged, users, rawMessages) {
++async function doExport(merged, users, rawMessages) {
+   let companyName = merged.company?.name;
+   if (!companyName) {
+     const m = (rawMessages||[]).filter(m=>m.role==="user").map(m=>m.content||"").join(" ")
+       .match(/(?:company|we are|we're|I'm from|I work at)[^\w]*([A-Z][A-Za-z0-9& ]{1,40})/);
+     companyName = m?.[1]?.trim()||"Draft";
+   }
++  const XLSX = await loadXLSX();
+   const { wb, filename } = buildWorkbook(XLSX, {...merged, company:{...merged.company, name:companyName}}, users);
+   XLSX.writeFile(wb, filename);
+ }
+@@ -919,12 +982,14 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent,
          <div style={{fontWeight:700,fontSize:15,color:C.text,marginBottom:6}}>{sent?"Brief sent to your Lumen team":"Setup brief ready"}</div>
          <div style={{fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
            {sent
@@ -3802,7 +3984,7 @@ index a326b55..817d9a4 100644
            {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
          </div>
        </div>
-@@ -932,7 +967,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent,
+@@ -932,7 +997,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent,
    );
  }
  
@@ -3811,7 +3993,16 @@ index a326b55..817d9a4 100644
    const [theme,setTheme]       = useState("light");
    const [sound,setSound]       = useState(false);
    const [persona,setPersona]   = useState("strategist");
-@@ -973,6 +1008,8 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -950,6 +1015,8 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+   const [showExport,setShowExport]= useState(false);
+   const [cdata,setCdata]       = useState(emptyCdata());
+   const [retryMsg,setRetryMsg] = useState(null);
++  const [initErr,setInitErr]   = useState(null); // "start" | "resume" | null — first-turn/resume API failure, offers retry
++  const [draftOk,setDraftOk]   = useState(lsProbe); // is on-device draft saving actually working?
+   const [showPanel,setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth > 1080);
+   const [linkCopied,setLinkCopied] = useState(false);
+   const [smoke,setSmoke]       = useState(null);
+@@ -973,6 +1040,8 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
    const prevSecRef = useRef(null);
    const sidRef  = useRef(null);
    const apiCountRef = useRef(0);
@@ -3820,7 +4011,7 @@ index a326b55..817d9a4 100644
    const startedAtRef = useRef(null);
    const saveT   = useRef(null);
    const wRef    = useRef(wState);
-@@ -991,9 +1028,49 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -991,9 +1060,49 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
    useEffect(() => { botRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
    useEffect(() => { if (progress.percent===100&&prevPct.current<100&&sndRef.current) chime(); prevPct.current=progress.percent; }, [progress.percent, chime]);
  
@@ -3843,7 +4034,7 @@ index a326b55..817d9a4 100644
 +    if (!started || sent || messages.length === 0) return;
 +    if (saveT.current) clearTimeout(saveT.current);
 +    saveT.current = setTimeout(() => {
-+      lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, savedAt: Date.now() });
++      setDraftOk(lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, savedAt: Date.now() }));
 +      // Server upsert. Best-effort, never blocks the chat. Skipped while a send is
 +      // in flight so a late autosave can't overwrite the completed record.
 +      const pct = (progress && progress.percent) || 0;
@@ -3872,7 +4063,7 @@ index a326b55..817d9a4 100644
  
    const resetSession = useCallback(() => {
      sidRef.current = crypto.randomUUID();
-@@ -1002,6 +1079,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1002,6 +1111,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
      setWState({}); setCdata(emptyCdata());
      setSaved(null); setRetryMsg(null); histRef.current = [];
      prevSecRef.current = null; prevPct.current = 0;
@@ -3880,7 +4071,7 @@ index a326b55..817d9a4 100644
    }, []);
  
    const loadTestSession = useCallback(() => {
-@@ -1101,13 +1179,20 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1101,13 +1211,20 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
      apiCountRef.current += 1;
      // The system prompt lives server-side in the chat function; the client only
      // flags whether the OVERSTATE correction pass is needed.
@@ -3903,7 +4094,7 @@ index a326b55..817d9a4 100644
      return (d.content||[]).map(b=>b.text||"").join("");
    }, []);
  
-@@ -1143,18 +1228,6 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1143,18 +1260,6 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
    const callClientAPI = useCallback(async (systemPrompt, hist) => {
      throw new Error("simulate_unavailable_in_live_build");
    }, []);
@@ -3922,7 +4113,7 @@ index a326b55..817d9a4 100644
  
    const inferPct = useCallback(() => {
      const sub = t => Object.entries(wRef.current).some(([k,v])=>k.endsWith(`-${t}`)&&(v===true||v?.submitted));
-@@ -1169,7 +1242,10 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1169,7 +1274,10 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
      setCdata(p => mergeCdata(p, pr));
    }, []);
  
@@ -3934,7 +4125,7 @@ index a326b55..817d9a4 100644
      // Ensure exactly one trailing user turn for this call. On a fresh send we
      // push it; on retry it's still there from the prior attempt. Either way, if
      // the call fails we pop it back off so a subsequent message can't leave two
-@@ -1193,7 +1269,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1193,7 +1301,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
        if (prog) setProgress(prog);
        else setProgress(p=>({...p,percent:Math.max(p.percent,inferPct())}));
        applyCdata(pr);
@@ -3943,7 +4134,7 @@ index a326b55..817d9a4 100644
        if (sndRef.current) pop();
        const dv = maybeDivider(prog);
        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
-@@ -1206,42 +1282,94 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1206,42 +1314,95 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
    }, [callAPI, pop, inferPct, applyCdata]);
  
    const handleSend = useCallback(async (merged, users) => {
@@ -3973,6 +4164,7 @@ index a326b55..817d9a4 100644
 -        body: JSON.stringify({ session: record })
 -      });
 -      if (!res.ok) throw new Error(`save_${res.status}`);
++      const XLSX = await loadXLSX();
 +      const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
 +      const sentAt = new Date();
 +
@@ -4070,41 +4262,81 @@ index a326b55..817d9a4 100644
  
    const maybeDivider = useCallback(prog => {
      const sec = prog?.section;
-@@ -1364,12 +1492,12 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1364,33 +1525,54 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
        setCdata(p=>({...p, company:{name:sd.company||"", email:sd.email||"", industry:sd.industry||"", useCase:"", contact:sd.contactName||""}}));
      }
      if (msgRef.current) msgRef.current.scrollTop = 0;
 -    const ini = { role:"user", content: seededOpener(sd, uiLang) };
 +    const ini = { role:"user", content: sanitizeIn(seededOpener(sd, uiLang)) };
      histRef.current = [ini];
-     const raw = await callAPILive([ini]);
-     const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
-     if (prog) setProgress(prog);
+-    const raw = await callAPILive([ini]);
+-    const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
+-    if (prog) setProgress(prog);
 -    histRef.current.push({role:"assistant",content:raw});
-+    histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
-     prevSecRef.current = prog?.section || "company";
-     setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
-     setLoading(false);
-@@ -1378,6 +1506,9 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+-    prevSecRef.current = prog?.section || "company";
+-    setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
+-    setLoading(false);
++    setInitErr(null);
++    try {
++      const raw = await callAPILive([ini]);
++      const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
++      if (prog) setProgress(prog);
++      histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
++      prevSecRef.current = prog?.section || "company";
++      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
++    } catch (e) {
++      // Without this, a failed first turn left a permanent "Assistant is thinking…"
++      // spinner with no way out. Clear it and offer a retry instead.
++      console.error("startConvo failed", e);
++      setInitErr("start");
++    } finally {
++      setLoading(false);
++    }
+   }, [callAPI, init, resetSession, seed, uiLang]);
+ 
    const resumeConvo = useCallback(async () => {
      init(); if (!saved) return;
-     setStarted(true); setLoading(true); setSaved(null);
+-    setStarted(true); setLoading(true); setSaved(null);
++    setStarted(true); setLoading(true); setInitErr(null);
 +    if (saved.uiLang) setUiLang(saved.uiLang);
 +    if (saved.sid) sidRef.current = saved.sid;
 +    startedAtRef.current = saved.startedAt || Date.now();
      setMessages(saved.messages); setProgress(saved.progress); setWState(saved.wState||{});
      prevSecRef.current = saved.progress?.section || null;
      if (saved.cdata) setCdata(saved.cdata);
-@@ -1386,7 +1517,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
-     const raw = await callAPILive(histRef.current);
-     const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
-     if (prog) setProgress(prog);
+-    histRef.current = saved.history||[];
+-    histRef.current.push({role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."});
+-    const raw = await callAPILive(histRef.current);
+-    const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
+-    if (prog) setProgress(prog);
 -    histRef.current.push({role:"assistant",content:raw});
-+    histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
-     if (sndRef.current) pop();
-     const dv = maybeDivider(prog);
-     setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
-@@ -1433,20 +1564,20 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+-    if (sndRef.current) pop();
+-    const dv = maybeDivider(prog);
+-    setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
+-    setLoading(false);
++    // Clone the saved history so a failed attempt + retry can't stack two
++    // "[RESUMING SESSION]" markers onto the same array reference.
++    histRef.current = [...(saved.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
++    try {
++      const raw = await callAPILive(histRef.current);
++      const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
++      if (prog) setProgress(prog);
++      histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
++      if (sndRef.current) pop();
++      const dv = maybeDivider(prog);
++      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
++      setSaved(null); // only clear the resume draft once we've actually continued
++    } catch (e) {
++      // Keep `saved` so the retry can re-resume; clear the spinner and surface a retry.
++      console.error("resumeConvo failed", e);
++      setInitErr("resume");
++    } finally {
++      setLoading(false);
++    }
+   }, [saved, callAPI, init, pop]);
+ 
+   const sendMsg = useCallback(async (ov, chip) => {
+@@ -1433,20 +1615,20 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
        lastName:(cdata.company.contact||"").split(" ").slice(1).join(" "),
        email:cdata.company.email, role:"", access:"Admin"
      }] : []);
@@ -4135,7 +4367,7 @@ index a326b55..817d9a4 100644
  
    if (!checked) return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>Loading…</div>;
  
-@@ -1454,7 +1585,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1454,7 +1636,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
    const last = messages[messages.length-1], showQR = last?.role==="assistant"&&last?.quickReplies?.length>0&&!loading;
    const done = progress.percent === 100;
  
@@ -4144,7 +4376,7 @@ index a326b55..817d9a4 100644
    const fmtV = v => { if (v==null||v===""||(Array.isArray(v)&&!v.length)) return null; if (v==="__skip__") return "Skipped"; return Array.isArray(v)?v.join(", "):String(v); };
    const topicsList = (cdata.topics?.length?cdata.topics:Array.isArray(gwp("TOPICS"))?gwp("TOPICS"):[]);
    const usersList  = Array.isArray(gwp("USERS"))?gwp("USERS"):[];
-@@ -1497,7 +1628,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1497,7 +1679,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
          </div>
        </div>}
  
@@ -4153,16 +4385,16 @@ index a326b55..817d9a4 100644
  
        {showPanel && started && <div style={{position:"fixed",top:56,right:0,bottom:0,width:mob?"100%":320,background:C.card,borderLeft:`1px solid ${C.border}`,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":"-4px 0 16px rgba(0,0,0,0.08)"}}>
          <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>
-@@ -1548,7 +1679,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1548,7 +1730,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
        {started && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
          <div style={{maxWidth:640,margin:"0 auto",display:"flex",alignItems:"flex-end",gap:16}}>
            <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob}/></div>
 -          {!mob && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>✓ Auto-saved <span style={{opacity:0.6}}>(simulated in demo)</span></div>}
-+          {!mob && !sent && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>✓ Saved on this device</div>}
++          {!mob && !sent && draftOk && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>✓ Saved on this device</div>}
          </div>
        </div>}
  
-@@ -1597,12 +1728,12 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1597,12 +1779,12 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
              <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{saved?.progress?.percent||0}% complete</p>
              <div style={{display:"flex",gap:12}}>
                <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>Resume session</button>
@@ -4177,7 +4409,7 @@ index a326b55..817d9a4 100644
            <div style={{height:1,width:20,background:C.border}}/>
            <button onClick={()=>setCollapsed(false)} style={{background:"transparent",border:"none",padding:0,fontSize:12,color:C.muted,cursor:"pointer",textDecoration:"underline"}}>Show {messages.length-SHOW} earlier messages</button>
          </div>}
-@@ -1616,7 +1747,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1616,7 +1798,7 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
              <div style={{flex:1,height:1,background:C.border}}/>
            </div>;
            return <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:18,animation:m.role==="assistant"?"slideUpFade 0.4s ease-out forwards":"none"}}>
@@ -4186,7 +4418,7 @@ index a326b55..817d9a4 100644
              <div style={{maxWidth:m.role==="assistant"?"min(88%, 580px)":"78%"}}>
                {m.content && <div>
                  <div style={{background:m.role==="user"?(m.isWidget?C.hi:C.uBg):(dark?C.card:"#F5F3FB"),border:`1px solid ${m.role==="user"?(m.isWidget?P:C.border):(dark?C.border:"#E5E0F3")}`,color:m.role==="user"?(m.isWidget?C.wTx:C.uTx):C.text,borderRadius:14,padding:"11px 15px",fontSize:14,lineHeight:1.7,boxShadow:m.role==="assistant"?"0 1px 3px rgba(1,43,58,0.06)":"none"}}>
-@@ -1641,20 +1772,20 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+@@ -1641,24 +1823,32 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
            </div>;
          })}
  
@@ -4194,8 +4426,9 @@ index a326b55..817d9a4 100644
 +        {showQR && !loading && <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:-8,marginBottom:18,marginInlineStart:38,marginInlineEnd:0}}>
            {last.quickReplies.map((qr,idx) => <button key={idx} onClick={()=>sendMsg(qr,qr)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{qr}</button>)}
          </div>}
-         {loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
+-        {loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
 -          <div style={{flexShrink:0,marginRight:10,marginTop:2}}><LumenIcon size={28}/></div>
++        {loading && <div role="status" aria-live="polite" aria-label={WL("thinking",uiLang)} style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
 +          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><LumenIcon size={28}/></div>
            <div style={{background:dark?C.card:"#F5F3FB",border:`1px solid ${dark?C.border:"#E5E0F3"}`,borderRadius:14,padding:"14px 18px",maxWidth:"88%",boxShadow:"0 1px 3px rgba(1,43,58,0.06)"}}>
              {streamTxt ? <div style={{fontSize:14,lineHeight:1.65,color:C.text,whiteSpace:"pre-wrap"}}>{renderText(streamTxt)}<span style={{opacity:0.5}}>▍</span></div> : <TypingIndicator lang={uiLang}/>}
@@ -4211,7 +4444,19 @@ index a326b55..817d9a4 100644
              <button onClick={()=>sendToAPI(retryMsg,true)} style={{background:P,color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Try again</button>
            </div>
          </div>}
-@@ -1678,6 +1809,9 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
+ 
++        {initErr && !loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
++          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><LumenIcon size={28}/></div>
++          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
++            <span style={{fontSize:13,color:C.muted}}>We couldn't reach the assistant. Please check your connection and try again.</span>
++            <button onClick={()=>{ const t=initErr; setInitErr(null); t==="resume"?resumeConvo():startConvo(); }} style={{background:P,color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Try again</button>
++          </div>
++        </div>}
++
+         {done && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} sheetLink={sheetLink} onSeeProserv={onSeeProserv}/>}
+ 
+         <div ref={botRef}/>
+@@ -1678,6 +1868,9 @@ function OnboardingApp({ seed, onBriefSent, onSeeProserv }) {
                {loading?<Spinner/>:<span style={{fontSize:18}}>↑</span>}
              </button>
            </div>
@@ -4221,7 +4466,44 @@ index a326b55..817d9a4 100644
          </div>
        </div>}
      </div>
-@@ -2085,16 +2219,23 @@ export default function Demo() {
+@@ -1701,12 +1894,13 @@ function buildWorkbook(XL, merged, users) {
+     ["Company Name","",co.name||""],
+     ["Date","",new Date().toLocaleDateString()],
+     ["Contact Email","",co.email||""],
++    ["Industry","",co.industry||""],
+     ["Relevant Geographic Markets","Example: US, Germany, UK",co.markets||""],
+     ["Key Languages","Example: English, German",co.languages||""],
+     ["Business Objectives (Top 3 in priority order)","Example: 1. Reputation Management, 2. Competitive Intelligence, 3. Issue Tracking",co.objectives||""],
+     ["Objective Details","Anything else about your objectives",co.objectiveDetails||""],
+     ["Planned Use Cases Description","What insights or outcomes are you most interested in?",co.useCase||""],
+-    ["Preferred Onboarding Language","English","English"],
++    ["Preferred Onboarding Language","English",co.onboardingLanguage||"English"],
+     ["Preferred Time Zone","CET",co.timezone||""],
+     ["Teams/Departments Using Platform","Marketing, Comms, PR",co.teams||""],
+     ["Main Point of Contact (Name + Email)","Jane Smith - jane@company.com",co.contact||co.email||""],
+@@ -1941,8 +2135,9 @@ function SlackCard({ variant, brief }) {
+ 
+ function DriveCard({ brief }) {
+   const fname = (brief?.filename || EXAMPLE_BRIEF.filename).replace(/\.xlsx$/, "");
+-  const download = () => {
++  const download = async () => {
+     const b = brief || EXAMPLE_BRIEF;
++    const XLSX = await loadXLSX();
+     const { wb, filename } = buildWorkbook(XLSX, b.merged, b.users);
+     XLSX.writeFile(wb, filename);
+   };
+@@ -2005,8 +2200,9 @@ function ProservStage({ brief, useExample }) {
+ }
+ 
+ function DashboardStage({ brief, onOpenHandoff }) {
+-  const downloadBrief = () => {
++  const downloadBrief = async () => {
+     const b = brief || EXAMPLE_BRIEF;
++    const XLSX = await loadXLSX();
+     const { wb, filename } = buildWorkbook(XLSX, b.merged, b.users);
+     XLSX.writeFile(wb, filename);
+   };
+@@ -2085,16 +2281,23 @@ export default function Demo() {
  }
  
  // ================= LIVE CLIENT CHAT ENTRY =================
