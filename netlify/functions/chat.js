@@ -68,6 +68,19 @@ export default async (req) => {
     ...(overstateFix ? [{ type: "text", text: OVERSTATE_FIX }] : []),
   ];
 
+  // Cache the conversation prefix too, not just the system prompt. Putting a
+  // cache breakpoint on the last message means every prior turn is billed at the
+  // cache-read rate (~10% of input) on the next call instead of full input rate.
+  // The history is otherwise re-sent in full on all ~15-25 calls of a chat, so
+  // this is the biggest lever here — and it is a pure billing/latency change: the
+  // model receives byte-identical tokens, so output quality is unaffected.
+  // (Anthropic serves the longest cached prefix; ≤4 breakpoints, we use 2.)
+  const cachedMessages = messages.map((m, i) =>
+    i === messages.length - 1
+      ? { role: m.role, content: [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }] }
+      : m
+  );
+
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -76,7 +89,7 @@ export default async (req) => {
         "x-api-key": key,
         "anthropic-version": ANTHROPIC_VERSION,
       },
-      body: JSON.stringify({ model: MODEL, max_tokens, system, messages }),
+      body: JSON.stringify({ model: MODEL, max_tokens, system, messages: cachedMessages }),
     });
 
     const data = await res.json();
