@@ -53,7 +53,19 @@ export default async (req) => {
 
     const id = (typeof session.id === "string" && session.id) || genId();
     const record = { ...session, id, savedAt: new Date().toISOString() };
-    try { await store.setJSON(id, record); }
+    try {
+      // Status lock: in-progress autosaves and the final completed record share an
+      // id (last-write-wins in Blobs). A delayed in-progress write must never
+      // downgrade a completed brief and lose its sheetUrl/handoff/full data, so
+      // refuse to overwrite a stored completed record with a non-completed one.
+      // (Read-before-write isn't atomic — Blobs has no CAS — but it closes the
+      // realistic reorder window.)
+      if (record.status !== "completed") {
+        const prev = await store.get(id, { type: "json" }).catch(() => null);
+        if (prev && prev.status === "completed") return json(200, { id, skipped: "completed_locked" });
+      }
+      await store.setJSON(id, record);
+    }
     catch (err) { console.error("Failed to save session", err); return json(502, { error: "save_failed" }); }
     return json(200, { id });
   }
@@ -92,8 +104,19 @@ export default async (req) => {
   return json(405, { error: "method_not_allowed" });
 };
 
+// The record is client-POSTed, so numeric fields must be coerced (not just
+// passed through): a non-numeric value would otherwise reach the dashboard and
+// either render as an XSS sink (apiCalls) or poison the KPI math (tokens -> NaN).
+const numOrNull = (x) => (Number.isFinite(x) ? x : null);
+
 function summarize(r) {
   const company = (r.merged && r.merged.company) || {};
+  const status = r.status === "in_progress" ? "in_progress" : "completed"; // whitelist
+  const t = r.tokens && typeof r.tokens === "object" ? r.tokens : null;
+  const tokens = t ? { input: +t.input || 0, output: +t.output || 0, cacheRead: +t.cacheRead || 0, cacheWrite: +t.cacheWrite || 0 } : null;
+  const percent = Number.isFinite(r.percent)
+    ? Math.max(0, Math.min(100, Math.round(r.percent)))
+    : (status === "completed" ? 100 : 0);
   return {
     id: r.id,
     company: company.name || "(unnamed)",
@@ -103,9 +126,15 @@ function summarize(r) {
     topicCount: Array.isArray(r.merged && r.merged.topics) ? r.merged.topics.length : 0,
     channelCount: Array.isArray(r.merged && r.merged.channels) ? r.merged.channels.length : 0,
     userCount: Array.isArray(r.users) ? r.users.length : 0,
-    status: r.status || "completed",
-    durationMs: r.durationMs || null,
-    apiCalls: r.apiCalls || null,
+    status: status,
+    percent: percent,
+    durationMs: numOrNull(r.durationMs),
+    apiCalls: numOrNull(r.apiCalls),
+    tokens: tokens,
+    sheetUrl: r.sheetUrl || null,
+    hasHandoff: !!(r.handoff && typeof r.handoff === "object" && Object.keys(r.handoff).length),
+    seeded: !!r.seedId,
+    lastActiveAt: r.lastActiveAt || r.sentAt || r.savedAt || null,
     sentAt: r.sentAt || null,
     savedAt: r.savedAt || null,
   };
