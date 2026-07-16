@@ -1,0 +1,82 @@
+# Lumen Onboarding: deploy checklist
+
+Everything you need to update to take the current build live. There are two
+surfaces, deployed separately: the Netlify site and the Apps Script Web App.
+
+## 1. Netlify site
+
+Source of truth for the web app. Build is `npm run build` (publish `dist`,
+functions `netlify/functions`), per netlify.toml.
+
+Files changed from the original baseline (deploy all of these):
+- src/lumen.jsx: the client app. Rebuilt into dist/ by `npm run build`. Do not
+  hand-edit dist; edit the source and rebuild.
+- public/dashboard.html: Proserv dashboard (static, served as-is).
+- public/sales.html: consultant link generator (static).
+- netlify/functions/chat.js: Anthropic proxy (system prompt + caching).
+- netlify/functions/session.js: session store (completed and in-progress).
+- netlify/functions/seed.js: seed store (prepared client profiles).
+- netlify/functions/sheet.js: Sheet generation proxy (forwards to Apps Script).
+
+Environment variables (Site settings, Environment variables):
+Required:
+- ANTHROPIC_API_KEY: the chat will not run without it.
+- DASHBOARD_TOKEN: gates all dashboard and seed reads. Pick a strong secret; the
+  dashboard page prompts for it.
+- APPS_SCRIPT_WEBAPP_URL: the deployed Apps Script Web App URL (section 2).
+- APPS_SCRIPT_SECRET: shared secret, must equal the Apps Script SHARED_SECRET.
+Optional:
+- SEED_TTL_DAYS: seed retention in days (default 90; 0 disables expiry).
+- URL: set automatically by Netlify, do not set by hand.
+- GOOGLE_* (six vars): only for the fallback Google-API auth paths. Not needed
+  while the Apps Script path is in use.
+
+Note: /dashboard and /sales carry noindex but are NOT access-gated in code. Put
+them behind Netlify password protection or Identity before real-client use.
+
+## 2. Apps Script Web App
+
+A separate project. Runs on your Google account, copies the requirements
+template into the Proserv folder, and posts the Slack alert.
+
+File:
+- apps-script/onboarding-sheet-webapp.gs: paste the full contents into the Apps
+  Script editor, then Deploy, Manage deployments, edit the existing deployment,
+  New version. Editing the existing deployment keeps the same Web App URL, so
+  APPS_SCRIPT_WEBAPP_URL on Netlify does not change.
+
+Script Properties (Project Settings, Script Properties):
+Required:
+- SHARED_SECRET: must equal Netlify APPS_SCRIPT_SECRET.
+- SLACK_BOT_TOKEN: bot token for the completion alert (no alert if unset).
+- DASHBOARD_URL: base dashboard URL; powers the "View full session" deep-link.
+- PIPELINE_SHEET_ID: the tracker sheet id
+  (1cU_-4GhgpK_YqzWR8pnC16IAEm00NA5Tsr7GyKHjvLY) for IC/TAM @mentions.
+- SLACK_IDS_JSON: JSON map of staff name to Slack user id, for the @mentions.
+  The roster lives here, not in the repo.
+Optional:
+- SLACK_CHANNEL: target channel (default C097154H39N).
+- SLACK_ESCALATION: comma-separated Slack ids to ping on TW-Core or no-match.
+
+## 3. What changed while you were away (v43 to v47)
+
+- v43: the in-app demo Slack card was aligned to the real message. Internal demo
+  only, no production behaviour.
+- v44: dashboard "Link sent" rows (seeds generated but never opened) plus seed
+  TTL (SEED_TTL_DAYS). Touches seed.js, session.js, dashboard.html.
+- v45: tools/ab-harness.mjs, a dev-only cost-vs-quality test. Not deployed.
+- v46: send-path durability. Sheet idempotency (a retry no longer creates a
+  duplicate Sheet or re-fires Slack) plus save-before-Sheet, so the Slack
+  deep-link never points at an unsaved session. Touches lumen.jsx and the Apps
+  Script (needs the redeploy in section 2).
+- v47: the A/B harness was extended to measure the history-cache lever (see the
+  open item on finding 21). Dev-only, not deployed.
+
+Deploy impact of v43 to v47: rebuild the Netlify site (src/lumen.jsx,
+public/dashboard.html, netlify/functions/seed.js, netlify/functions/session.js)
+and redeploy the Apps Script (onboarding-sheet-webapp.gs).
+
+## Not deployed
+- tools/ab-harness.mjs: local dev tool. Run with ANTHROPIC_API_KEY set; it makes
+  real API calls (a few dollars per run). Nothing it does reaches production.
+- versions/: per-version snapshots and CHANGES.md, kept for diffing and history.
