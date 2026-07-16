@@ -1035,15 +1035,42 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     setChecked(true);
   }, []);
 
-  // Autosave the in-progress draft (debounced) after each turn, until sent.
+  // Autosave the in-progress draft after each turn, until sent. Two sinks:
+  //  - localStorage: the full draft (messages/history) for resume on this device.
+  //  - server (from the first real answer on): a TRIMMED snapshot — structured
+  //    progress only, no messages/history — so Proserv sees live and stalled
+  //    sessions, not just completed ones. Keyed by session id, marked
+  //    in_progress; the completed record overwrites it on send (same id).
   useEffect(() => {
     if (!started || sent || messages.length === 0) return;
     if (saveT.current) clearTimeout(saveT.current);
     saveT.current = setTimeout(() => {
       lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, savedAt: Date.now() });
+      // Server upsert. Best-effort, never blocks the chat. Skipped while a send is
+      // in flight so a late autosave can't overwrite the completed record.
+      const pct = (progress && progress.percent) || 0;
+      const hasRealAnswer = !!(cdata.company && cdata.company.name) || pct > 0;
+      if (hasRealAnswer && !sendingRef.current) {
+        const usersW = gwp("USERS");
+        const inProgress = {
+          id: sidRef.current,
+          status: "in_progress",
+          percent: pct,
+          merged: { company: cdata.company || {}, topics: cdata.topics || [], channels: cdata.channels || [], reports: cdata.reports || [], alerts: cdata.alerts || [], queries: gwp("QUERIES") || "" },
+          users: Array.isArray(usersW) ? usersW : [],
+          handoff: cdata.handoff || null,
+          seedId: seedId || null,
+          seed: seed || null,
+          durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
+          apiCalls: apiCountRef.current,
+          tokens: { ...usageRef.current },
+          lastActiveAt: new Date().toISOString(),
+        };
+        fetchWithTimeout(SESSION_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: inProgress }) }, 15000).catch(() => {});
+      }
     }, 600);
     return () => { if (saveT.current) clearTimeout(saveT.current); };
-  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId]);
+  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId, seed]);
 
   const resetSession = useCallback(() => {
     sidRef.current = crypto.randomUUID();
@@ -1260,6 +1287,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     // two Sheets, or two Slack alerts from one impatient double-tap.
     if (sendingRef.current) return;
     sendingRef.current = true;
+    if (saveT.current) clearTimeout(saveT.current); // cancel any pending in-progress autosave so it can't land after the completed record
     setSending(true); setSendErr(null);
     try {
       const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
@@ -1273,7 +1301,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         const xlsxBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
         const sres = await fetchWithTimeout(SHEET_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
+          body: JSON.stringify({ sessionId: sidRef.current, xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
         }, 45000);
         if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
       } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
@@ -1700,7 +1728,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
             <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{saved?.progress?.percent||0}% complete</p>
             <div style={{display:"flex",gap:12}}>
               <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>Resume session</button>
-              <button onClick={()=>{lsClearDraft(seedId);resetSession();}} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
+              <button onClick={()=>{const keep=sidRef.current;lsClearDraft(seedId);resetSession();sidRef.current=keep;}} style={{background:"transparent",border:`1px solid ${C.border}`,color:C.muted,borderRadius:10,padding:"13px 28px",cursor:"pointer"}}>Start fresh</button>
             </div>
           </div>
         )}
