@@ -83,9 +83,26 @@ Three apps on one Netlify site, sharing one session store.
 
 - **Access control**: `/sales` and `/dashboard` pages are not gated at the page
   level and should sit behind Netlify password protection or Identity before real
-  use (they are marked `noindex`, which is only a crawler hint). Dashboard data
-  reads are token-gated via `DASHBOARD_TOKEN`. The `/chat` link is unguessable
-  but public by design (the client has no login).
+  use (they are marked `noindex`, which is only a crawler hint). The `/chat` link
+  is unguessable but public by design (the client has no login).
+- **Write-endpoint exposure** (important — page gating does NOT protect the
+  function endpoints; they are separate URLs anyone can POST to directly):
+  - Reads (`session` list/detail, `seed` list, `seed` notes) are token-gated by
+    `DASHBOARD_TOKEN`, so PII is not readable without it.
+  - Writes are the real exposure. Both write functions require a present,
+    same-origin `Origin` header, which stops naive scripted writes but is
+    spoofable outside a browser, so treat it as a layer, not a lock.
+  - `session` POST is inherently public: the chat page has no login, so it cannot
+    carry a server secret. Its defences are the Origin check plus payload
+    validation, size caps, and the completed-status lock. A determined attacker
+    can still post junk sessions; the dashboard escapes everything on render and
+    coerces numeric fields, so the blast radius is store clutter / skewed KPIs,
+    not XSS.
+  - `seed` POST can be locked down: set `SEED_WRITE_TOKEN = <long random string>`
+    and the Sales page will prompt the consultant for it (cached per browser tab,
+    like the dashboard token) and send it as `x-app-write-token`. Unset leaves the
+    endpoint origin-only (unchanged). Recommended for production, since the seed
+    store holds confidential consultant notes.
 - **Netlify Blobs**: verify `@netlify/blobs` resolves on your Netlify build
   (it is included automatically on recent runtimes). If the dashboard shows a
   store error, check the package version against current Netlify docs.

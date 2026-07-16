@@ -27,6 +27,10 @@ Required:
 - APPS_SCRIPT_SECRET: shared secret, must equal the Apps Script SHARED_SECRET.
 Optional:
 - SEED_TTL_DAYS: seed retention in days (default 90; 0 disables expiry).
+- SEED_WRITE_TOKEN: if set, the Sales page must supply this token to generate a
+  link (it prompts the consultant and caches it per browser tab). Recommended for
+  production so the seed store cannot be written by anyone spoofing the Origin
+  header. Unset leaves seed writes origin-only.
 - URL: set automatically by Netlify, do not set by hand.
 - GOOGLE_* (six vars): only for the fallback Google-API auth paths. Not needed
   while the Apps Script path is in use.
