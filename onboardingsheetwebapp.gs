@@ -12,6 +12,16 @@
  *        SHARED_SECRET   = <a long random string>   (same value in Netlify APPS_SCRIPT_SECRET)
  *        SLACK_BOT_TOKEN = <your xoxb- token>        (optional; enables the completion alert)
  *        SLACK_CHANNEL   = <channel id>              (optional; defaults below)
+ *        DASHBOARD_URL   = https://<site>/dashboard  (optional; adds a "View full
+ *                          session" deep-link to the Slack alert, e.g.
+ *                          https://onboarding.hootsuite.com/dashboard)
+ *      Optional — IC/TAM @mentions in a threaded reply (reused from the survey
+ *      script). Kept in Script Properties, NOT in this file, so the staff roster
+ *      never lives in the repo:
+ *        PIPELINE_SHEET_ID = <tracker spreadsheet id>   (enables the lookup)
+ *        SLACK_IDS_JSON    = {"full name":"U012...", …} (name -> Slack user id)
+ *        SLACK_ESCALATION  = U012 U345                  (space/comma-separated ids
+ *                            pinged for TW Core clients and no-match cases)
  *   3. Deploy > New deployment > type Web app. Execute as: Me. Who has access:
  *      Anyone. Copy the /exec URL into Netlify env APPS_SCRIPT_WEBAPP_URL.
  *
@@ -29,6 +39,14 @@
 const TEMPLATE_ID = "1VC7nIstJw-H4XMqVPe8stQRIwV88S2bZv6sZGgNPus0"; // "do not modify" master (copied, never edited)
 const DEST_FOLDER_ID = "1BacQuILUAGSKcuUzEwY-iVCh37gt72rY";
 const DEFAULT_SLACK_CHANNEL = "C097154H39N";
+
+// Pipeline-tracker lookup for the IC/TAM @mention reply (optional; configured via
+// Script Properties, see the header). Structural layout of the tracker only —
+// no employee data lives here. Adjust if the tracker's columns/tabs differ.
+const PIPELINE_TABS = ["ClosedWon", "Pipeline"];                    // searched in order
+const PIPELINE_COL = { account: 1, talkwalker: 21, ic: 22, tam: 23 }; // cols B, V, W, X (0-based)
+const PIPELINE_MIN_SCORE = 0.4;  // below this: treat as no match
+const MENTION_MIN_SCORE = 0.7;   // below this: "low confidence" note / fall back to plain name
 
 function doPost(e) {
   try {
@@ -204,23 +222,198 @@ function postCompletionSlack_(body, company, url) {
   const token = props.getProperty("SLACK_BOT_TOKEN");
   if (!token) return;
   const channel = props.getProperty("SLACK_CHANNEL") || DEFAULT_SLACK_CHANNEL;
-  const contact = [body.contactName || company.contact, company.email || body.clientEmail].filter(Boolean).join(" · ");
-  const counts = (body.topicsCount != null || body.usersCount != null)
-    ? "Topics: " + (body.topicsCount != null ? body.topicsCount : "?") + " · Users: " + (body.usersCount != null ? body.usersCount : "?") + "\n"
+
+  const name = company.name || body.company || "(unnamed)";
+  const contactName = body.contactName || company.contact || "";
+  const email = company.email || body.clientEmail || "";
+  const contact = [contactName, email].filter(Boolean).join(" · ") || "—";
+  const topics = body.topicsCount != null ? String(body.topicsCount) : "—";
+  const users = body.usersCount != null ? String(body.usersCount) : "—";
+
+  // Two-column fields (Block Kit renders these 2-up), richest first.
+  const fields = [slackField_("Client", name), slackField_("Contact", contact),
+    slackField_("Topics", topics), slackField_("Users", users)];
+  if (company.industry) fields.push(slackField_("Industry", company.industry));
+  if (company.markets)  fields.push(slackField_("Markets", company.markets));
+  const topObjective = firstObjective_(company.objectives);
+  if (topObjective)     fields.push(slackField_("Top objective", topObjective));
+
+  // Context line: only truthful bits. "Prepared by" appears only if the caller
+  // actually supplies it (the sales page does not capture a signed-in user yet);
+  // the edit-access note holds whenever the client was shared on the Sheet.
+  const context = [];
+  if (body.preparedBy) context.push("Link prepared by " + slackEsc_(body.preparedBy));
+  if (email) context.push("Client has edit access to the Sheet until the review call");
+
+  // Deep-link to the client's session detail in the Proserv dashboard (full
+  // brief + handoff + notes). Needs the DASHBOARD_URL Script Property and the
+  // sessionId the client passes through; omitted if either is missing. The
+  // dashboard is token-gated, so the link opens but still asks for the token.
+  const dashUrl = props.getProperty("DASHBOARD_URL");
+  const sessionLink = (dashUrl && body.sessionId)
+    ? dashUrl + (dashUrl.indexOf("?") === -1 ? "?" : "&") + "id=" + encodeURIComponent(body.sessionId)
     : "";
-  const text =
-    ":white_check_mark: *Lumen onboarding completed* — a requirements document was created.\n" +
-    "Client: *" + (company.name || body.company || "(unnamed)") + "*\n" +
-    (contact ? "Contact: " + contact + "\n" : "") +
-    counts +
-    "<" + url + "|Open the requirements document>";
-  UrlFetchApp.fetch("https://slack.com/api/chat.postMessage", {
-    method: "post",
-    contentType: "application/json",
+  const links = [];
+  if (url) links.push("<" + url + "|:page_facing_up: Open the requirements document>");
+  if (sessionLink) links.push("<" + sessionLink + "|:mag: View full session>");
+
+  const blocks = [
+    { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *Lumen onboarding completed* — a requirements document was created." } },
+    { type: "section", fields: fields.slice(0, 10) },
+  ];
+  if (links.length) blocks.push({ type: "section", text: { type: "mrkdwn", text: links.join("   ·   ") } });
+  if (context.length) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: context.join("   ·   ") }] });
+
+  // Plain-text fallback for notifications / accessibility (required by Slack).
+  const fallback = "Lumen onboarding completed — " + name + " (" + contact + "). Topics: " + topics + " · Users: " + users;
+
+  const ts = slackPost_(token, { channel: channel, text: fallback, blocks: blocks });
+
+  // Threaded reply: match the client against the pipeline tracker and @mention the
+  // assigned IC/TAM (reused from the survey script). Best-effort — a lookup failure
+  // or missing config never affects the base alert posted above.
+  if (ts) safe_(function () { postAssigneeMentions_(token, channel, ts, name); });
+}
+
+// Post a Slack message; return its ts (the thread anchor) or null on failure.
+function slackPost_(token, payload) {
+  const res = UrlFetchApp.fetch("https://slack.com/api/chat.postMessage", {
+    method: "post", contentType: "application/json",
     headers: { Authorization: "Bearer " + token },
-    payload: JSON.stringify({ channel: channel, text: text }),
-    muteHttpExceptions: true,
+    payload: JSON.stringify(payload), muteHttpExceptions: true,
   });
+  const data = JSON.parse(res.getContentText() || "{}");
+  if (!data.ok) Logger.log("Slack post failed: " + res.getContentText());
+  return data.ts || null;
+}
+
+// A Block Kit two-column field: bold label above an escaped value.
+function slackField_(label, value) {
+  return { type: "mrkdwn", text: "*" + label + ":*\n" + slackEsc_(value) };
+}
+// Escape the three characters Slack treats specially in mrkdwn, so a client
+// value (company name, markets, etc.) can't break the block or inject a link.
+function slackEsc_(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+// "1. Reputation Management, 2. Competitive Intelligence" -> "Reputation Management".
+function firstObjective_(objectives) {
+  if (!objectives) return "";
+  return String(objectives).split(",")[0].replace(/^\s*\d+[\.\)]\s*/, "").trim();
+}
+
+// ---- IC/TAM @mention reply (ported from the survey script) ------------------
+
+// Post the threaded reply that @mentions the assigned IC/TAM for this client.
+// No-op unless PIPELINE_SHEET_ID is set. Client data is read from the tracker;
+// the name->id roster comes from SLACK_IDS_JSON.
+function postAssigneeMentions_(token, channel, threadTs, clientName) {
+  const props = PropertiesService.getScriptProperties();
+  if (!props.getProperty("PIPELINE_SHEET_ID") || !clientName) return;
+
+  let match = null;
+  for (let i = 0; i < PIPELINE_TABS.length && !match; i++) match = findBestMatch_(PIPELINE_TABS[i], clientName);
+
+  const escalate = escalationMentions_();
+  let text;
+  if (match) {
+    const isCore = match.talkwalker && String(match.talkwalker).trim().toLowerCase() === "core";
+    const icMention = match.ic ? getSlackMention_(match.ic) + " (IC)" : null;
+    const tamMention = match.tam ? getSlackMention_(match.tam) + " (TAM)" : null;
+    const mentions = [icMention, tamMention].filter(Boolean).join("  ");
+    const sourceNote = match.source === "ClosedWon" ? " _(existing client)_" : "";
+    const confidenceNote = match.score < MENTION_MIN_SCORE ? " _(low confidence — please verify)_" : "";
+    const coreNote = isCore ? ("\n:tw-core: *TW Core client*" + (escalate ? " — " + escalate + " please take note." : " — please take note.")) : "";
+    text = mentions
+      ? "Matched: *" + match.accountName + "*" + sourceNote + confidenceNote + "\n" + mentions + coreNote
+      : "Matched: *" + match.accountName + "*" + sourceNote + " — no IC or TAM assigned yet." + coreNote;
+  } else {
+    text = "No pipeline match for *" + clientName + "* — please assign manually." + (escalate ? "\n" + escalate : "");
+  }
+  slackPost_(token, { channel: channel, text: text, thread_ts: threadTs });
+}
+
+// Best fuzzy match for clientName in one tracker tab; null below PIPELINE_MIN_SCORE.
+function findBestMatch_(tabName, clientName) {
+  const sheetId = PropertiesService.getScriptProperties().getProperty("PIPELINE_SHEET_ID");
+  if (!sheetId) return null;
+  let sheet;
+  try { sheet = SpreadsheetApp.openById(sheetId).getSheetByName(tabName); } catch (e) { return null; }
+  if (!sheet) return null;
+  const data = sheet.getDataRange().getValues();
+  let best = null, bestScore = 0;
+  for (let i = 1; i < data.length; i++) {
+    const account = data[i][PIPELINE_COL.account];
+    if (!account) continue;
+    const score = similarity_(clientName, String(account));
+    if (score > bestScore) {
+      bestScore = score;
+      best = { accountName: account, talkwalker: data[i][PIPELINE_COL.talkwalker], ic: data[i][PIPELINE_COL.ic], tam: data[i][PIPELINE_COL.tam], score: score, source: tabName };
+    }
+  }
+  return best && best.score >= PIPELINE_MIN_SCORE ? best : null;
+}
+
+// name -> "<@Uxxxx>" via the roster, with a fuzzy fallback; plain name if no
+// confident match (so the reply is still readable).
+function getSlackMention_(name) {
+  if (!name) return "";
+  const ids = slackIds_();
+  const normalized = String(name).toLowerCase().trim();
+  if (ids[normalized]) return "<@" + ids[normalized] + ">";
+  let bestKey = null, bestScore = 0;
+  for (const key in ids) {
+    const score = similarity_(normalized, key);
+    if (score > bestScore) { bestScore = score; bestKey = key; }
+  }
+  if (bestScore >= MENTION_MIN_SCORE && bestKey) return "<@" + ids[bestKey] + ">";
+  return String(name);
+}
+
+let _slackIdsCache = null;
+function slackIds_() {
+  if (_slackIdsCache) return _slackIdsCache;
+  try { _slackIdsCache = JSON.parse(PropertiesService.getScriptProperties().getProperty("SLACK_IDS_JSON") || "{}"); }
+  catch (e) { _slackIdsCache = {}; }
+  return _slackIdsCache;
+}
+
+function escalationMentions_() {
+  const raw = PropertiesService.getScriptProperties().getProperty("SLACK_ESCALATION") || "";
+  return raw.split(/[\s,]+/).filter(function (x) { return x; }).map(function (x) { return "<@" + x + ">"; }).join(" ");
+}
+
+// Fuzzy string similarity (token overlap + edit distance + substring bonus).
+function fuzzyNorm_(s) {
+  if (!s) return "";
+  return String(s).toLowerCase()
+    .replace(/[,\.'"()\-]/g, "")
+    .replace(/\b(inc|llc|ltd|corp|corporation|company|co|the|and|of|for|group|solutions|services|international|global|technologies|technology|association|university|national)\b/g, "")
+    .replace(/\s+/g, " ").trim();
+}
+function levenshtein_(a, b) {
+  const m = a.length, n = b.length, dp = [];
+  for (let i = 0; i <= m; i++) {
+    dp[i] = [i];
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = i === 0 ? j : (a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]));
+    }
+  }
+  return dp[m][n];
+}
+function similarity_(a, b) {
+  const na = fuzzyNorm_(a), nb = fuzzyNorm_(b);
+  if (!na || !nb) return 0;
+  const uniqA = {}, uniqB = {};
+  na.split(" ").forEach(function (x) { if (x) uniqA[x] = 1; });
+  nb.split(" ").forEach(function (x) { if (x) uniqB[x] = 1; });
+  const aKeys = Object.keys(uniqA), bKeys = Object.keys(uniqB);
+  const inter = aKeys.filter(function (x) { return uniqB[x]; }).length;
+  const tokenScore = inter / Math.max(aKeys.length, bKeys.length, 1);
+  const subBonus = (na.indexOf(nb) !== -1 || nb.indexOf(na) !== -1) ? 0.3 : 0;
+  const dist = levenshtein_(na, nb);
+  const editScore = 1 - dist / Math.max(na.length, nb.length, 1);
+  return Math.min(1, tokenScore * 0.5 + editScore * 0.3 + subBonus);
 }
 
 function json_(obj) {
