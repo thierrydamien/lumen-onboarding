@@ -291,7 +291,13 @@
             durationMs: null, apiCalls: null, tokens: null, sheetUrl: null, hasHandoff: false,
             seeded: true, seedId: x.id, lastActiveAt: x.savedAt || null, sentAt: null, savedAt: x.savedAt || null, _linkSent: true };
         });
-        renderFilters(); renderTable(); // owners now known: refresh the owner filter options and the rows
+        // Only build the filter bar + table when there is actually something to
+        // show. Without this guard, a fresh deploy (0 sessions AND 0 unopened seeds)
+        // has its friendly "No onboarding sessions yet" empty state clobbered by a
+        // filter bar + "No sessions match. Showing 0 of 0" — which wrongly implies a
+        // filter is hiding data. When both are empty, re-assert the empty state.
+        if (SESSIONS.length || LINKSENT.length) { renderFilters(); renderTable(); } // owners now known: refresh the owner filter options and the rows
+        else { render([]); }
       })
       .catch(function () { /* seeds unavailable — omit link-sent rows */ });
   }

@@ -10,6 +10,7 @@ import { getStore } from "@netlify/blobs";
 
 const STORE = "lumen-sessions";
 const MAX_BODY_BYTES = 400_000;
+const DEFAULT_CHANNEL = "C097154H39N"; // matches stalled-check.js and the Apps Script completion alert
 export const config = { path: "/.netlify/functions/session" };
 
 export default async (req) => {
@@ -73,6 +74,21 @@ export default async (req) => {
       if (record.status !== "completed") {
         const prev = await store.get(id, { type: "json" }).catch(() => null);
         if (prev && prev.status === "completed") return json(200, { id, skipped: "completed_locked" });
+      } else if (record.notifyFallback && !record.sheetUrl) {
+        // Fallback completion alert. The brief's Slack notification is normally
+        // fired by the Apps Script when it creates the Google Sheet; if that step
+        // failed (or Sheets isn't configured) no alert goes out and a completed
+        // brief reaches Proserv silently. The client flags that case with
+        // notifyFallback, and we post a concise alert here instead — exactly once,
+        // stamped alertedAt so a re-POST can't double-fire. No-op if SLACK_BOT_TOKEN
+        // is unset (same posture as stalled-check.js).
+        const prev = await store.get(id, { type: "json" }).catch(() => null);
+        if (prev && prev.alertedAt) {
+          record.alertedAt = prev.alertedAt; // already alerted — preserve, never re-fire
+        } else {
+          const ok = await postCompletionFallback(record);
+          if (ok) record.alertedAt = new Date().toISOString();
+        }
       }
       await store.setJSON(id, record);
     }
@@ -153,6 +169,37 @@ function summarize(r) {
 
 function genId() {
   return "s_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+}
+
+// Fallback completion alert (see the notifyFallback branch above). Concise by
+// design — it exists to make sure a completed brief is never invisible, not to
+// replicate the Apps Script's rich @mention alert. Slack posting mirrors
+// stalled-check.js (kept as its own small copy rather than a shared module to
+// avoid changing the function-bundling surface).
+async function postCompletionFallback(record) {
+  const token = process.env.SLACK_BOT_TOKEN;
+  if (!token) return false; // Slack not configured — the dashboard still has the brief
+  const channel = process.env.SLACK_CHANNEL || DEFAULT_CHANNEL;
+  const company = (record.merged && record.merged.company && record.merged.company.name) || "(unnamed client)";
+  const link = process.env.URL ? `${process.env.URL}/dashboard?id=${encodeURIComponent(record.id)}` : null;
+  const text = `:page_facing_up: *Onboarding brief completed* — *${slackEsc(company)}* finished their setup, but the Google Sheet could not be generated (this alert is the fallback). The full brief is saved.`
+    + (link ? `\n<${link}|View the session>` : "");
+  return postSlack(token, channel, text);
+}
+
+function slackEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+async function postSlack(token, channel, text) {
+  try {
+    const res = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8", authorization: "Bearer " + token },
+      body: JSON.stringify({ channel, text, unfurl_links: false }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) console.error("session fallback Slack post failed", data.error || res.status);
+    return !!data.ok;
+  } catch (err) { console.error("session fallback Slack post threw", err); return false; }
 }
 
 function json(status, obj) {

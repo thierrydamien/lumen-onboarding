@@ -151,7 +151,7 @@ function fillBusinessObjectives_(ss, c) {
     if (!a) continue;
     for (let k = 0; k < rules.length; k++) {
       if (rules[k][0].test(a)) {
-        if (rules[k][1] !== "") sh.getRange(r + 1, 2).setValue(rules[k][1]);
+        if (rules[k][1] !== "") sh.getRange(r + 1, 2).setValue(cellSafe_(rules[k][1]));
         break;
       }
     }
@@ -316,7 +316,11 @@ function postCompletionSlack_(body, company, url) {
   if (context.length) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: context.join("   ·   ") }] });
 
   // Plain-text fallback for notifications / accessibility (required by Slack).
-  const fallback = "Lumen onboarding completed — " + name + " (" + contact + "). Topics: " + topics + " · Users: " + users;
+  // Escape name/contact: Slack parses broadcast (<!channel>) and link (<url|text>)
+  // syntax in the `text` field too, so a company literally named "<!channel>" would
+  // fire a channel-wide ping. The Block Kit fields are already slackEsc_'d via
+  // slackField_; this closes the same gap in the fallback string.
+  const fallback = "Lumen onboarding completed — " + slackEsc_(name) + " (" + slackEsc_(contact) + "). Topics: " + topics + " · Users: " + users;
 
   const ts = slackPost_(token, { channel: channel, text: fallback, blocks: blocks });
 

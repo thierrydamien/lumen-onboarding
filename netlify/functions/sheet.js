@@ -122,10 +122,19 @@ export default async (req) => {
   const appsUrl = process.env.APPS_SCRIPT_WEBAPP_URL;
   if (appsUrl) {
     if (!brief || typeof brief !== "object") return json(400, { error: "missing_brief" });
+    // Bound the upstream call like chat.js does. The Apps Script (copy the template,
+    // fill every cell one round-trip at a time, share, Slack post) can be slow; with
+    // no abort a hang runs until the platform kills the function with an opaque 502.
+    // 24s sits just inside the 26s function ceiling, and the client's timeout on this
+    // call is aligned to 30s (see handleSend) so it no longer waits ~19s past the
+    // point the platform would already have killed the function.
+    const ac = new AbortController();
+    const abortT = setTimeout(() => ac.abort(), 24000);
     try {
       const r = await fetch(appsUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "" }),
+        signal: ac.signal,
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.url) {
@@ -134,8 +143,14 @@ export default async (req) => {
       }
       return json(200, { url: d.url });
     } catch (err) {
+      if (err && err.name === "AbortError") {
+        console.error("Apps Script sheet exceeded the internal 24s budget — aborted");
+        return json(504, { error: "sheet_timeout" });
+      }
       console.error("Apps Script sheet unreachable", err);
       return json(502, { error: "sheet_failed" });
+    } finally {
+      clearTimeout(abortT);
     }
   }
 

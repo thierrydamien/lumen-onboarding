@@ -22,7 +22,11 @@ const MAX_BODY_BYTES = 40_000;
 // Guard a non-numeric SEED_TTL_DAYS: without this, a typo'd value -> NaN -> expiry
 // silently disabled (notes-bearing seeds would live forever). Bad value -> 90-day default.
 const _ttlDays = process.env.SEED_TTL_DAYS != null ? Number(process.env.SEED_TTL_DAYS) : 90;
-const SEED_TTL_MS = (Number.isFinite(_ttlDays) ? _ttlDays : 90) * 86400000;
+// Guard NaN (typo -> 90 default) AND negative (a sign-typo like -1 would make
+// SEED_TTL_MS negative and truthy, so isExpired's `age > SEED_TTL_MS` is true for
+// EVERY record -> the whole seed store, notes and all, silently deleted on next
+// read/list). Clamp to >= 0; 0 disables expiry, which is the intended "keep forever".
+const SEED_TTL_MS = Math.max(0, Number.isFinite(_ttlDays) ? _ttlDays : 90) * 86400000;
 export const config = { path: "/.netlify/functions/seed" };
 
 function isExpired(rec) {

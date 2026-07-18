@@ -13,7 +13,14 @@ Files changed from the original baseline (deploy all of these):
   hand-edit dist; edit the source and rebuild.
 - public/dashboard.html: Proserv dashboard (static, served as-is).
 - public/sales.html: consultant link generator (static).
-- netlify/functions/chat.js: Anthropic proxy (system prompt + caching).
+- public/chat.html: the chat page shell (Inter preload, favicon, boot splash);
+  shipped by `vite build` along with the bundle.
+- netlify/functions/chat.js: Anthropic proxy (system prompt + caching). Also reads
+  the seed store to inject confidential consultant notes into seeded sessions
+  server-side (notes never reach the browser). No new env var; needs the same
+  Blobs context as seed.js, which is automatic when both run on this site. Seeds
+  created before this deploy already carry their notes, so notes start shaping
+  sessions on deploy with no migration.
 - netlify/functions/session.js: session store (completed and in-progress).
 - netlify/functions/seed.js: seed store (prepared client profiles).
 - netlify/functions/sheet.js: Sheet generation proxy (forwards to Apps Script).
@@ -84,12 +91,17 @@ Optional:
 
 ## 3. What changed (per-version log)
 
-This section previously tracked v43-v47 by hand; the build is now at v73. The
+This section previously tracked v43-v47 by hand; the build is now at v77. The
 authoritative per-version log is versions/CHANGES.md (one row per version).
 Highlights since v47 that affect deployment:
 - Deploy ALL of section 1's files and redeploy the Apps Script (section 2) — the
   Apps Script gained idempotency (v46), Slack-mention escaping and Sheets
-  formula-injection guards (v72), so the redeploy is not optional.
+  formula-injection guards (v72), and v76 EXTENDED the Sheets formula-injection
+  guard to the Business Objectives tab (v72 missed it) plus escaped the Slack
+  completion-alert fallback text, so the redeploy is not optional.
+- v75 added server-side consultant-notes injection (chat.js reads the seed store);
+  v76 added a fallback Slack completion alert from session.js and an upstream abort
+  in sheet.js. Deploy chat.js, session.js, and sheet.js together with the client.
 - Set the Netlify function timeout to 26s (see section 1) — pairs with the v73
   token-ceiling change to eliminate the long-reply timeout failures.
 - v50-v51 hardened session/seed writes (Origin required; optional

@@ -496,6 +496,20 @@ function stripAll(t) {
 function hasDanglingMarker(t) {
   return /%%[A-Z]+%%/.test(t.replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, ""));
 }
+// True when a COMPLETE marker (has %%END%%) carries a body that isn't valid JSON —
+// every marker's payload is JSON by protocol. A malformed body (a literal newline
+// or an unescaped quote in a free-text field like a HANDOFF tip) parses to null and
+// is silently dropped with no other signal: worst case the rich HANDOFF vanishes on
+// the very summary turn it matters. Treated like a dangling marker so callAPILive
+// retries once — a regeneration almost always fixes a transient JSON glitch.
+function hasUnparseableMarker(t) {
+  const re = /%%[A-Z]+%%([\s\S]*?)%%END%%/g;
+  let m;
+  while ((m = re.exec(t))) {
+    try { JSON.parse(m[1].trim()); } catch { return true; }
+  }
+  return false;
+}
 // True when the visible prose implies the setup is already live/running/delivering,
 // which it never is until the consultant activates it at the review call. High-
 // precision phrase list — the prompt rule handles the long tail; this catches the
@@ -1321,11 +1335,19 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
   );
 }
 
-function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
+function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
   const [theme,setTheme]       = useState("light");
   const [sound,setSound]       = useState(false);
   const [persona,setPersona]   = useState("strategist");
-  const [uiLang,setUiLang]     = useState(seed?.language || "English");
+  // Clamp the seed's language to a SUPPORTED UI language. seed.language can carry a
+  // monitoring-only language (LANG_OPT has 12; the UI shell only localizes the 6 in
+  // UI_LANGS) or, via a tampered/stale seed, junk. An unsupported value left as-is
+  // desyncs everything: the UI silently falls back to English strings while
+  // seededOpener still directs the model to converse in the unsupported language,
+  // and no language pill matches. Falling back to English keeps the whole experience
+  // consistent. The Sales page only offers supported languages, so no legitimate
+  // seed is affected.
+  const [uiLang,setUiLang]     = useState(() => (seed?.language && UI_LANGS.some(l => l.code === seed.language)) ? seed.language : "English");
   const [messages,setMessages] = useState([]);
   const [input,setInput]       = useState("");
   const [loading,setLoading]   = useState(false);
@@ -1361,12 +1383,25 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const taRef   = useRef(null);
   const attachRef = useRef(null); // hidden file input for the composer attach affordance
   const busyRef = useRef(false);  // synchronous in-flight guard: blocks a second send (widget double-tap, type-during-wait) that would queue two consecutive user turns and 400 the API
+  // Synchronous mirror of the `attaching` state. File extraction runs BEFORE the
+  // send claims busyRef, so during that window a widget Confirm/Skip tap would slip
+  // past a busyRef-only guard, claim busyRef itself, and make the pending
+  // sendAttachment bail — silently dropping the attached document (flagship path).
+  // `attaching` is React state and lags a fast tap; this ref does not.
+  const attachingRef = useRef(false);
   const msgRef  = useRef(null);
   const prevPct = useRef(0);
   const sndRef  = useRef(sound);
   const personaRef = useRef(persona);
   const prevSecRef = useRef(null);
   const sidRef  = useRef(null);
+  // seedId is stable for this component's life (LiveChat mounts OnboardingApp only
+  // after the seed resolves). Held in a ref so callAPI can pass it to the chat
+  // proxy without re-creating the callback graph. The id is already in the URL
+  // (?s=), so sending it is not a secret leak — it lets the SERVER look up the
+  // confidential consultant notes and inject them into the system prompt without
+  // the notes ever reaching this browser.
+  const seedIdRef = useRef(seedId);
   const apiCountRef = useRef(0);
   const usageRef = useRef({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
   const sendingRef = useRef(false); // synchronous double-send guard (state lags a fast double-click)
@@ -1377,6 +1412,11 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   useEffect(() => { sndRef.current = sound; }, [sound]);
   useEffect(() => { personaRef.current = persona; }, [persona]);
   useEffect(() => { wRef.current = wState; }, [wState]);
+  // Keep the seedId ref synced to the prop like the refs above. seedId is stable
+  // in the live app (LiveChat mounts this only after the seed resolves), but
+  // syncing here matches the idiom and stays correct if a future caller ever
+  // re-renders with a different seedId instead of remounting.
+  useEffect(() => { seedIdRef.current = seedId; }, [seedId]);
 
   const { init, pop, chime } = useAudio();
   const dark = theme === "dark";
@@ -1566,7 +1606,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     // flags whether the OVERSTATE correction pass is needed.
     const res = await fetchWithTimeout(CHAT_ENDPOINT, {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ messages:trimmed, maxTokens:2000, overstateFix: !!sysExtra }) // matches the server ceiling (server clamps anyway); see chat.js for the timeout math
+      body: JSON.stringify({ messages:trimmed, maxTokens:2000, overstateFix: !!sysExtra, seedId: seedIdRef.current || undefined }) // seedId lets the server inject confidential consultant notes; maxTokens matches the server ceiling (server clamps anyway); see chat.js for the timeout math
     }, 60000);
     if (!res.ok) throw new Error(`api_${res.status}`);
     const d = await res.json();
@@ -1590,8 +1630,8 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
     // (dangling) marker is the strongest signal of a malformed or cut-off
     // generation — retry once silently rather than showing the client a derailed
     // reply or dropping the data that was mid-emit when it truncated.
-    if (!raw.includes("%%PROGRESS%%") || hasDanglingMarker(raw)) {
-      console.warn("malformed reply (missing PROGRESS or truncated marker) — retrying once");
+    if (!raw.includes("%%PROGRESS%%") || hasDanglingMarker(raw) || hasUnparseableMarker(raw)) {
+      console.warn("malformed reply (missing PROGRESS, truncated, or unparseable marker) — retrying once");
       raw = await callAPI(hist);
     }
     // Expectation guard: never show the client language implying the setup is
@@ -1744,22 +1784,27 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
         const sres = await fetchWithTimeout(SHEET_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: saveOk ? sidRef.current : undefined, xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
-        }, 45000);
+        }, 30000); // aligned to the sheet function's own 24s upstream abort + the 26s function ceiling; was 45s, which left the client waiting ~19s after the platform would already have killed the function
         if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
       } catch (e) { console.error("Sheet generation failed (non-fatal)", e); }
       setSheetLink(sheetUrl);
       record.sheetUrl = sheetUrl;
 
-      // Second write: attach the Sheet link to the stored record so the dashboard
-      // can open it. Only when the first save succeeded (else there's nothing to
-      // update, and the Sheet/Slack path below still counts as delivered).
-      if (sheetUrl && saveOk) {
+      // Second write: attach the Sheet link so the dashboard can open it, or — when
+      // the Sheet step failed — flag the record so the SERVER fires a fallback
+      // completion alert. The brief's Slack alert is normally fired by the Apps
+      // Script on Sheet creation; if that never happened, without this flag a
+      // completed brief reaches Proserv silently. Only when the first save
+      // succeeded (else there's nothing to update; the Sheet/Slack path, if it ran,
+      // still counts as delivered).
+      if (saveOk) {
+        if (!sheetUrl) record.notifyFallback = true;
         try {
           await fetchWithTimeout(SESSION_ENDPOINT, {
             method:"POST", headers:{"Content-Type":"application/json"},
             body: JSON.stringify({ session: record })
           }, 15000);
-        } catch (e) { console.error("Sheet-link update failed (non-fatal)", e); }
+        } catch (e) { console.error("Session second-write failed (non-fatal)", e); }
       }
 
       // "Delivered" = it reached Proserv by at least one durable channel: the
@@ -1888,7 +1933,16 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
 
   const doRewind = useCallback(idx => {
     const nm = messages.slice(0,idx+1); setMessages(nm);
-    histRef.current = nm.filter(m=>!m.isWidget).map(m=>({role:m.role,content:m.raw||m.content}));
+    // Strip <thought> from assistant turns when rebuilding history, exactly as the
+    // live send path does (see the stripThoughtForHistory push in sendToAPI). Using
+    // raw verbatim here re-injected every past thought block into the context on
+    // every post-rewind turn — wasted input tokens and self-referential noise. Fall
+    // back to m.content (the already-clean visible text) if a strip yields empty, so
+    // no turn goes out with empty content (the proxy rejects empty-string turns).
+    histRef.current = nm.filter(m=>!m.isWidget).map(m=>({
+      role: m.role,
+      content: m.role==="assistant" ? (stripThoughtForHistory(m.raw||m.content||"") || m.content || m.raw || "") : (m.raw||m.content||"")
+    }));
     let rp = {percent:0,collected:{}};
     for (let i=nm.length-1;i>=0;i--) { if (nm[i].role==="assistant"&&nm[i].raw) { const p=pProg(nm[i].raw); if(p){rp=p;break;} } }
     setProgress(rp);
@@ -1968,7 +2022,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   const sendMsg = useCallback(async (ov, chip) => {
     init();
     const txt = ov!==undefined ? ov.trim() : input.trim();
-    if (!txt||loading||attaching||busyRef.current) return; // don't start a send while one is in flight or a file is being read
+    if (!txt||loading||attaching||attachingRef.current||busyRef.current) return; // don't start a send while one is in flight or a file is being read (attachingRef is the synchronous check; `attaching` state lags)
     setInput(""); if (taRef.current) taRef.current.style.height = "auto";
     setMessages(p=>[...p,{role:"user",content:txt,timestamp:gts(),raw:txt,isChip:!!chip,chipLabel:chip}]);
     await sendToAPI(txt);
@@ -1981,7 +2035,11 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   // small cap keeps the round-trip fast — a raw multi-thousand-line dump was what
   // timed the serverless call out on the live build.
   const sendAttachment = useCallback(async (file) => {
-    if (!file || loading || attaching || busyRef.current) return;
+    if (!file || loading || attaching || attachingRef.current || busyRef.current) return;
+    // Claim the synchronous lock BEFORE the first await (file extraction), so a
+    // widget Confirm/Skip or a typed send during extraction can't slip through and
+    // steal busyRef, which would make the sendToAPI below bail and drop the file.
+    attachingRef.current = true;
     setAttachNote(null);
     setAttaching(true);
     try {
@@ -1999,6 +2057,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
       const framed = `[The client attached a supporting document named "${file.name}". Use the content below to PRE-FILL anything relevant to the CURRENT step of onboarding and CONFIRM those details with the client in your reply. Do NOT read the document back verbatim and do NOT paste a long summary — weave what's useful into the guided flow, then continue.${truncated ? " NOTE: only the first part of the document is included." : ""}]\n\n${excerpt}`;
       await sendToAPI(framed, false, { failMessage: AT("failed", uiLang) });
     } finally {
+      attachingRef.current = false;
       setAttaching(false);
     }
   }, [loading, attaching, uiLang, init, sendToAPI]);
@@ -2010,7 +2069,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   }, [sendAttachment]);
 
   const onWSubmit = useCallback((mi, type, data) => {
-    if (busyRef.current) return; // a turn is already in flight — ignore the tap rather than queue a second user turn (would 400 the API)
+    if (busyRef.current || attachingRef.current) return; // a turn is in flight OR a file is being read — ignore the tap rather than queue a second user turn (would 400) or drop the attachment
     const key = `${mi}-${type}`;
     const isUp = !!wRef.current[key];
     const sum = widgetSum(type, data);
@@ -2026,7 +2085,7 @@ function OnboardingApp({ seed, seedId, onBriefSent, onSeeProserv }) {
   }, [sendToAPI, uiLang]);
 
   const onWSkip = useCallback((mi, type) => {
-    if (busyRef.current) return; // in-flight guard, same as onWSubmit
+    if (busyRef.current || attachingRef.current) return; // in-flight / extracting guard, same as onWSubmit
     const key = `${mi}-${type}`;
     setWState(p=>({...p,[key]:{submitted:true,data:"__skip__"}}));
     setMessages(m=>[...m,{role:"user",content:`Skipped ${type}`,isWidget:true,timestamp:gts()}]);
@@ -2221,6 +2280,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
             <h1 style={{margin:"22px 0 8px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{seed?L("welcomeTitleSeeded",uiLang,{name:seed.contactName?.split(" ")[0]||seed.company}):L("welcomeTitle",uiLang)}</h1>
             {seed && <div style={{display:"inline-flex",alignItems:"center",gap:6,margin:"0 0 12px",padding:"5px 13px",borderRadius:999,background:`${A}14`,color:LINK,fontSize:12,fontWeight:600,animation:"slideUpFade .5s ease-out both",animationDelay:"110ms"}}><span aria-hidden="true">✦</span>{L("preparedFor",uiLang,{company:seed.company})}</div>}
             <p style={{color:C.muted,fontSize:14,margin:"0 0 22px",maxWidth:420,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"150ms"}}>{seed?L("welcomeSubSeeded",uiLang,{company:seed.company}):L("welcomeSub",uiLang)}</p>
+            {/* Prepared-link load failed (expired or store error). Copy is intentionally
+                inline English: this path forces uiLang to English (the seed, and its
+                language, never loaded), so an i18n key would only ever render English
+                here anyway. Non-blocking — the client can still start fresh below. */}
+            {seedError && !seed && <div role="status" style={{maxWidth:440,margin:"0 0 22px",padding:"11px 15px",borderRadius:T.radius.md,background:dark?"#3a2f12":"#fffbeb",border:`1px solid ${dark?"#5b4a1a":"#fde68a"}`,color:dark?"#fde68a":"#92400e",fontSize:13,lineHeight:1.5,textAlign:"left",animation:"slideUpFade .5s ease-out both",animationDelay:"170ms"}}>We couldn't load your prepared setup just now, so we'll start fresh below. Your details are still safe with your Lumen contact — or refresh the page to try loading them again.</div>}
             <div style={{margin:"0 0 28px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:10}}>{L("chooseLang",uiLang)}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
@@ -2796,17 +2860,22 @@ export default function Demo() {
 // store (handled inside OnboardingApp.handleSend); here we just need a no-op sink
 // and no "see Proserv" navigation.
 export function LiveChat() {
-  const [state, setState] = useState({ loading: true, seed: null, seedId: null });
+  const [state, setState] = useState({ loading: true, seed: null, seedId: null, seedError: false });
   useEffect(() => {
     let alive = true;
-    fetchSeedFromURL().then(r => { if (alive) setState({ loading: false, seed: r.seed, seedId: r.seedId }); });
+    // seedError is true when a ?s= link was present but its prepared profile could
+    // not be loaded (expired, or the store failed both attempts). It's surfaced so
+    // the client gets an explanation instead of silently dropping to a generic
+    // session. (Notes still shape the session server-side via seedId if the record
+    // is actually reachable there.)
+    fetchSeedFromURL().then(r => { if (alive) setState({ loading: false, seed: r.seed, seedId: r.seedId, seedError: !!r.seedError }); });
     return () => { alive = false; };
   }, []);
   if (state.loading) return <BootScreen/>;
   return (
     <div style={{height:VH_FULL,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{flex:1,minHeight:0}}>
-        <OnboardingApp seed={state.seed} seedId={state.seedId} onBriefSent={()=>{}} onSeeProserv={null}/>
+        <OnboardingApp seed={state.seed} seedId={state.seedId} seedError={state.seedError} onBriefSent={()=>{}} onSeeProserv={null}/>
       </div>
     </div>
   );
