@@ -2514,7 +2514,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
       <div ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",transform:sideCol&&showPanel&&started?"translateX(-160px)":"none",transition:"transform 0.25s ease"}}>
 
         {!started && !saved && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"40px 24px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"24px 24px",textAlign:"center",position:"relative",overflow:"hidden"}}>
             <svg aria-hidden="true" viewBox="0 0 900 240" preserveAspectRatio="none" style={{position:"absolute",top:0,left:0,width:"100%",height:220,pointerEvents:"none"}}>
               <defs><linearGradient id="lw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#7C3AED" stopOpacity="0"/><stop offset="0.5" stopColor="#7C3AED" stopOpacity="0.16"/><stop offset="1" stopColor="#7C3AED" stopOpacity="0"/></linearGradient></defs>
               <path d="M0,150 C180,60 320,220 480,130 C640,40 760,180 900,90 L900,0 L0,0 Z" fill="url(#lw)"/>
@@ -2522,17 +2522,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
             </svg>
             <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4,animation:"slideUpFade .5s ease-out both"}}>
               <div aria-hidden="true" style={{position:"absolute",width:150,height:150,borderRadius:"50%",background:"radial-gradient(closest-side, rgba(126,72,236,.22), transparent)",animation:"haloPulse 4s ease-in-out infinite",pointerEvents:"none"}}/>
-              <div style={{position:"relative",animation:"orbBreathe 5s ease-in-out infinite"}}><LumenMark size={84}/></div>
+              <div style={{position:"relative",animation:"orbBreathe 5s ease-in-out infinite"}}><LumenMark size={72}/></div>
             </div>
-            <h1 style={{margin:"22px 0 8px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{seed?L("welcomeTitleSeeded",uiLang,{name:seed.contactName?.split(" ")[0]||seed.company}):L("welcomeTitle",uiLang)}</h1>
+            <h1 style={{margin:"14px 0 8px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{seed?L("welcomeTitleSeeded",uiLang,{name:seed.contactName?.split(" ")[0]||seed.company}):L("welcomeTitle",uiLang)}</h1>
             {seed && <div style={{display:"inline-flex",alignItems:"center",gap:6,margin:"0 0 12px",padding:"5px 13px",borderRadius:999,background:`${A}14`,color:LINK,fontSize:12,fontWeight:600,animation:"slideUpFade .5s ease-out both",animationDelay:"110ms"}}><span aria-hidden="true">✦</span>{L("preparedFor",uiLang,{company:seed.company})}</div>}
-            <p style={{color:C.muted,fontSize:14,margin:"0 0 22px",maxWidth:420,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"150ms"}}>{seed?L("welcomeSubSeeded",uiLang,{company:seed.company}):L("welcomeSub",uiLang)}</p>
+            <p style={{color:C.muted,fontSize:14,margin:"0 0 18px",maxWidth:420,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"150ms"}}>{seed?L("welcomeSubSeeded",uiLang,{company:seed.company}):L("welcomeSub",uiLang)}</p>
             {/* Prepared-link load failed (expired or store error). Copy is intentionally
                 inline English: this path forces uiLang to English (the seed, and its
                 language, never loaded), so an i18n key would only ever render English
                 here anyway. Non-blocking — the client can still start fresh below. */}
             {seedError && !seed && <div role="status" style={{maxWidth:440,margin:"0 0 22px",padding:"11px 15px",borderRadius:T.radius.md,background:dark?"#3a2f12":"#fffbeb",border:`1px solid ${dark?"#5b4a1a":"#fde68a"}`,color:dark?"#fde68a":"#92400e",fontSize:13,lineHeight:1.5,textAlign:"left",animation:"slideUpFade .5s ease-out both",animationDelay:"170ms"}}>We couldn't load your prepared setup just now, so we'll start fresh below. Your details are still safe with your Lumen contact — or refresh the page to try loading them again.</div>}
-            <div style={{margin:"0 0 28px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
+            <div style={{margin:"0 0 20px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:10}}>{L("chooseLang",uiLang)}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
                 <span aria-hidden="true" style={{fontSize:15,marginInlineEnd:2}}>🌐</span>
@@ -2541,11 +2541,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
                 ); })}
               </div>
             </div>
-            <div style={{width:"100%",maxWidth:480,margin:"0 auto 32px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
+            <div style={{width:"100%",maxWidth:480,margin:"0 auto 22px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
               {[[L("step1Title",uiLang),L("step1Desc",uiLang)],
                 [L("step2Title",uiLang),L("step2Desc",uiLang)],
                 [L("step3Title",uiLang),L("step3Desc",uiLang)]].map(([t,d],i) => (
-                <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
+                <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
                   <div style={{width:32,height:32,borderRadius:8,background:`${A}14`,color:A,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Ic d={[IC.clock,IC.chat,IC.send][i]} size={17}/></div>
                   <div><div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:2}}>{t}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.5}}>{d}</div></div>
                 </div>
