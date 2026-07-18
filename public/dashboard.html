@@ -4,124 +4,145 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="robots" content="noindex, nofollow"/>
-<link rel="icon" href="data:,"/>
+<link rel="icon" href="/lumen-mark.png"/>
 <title>Lumen Onboarding — Proserv Dashboard</title>
 <!-- INTERNAL PAGE: session reads require DASHBOARD_TOKEN, but the page itself is
      ungated. Gate behind Netlify password protection or Identity before production.
      noindex is a hint to crawlers, not access control. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/>
 <style>
   :root {
-    --teal:#012B3A; --cherry:#FF4C46; --mint:#DFFFDE; --border:#e2e8f0; --muted:#5b6b76;
-    /* H2: mirror the chat's design tokens (the T object in lumen.jsx) so all three
-       surfaces provably use one system and a change propagates by name. */
+    /* Mirror the client chat (Inter + Lumen purple + waveform mark) so the
+       dashboard, sales page and chat read as one product. --teal/--muted/
+       --cherry/--mint are kept (the script references them by name in inline
+       styles). Design tokens match the T object in lumen.jsx. */
+    --purple:#7C3AED; --purple-soft:#EDE7FB;
+    --teal:#012B3A; --ink:#0f172a; --cherry:#e11d48; --mint:#DFFFDE;
+    --border:#e6e8ee; --muted:#64748b; --bg:#f6f5fb;
     --radius-sm:6px; --radius-md:10px; --radius-lg:16px;
-    --shadow-raise:0 1px 3px rgba(1,43,58,.08); --shadow-float:0 8px 24px rgba(0,0,0,.12); --shadow-modal:0 16px 48px rgba(0,0,0,.2);
+    --shadow-raise:0 1px 3px rgba(15,23,42,.06); --shadow-float:0 8px 24px rgba(0,0,0,.12); --shadow-modal:0 16px 48px rgba(0,0,0,.2);
   }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--teal); background:#f4f6f8; }
-  .bar { background:var(--teal); color:#fff; padding:14px 20px; font-weight:700; display:flex; align-items:center; gap:12px; }
-  .bar .count { margin-left:auto; font-weight:400; opacity:.8; font-size:13px; }
-  .wrap { max-width:960px; margin:28px auto; padding:0 20px; }
-  h1 { font-size:18px; margin:0 0 16px; }
-  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-  th, td { text-align:left; padding:11px 14px; font-size:13px; border-bottom:1px solid var(--border); }
-  th { background:#fafbfc; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  body { margin:0; font-family:'Inter',Arial,Helvetica,sans-serif; color:var(--ink); background:var(--bg); }
+
+  /* Branded header (matches sales + chat). */
+  .bar { background:#fff; border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; gap:12px; }
+  .mark { width:34px; height:34px; border-radius:50%; background:var(--purple-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mark img { width:20px; height:20px; display:block; }
+  .brand b { font-size:15px; color:var(--purple); letter-spacing:-.01em; }
+  .brand .by { font-size:10px; color:var(--muted); }
+  .barlabel { font-size:12px; color:var(--muted); border-left:1px solid var(--border); padding-left:12px; }
+  .baractions { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .count { font-size:13px; color:var(--muted); }
+  .updated { font-size:11px; color:var(--muted); }
+  .refresh { background:var(--purple-soft); color:var(--purple); border:none; border-radius:8px; padding:8px 15px; cursor:pointer; font-family:inherit; font-size:12px; font-weight:700; }
+  .refresh:disabled { opacity:.6; cursor:default; }
+
+  .wrap { max-width:980px; margin:26px auto; padding:0 20px; }
+  h1 { font-size:20px; margin:0 0 16px; color:var(--teal); letter-spacing:-.01em; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow-raise); }
+  th, td { text-align:left; padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border); }
+  th { background:#faf9fe; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; }
   tr:last-child td { border-bottom:none; }
   tr.row { cursor:pointer; }
-  tr.row:hover { background:#f8fafb; }
-  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+  tr.row:hover { background:#faf9fe; }
+  .pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
   .pill.completed { background:var(--mint); color:#0a5c2a; }
   .pill.other { background:#eef1f5; color:var(--muted); }
   .muted { color:var(--muted); }
   .empty, .err { text-align:center; padding:40px; color:var(--muted); font-size:14px; }
   .err { color:var(--cherry); }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:10px; margin-bottom:16px; }
-  .kpi { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
-  .kpi .v { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .kpi .l { font-size:10.5px; color:var(--muted); margin-top:3px; line-height:1.4; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:12px; margin-bottom:18px; }
+  .kpi { background:#fff; border:1px solid var(--border); border-radius:14px; padding:15px 16px; box-shadow:var(--shadow-raise); }
+  .kpi .v { font-size:23px; font-weight:800; color:var(--teal); font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .kpi .l { font-size:10.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   th.num { text-align:right; }
   .sub2 { font-size:10.5px; color:var(--muted); }
-  .chip { display:inline-block; margin-left:6px; padding:0 6px; border-radius:20px; font-size:9.5px; font-weight:700; background:#eef1f5; color:var(--muted); vertical-align:middle; }
+  .chip { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:20px; font-size:9.5px; font-weight:700; background:var(--purple-soft); color:var(--purple); vertical-align:middle; }
   .rep a { color:#0b6b3a; font-weight:700; text-decoration:underline; font-size:12px; }
   .rep .ho { font-size:11px; color:var(--muted); }
   .rep .none { color:var(--muted); }
   .note { font-size:11px; color:var(--muted); margin:14px 2px 0; line-height:1.5; }
   .filters { display:flex; gap:14px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
   .filters label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  .filters select { font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--teal); cursor:pointer; }
-  .filters input[type="search"] { font-family:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; color:var(--teal); min-width:220px; outline:none; }
-  .filters input[type="search"]:focus { border-color:#7c6fe0; }
+  .filters select { font-family:inherit; font-size:13px; padding:7px 10px; border:1px solid var(--border); border-radius:9px; background:#fff; color:var(--ink); cursor:pointer; outline:none; }
+  .filters input[type="search"] { font-family:inherit; font-size:13px; padding:8px 12px; border:1px solid var(--border); border-radius:9px; color:var(--ink); min-width:240px; outline:none; background:#fff; }
+  .filters input[type="search"]:focus, .filters select:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
   th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
-  th.sortable:hover { color:var(--teal); }
+  th.sortable:hover { color:var(--purple); }
   th.sortable .sorthint { opacity:.5; font-size:10px; }
-  .fclear { background:transparent; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--muted); }
+  .fclear { background:transparent; border:1px solid var(--border); border-radius:9px; padding:7px 13px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--muted); }
   .pill.inprog { background:#E8F1FE; color:#1d4ed8; }
   .pill.stalled { background:#FEF3E2; color:#92400e; }
   .pill.linksent { background:#eef1f5; color:#5b6b76; }
   tr.row[data-noopen] { cursor:default; }
   tr.row[data-noopen]:hover { background:transparent; }
   .tscroll { overflow-x:auto; }
-  .pbar { width:84px; height:6px; background:#eef1f4; border-radius:3px; overflow:hidden; }
-  .pbar i { display:block; height:100%; background:var(--teal); border-radius:3px; }
+  .pbar { width:84px; height:6px; background:#ece8f8; border-radius:3px; overflow:hidden; }
+  .pbar i { display:block; height:100%; background:var(--purple); border-radius:3px; }
   /* I2: fade + scale in AND out (visibility toggle, not display, so the exit
      transition can play) instead of snapping on/off. */
-  .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; visibility:hidden; transition:opacity .16s ease, visibility 0s linear .16s; }
+  .modal { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; visibility:hidden; transition:opacity .16s ease, visibility 0s linear .16s; }
   .modal.show { opacity:1; visibility:visible; transition:opacity .16s ease; }
-  .sheet { background:#fff; border-radius:var(--radius-lg); max-width:640px; width:100%; max-height:86vh; overflow:auto; padding:0; transform:scale(.97); transition:transform .16s ease; }
+  .sheet { background:#fff; border-radius:var(--radius-lg); max-width:640px; width:100%; max-height:86vh; overflow:auto; padding:0; transform:scale(.97); transition:transform .16s ease; box-shadow:var(--shadow-modal); }
   .modal.show .sheet { transform:scale(1); }
   @media (prefers-reduced-motion: reduce){ .modal, .sheet { transition:none; } }
-  .sheet h2 { margin:0 0 2px; font-size:17px; }
+  .sheet h2 { margin:0 0 2px; font-size:17px; color:var(--teal); }
   .sheet .sub { color:var(--muted); font-size:12px; margin-bottom:16px; }
   .kv { display:grid; grid-template-columns:150px 1fr; gap:6px 14px; font-size:13px; margin-bottom:16px; }
   .kv .k { color:var(--muted); }
-  .sec { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:16px 0 6px; }
+  .sec { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--purple); margin:16px 0 6px; }
   .list { font-size:13px; }
   .list div { padding:4px 0; border-bottom:1px solid #f0f2f5; }
-  .close { float:right; background:transparent; border:1px solid var(--border); border-radius:8px; padding:5px 12px; cursor:pointer; font-family:inherit; }
-  .refresh { background:rgba(255,255,255,.14); color:#fff; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-family:inherit; font-size:12px; }
-  .refresh:disabled { opacity:.6; cursor:default; }
-  .updated { font-size:11px; opacity:.75; font-weight:400; }
+  .close { float:right; background:transparent; border:1px solid var(--border); border-radius:9px; padding:6px 13px; cursor:pointer; font-family:inherit; color:var(--muted); }
   /* A2: give the internal tools the same "alive" feedback as the chat. */
   button { transition:filter .15s ease, transform .08s ease; }
-  button:not(:disabled):hover { filter:brightness(1.08); }
+  button:not(:disabled):hover { filter:brightness(1.05); }
   button:not(:disabled):active { transform:translateY(1px); }
-  .ghost:hover, .fclear:hover, .close:hover { background:#eef1f5; }
+  .ghost:hover, .fclear:hover, .close:hover { background:#f1eefb; }
   /* E1: styled in-page access gate replacing window.prompt(). */
-  .gate { position:fixed; inset:0; background:#f4f6f8; display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
+  .gate { position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
   .gate.show { display:flex; }
   .gcard { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; max-width:360px; width:100%; text-align:center; box-shadow:var(--shadow-modal); }
-  .glogo { width:52px; height:52px; border-radius:14px; background:var(--teal); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:22px; margin-bottom:14px; }
-  .gcard h2 { font-size:16px; margin:0 0 4px; }
+  .glogo { width:52px; height:52px; border-radius:50%; background:var(--purple-soft); display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  .glogo img { width:30px; height:30px; display:block; }
+  .gcard h2 { font-size:16px; margin:0 0 4px; color:var(--teal); }
   .gcard p { font-size:12.5px; color:var(--muted); margin:0 0 16px; line-height:1.5; }
-  .gcard input { width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:14px; margin-bottom:10px; font-family:inherit; color:var(--teal); outline:none; }
-  .gcard input:focus { border-color:var(--teal); }
+  .gcard input { width:100%; border:1px solid var(--border); border-radius:9px; padding:10px 12px; font-size:14px; margin-bottom:10px; font-family:inherit; color:var(--ink); outline:none; }
+  .gcard input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
   .gerr { color:var(--cherry); font-size:12px; margin-bottom:10px; min-height:16px; }
-  .gcard button { width:100%; background:var(--teal); color:#fff; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .gcard button { width:100%; background:var(--purple); color:#fff; border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 14px rgba(124,58,237,.28); }
   /* E4: sticky modal header + padded body so the title/close stay put in a long brief. */
-  .sheethead { position:sticky; top:0; background:#fff; padding:20px 24px 12px; border-bottom:1px solid var(--border); z-index:2; border-radius:14px 14px 0 0; }
+  .sheethead { position:sticky; top:0; background:#fff; padding:20px 24px 12px; border-bottom:1px solid var(--border); z-index:2; border-radius:16px 16px 0 0; }
   .sheetbody { padding:16px 24px 24px; }
-  .qbox { max-height:220px; overflow:auto; background:#f8fafb; border:1px solid var(--border); border-radius:8px; padding:10px; white-space:pre-wrap; font-family:monospace; font-size:12px; }
+  .qbox { max-height:220px; overflow:auto; background:#f8fafb; border:1px solid var(--border); border-radius:9px; padding:10px; white-space:pre-wrap; font-family:monospace; font-size:12px; }
   /* E4: jump-to-section tabs in the sticky header. */
   .stabs { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
-  .stabs button { background:#eef1f5; border:none; border-radius:999px; padding:4px 12px; font-size:11px; font-weight:700; color:var(--muted); cursor:pointer; font-family:inherit; }
-  .stabs button:hover { background:#e2e8f0; }
+  .stabs button { background:var(--purple-soft); border:none; border-radius:999px; padding:5px 13px; font-size:11px; font-weight:700; color:var(--purple); cursor:pointer; font-family:inherit; }
+  .stabs button:hover { background:#e3d9fb; }
   .sheetbody .sec { scroll-margin-top:96px; }
-  @media (max-width:560px){ .wrap{padding:0 12px;} .kpis{grid-template-columns:1fr 1fr;} th,td{padding:9px 8px;} }
+  @media (max-width:560px){ .wrap{padding:0 12px;} .kpis{grid-template-columns:1fr 1fr;} th,td{padding:9px 8px;} .barlabel{display:none;} }
 </style>
 </head>
 <body>
   <div class="bar">
-    Lumen Onboarding — Proserv
-    <button class="refresh" id="refresh">Refresh</button>
-    <span class="count" id="count"></span>
-    <span class="updated" id="updated"></span>
+    <div class="mark"><img src="/lumen-mark.png" alt=""/></div>
+    <div class="brand"><b>Lumen</b> <span class="by">by Talkwalker</span></div>
+    <span class="barlabel">Proserv dashboard</span>
+    <div class="baractions">
+      <span class="count" id="count"></span>
+      <span class="updated" id="updated"></span>
+      <button class="refresh" id="refresh">Refresh</button>
+    </div>
   </div>
 
   <!-- E1: styled access gate; replaces the browser window.prompt() for the token. -->
   <div class="gate" id="gate">
     <form class="gcard" id="gateForm">
-      <div class="glogo">L</div>
+      <div class="glogo"><img src="/lumen-mark.png" alt=""/></div>
       <h2>Proserv access</h2>
       <p id="gateMsg">Enter the dashboard access token to view client onboarding sessions.</p>
       <input id="gateInput" type="password" autocomplete="current-password" placeholder="Access token" aria-label="Dashboard access token"/>
