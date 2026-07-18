@@ -850,11 +850,13 @@ function useAudio() {
   return { init, pop, chime };
 }
 
-// No logo/brand mark is rendered anywhere: the product runs on the "Lumen by
-// Talkwalker" wordmark alone (an imperfect reproduction of a real logo was
-// rejected, and no official asset is wired in yet). If a real asset is added
-// later, reintroduce a mark component here and place it in the header + message
-// rows.
+// Assistant message avatar: the real Hootsuite Owly mark (official asset in
+// public/, not a reproduction). Used ONLY on the assistant message rows — the
+// header runs on the "Lumen by Talkwalker" wordmark and the welcome/boot heroes
+// stay mark-less. The PNG is transparent, so it sits directly on the chat bg.
+function OwlAvatar({ size=28 }) {
+  return <img src="/Owly-Logo-Cherry.png" alt="" width={size} height={size} style={{display:"block",flexShrink:0}}/>;
+}
 function Spinner({ dark=false }) {
   const faint = dark ? "rgba(100,116,139,0.25)" : "rgba(255,255,255,0.3)", solid = dark ? "#64748b" : "white";
   return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{animation:"spin 0.8s linear infinite"}}><circle cx="9" cy="9" r="7" stroke={faint} strokeWidth="2"/><path d="M9 2a7 7 0 0 1 7 7" stroke={solid} strokeWidth="2" strokeLinecap="round"/></svg>;
@@ -2581,6 +2583,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
             <div style={{flex:1,height:1,background:C.border}}/>
           </div>;
           return <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:18,animation:m.role==="assistant"?"slideUpFade 0.4s ease-out forwards":"none"}}>
+            {m.role==="assistant" && <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>}
             <div style={{maxWidth:m.role==="assistant"?"min(88%, 580px)":"78%"}}>
               {m.content && <div>
                 <div style={{background:m.role==="user"?(m.isWidget?C.hi:C.uBg):(dark?C.card:"#F5F3FB"),border:`1px solid ${m.role==="user"?(m.isWidget?P:C.border):(dark?C.border:"#E5E0F3")}`,color:m.role==="user"?(m.isWidget?C.wTx:C.uTx):C.text,borderRadius:uiLang==="Arabic"?14:(m.role==="assistant"?"4px 14px 14px 14px":"14px 4px 14px 14px"),padding:"11px 15px",fontSize:14,lineHeight:1.7,boxShadow:m.role==="assistant"?"0 1px 3px rgba(1,43,58,0.06)":"none"}}>
@@ -2611,12 +2614,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
           {last.quickReplies.map((qr,idx) => <button key={idx} onClick={()=>sendMsg(qr,qr)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{qr}</button>)}
         </div>}
         {loading && <div role="status" aria-live="polite" aria-label={L("thinking",uiLang)} style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
+          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:dark?C.card:"#F5F3FB",border:`1px solid ${dark?C.border:"#E5E0F3"}`,borderRadius:14,padding:"14px 18px",maxWidth:"88%",boxShadow:"0 1px 3px rgba(1,43,58,0.06)"}}>
             <TypingIndicator lang={uiLang}/>
           </div>
         </div>}
 
         {retryMsg && !loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
+          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:dark?"#3a2f1a":"#fffbeb",border:`1px solid ${dark?"#5c4a24":"#fde68a"}`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{flexShrink:0}}><path d="M1 1l22 22 M16.72 11.06A10.94 10.94 0 0 1 19 12.55 M5 12.55a10.94 10.94 0 0 1 5.17-2.39 M10.71 5.05A16 16 0 0 1 22.58 9 M1.42 9a15.91 15.91 0 0 1 4.7-2.88 M8.53 16.11a6 6 0 0 1 6.95 0 M12 20h.01"/></svg>
             <span style={{fontSize:13,color:dark?"#e8d9b5":"#92400e"}}>{L("retryFail",uiLang)}</span>
@@ -2625,6 +2630,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
         </div>}
 
         {initErr && !loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
+          <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
             <span style={{fontSize:13,color:C.muted}}>{L("initErrMsg",uiLang)}</span>
             <button onClick={()=>{ const t=initErr; setInitErr(null); t==="resume"?resumeConvo():startConvo(); }} style={{background:P,color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{L("tryAgain",uiLang)}</button>
