@@ -851,9 +851,13 @@ function useAudio() {
 }
 
 function LumenIcon({ size=28, inverse=false }) {
-  const sw = size>=48?2.8:2.2, cr = size>=48?5:3.5;
-  const tile = inverse?"#ffffff":A, mark = inverse?A:"#ffffff";
-  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill={tile}/><path d="M16 6L16 26M6 16L26 16M9 9L23 23M23 9L9 23" stroke={mark} strokeWidth={sw} strokeLinecap="round"/><circle cx="16" cy="16" r={cr} fill={mark}/></svg>;
+  // Mark-less: a plain solid disc, NO glyph. The real Lumen logo is not
+  // reproduced here (an imperfect copy of a real brand mark is worse than none);
+  // the product runs on the "Lumen by Talkwalker" wordmark. This disc is only a
+  // neutral avatar/stand-in where a small shape is structurally needed (message
+  // avatars, the returning-client hero). Two-tone so it reads on either bg.
+  const fill = inverse ? "#EDE7FB" : A;
+  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="16" fill={fill}/></svg>;
 }
 function Spinner({ dark=false }) {
   const faint = dark ? "rgba(100,116,139,0.25)" : "rgba(255,255,255,0.3)", solid = dark ? "#64748b" : "white";
@@ -869,7 +873,7 @@ function Spinner({ dark=false }) {
 function BootScreen({ label = "Setting up your session…" }) {
   return <div style={{height:VH_FULL,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:"'Inter', Arial, sans-serif",background:"#fff"}}>
     <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
-    <div style={{width:64,height:64,borderRadius:18,background:A,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 24px rgba(126,72,236,0.25)"}}><LumenIcon size={38} inverse/></div>
+    <div aria-hidden="true" style={{width:64,height:64,borderRadius:18,background:A,boxShadow:"0 8px 24px rgba(126,72,236,0.25)"}}/>
     <div style={{display:"flex",alignItems:"center",gap:9,color:"#64748b",fontSize:13}}><Spinner dark/> {label}</div>
   </div>;
 }
@@ -2457,7 +2461,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
       {/* Header */}
       <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:mob?"8px 12px":"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:56,height:mob?"auto":56,flexWrap:mob?"wrap":"nowrap",gap:mob?6:0,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <LumenIcon size={28}/>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{display:"inline-flex",flexDirection:"column",lineHeight:1.05}}>
@@ -2510,7 +2513,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
             </svg>
             <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",animation:"slideUpFade .5s ease-out both"}}>
               <div aria-hidden="true" style={{position:"absolute",width:150,height:150,borderRadius:"50%",background:"radial-gradient(closest-side, rgba(126,72,236,.28), transparent)",animation:"haloPulse 4s ease-in-out infinite",pointerEvents:"none"}}/>
-              <div style={{position:"relative",width:88,height:88,borderRadius:24,background:A,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 24px rgba(126,72,236,0.25)",animation:"orbBreathe 5s ease-in-out infinite"}}><LumenIcon size={52} inverse/></div>
+              <div aria-hidden="true" style={{position:"relative",width:88,height:88,borderRadius:24,background:A,boxShadow:"0 8px 24px rgba(126,72,236,0.25)",animation:"orbBreathe 5s ease-in-out infinite"}}/>
             </div>
             <h1 style={{margin:"22px 0 8px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{seed?L("welcomeTitleSeeded",uiLang,{name:seed.contactName?.split(" ")[0]||seed.company}):L("welcomeTitle",uiLang)}</h1>
             {seed && <div style={{display:"inline-flex",alignItems:"center",gap:6,margin:"0 0 12px",padding:"5px 13px",borderRadius:999,background:`${A}14`,color:LINK,fontSize:12,fontWeight:600,animation:"slideUpFade .5s ease-out both",animationDelay:"110ms"}}><span aria-hidden="true">✦</span>{L("preparedFor",uiLang,{company:seed.company})}</div>}
