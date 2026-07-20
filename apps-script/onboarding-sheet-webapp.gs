@@ -101,7 +101,7 @@ function doPost(e) {
       // the "Open Sheet" link appears even when the client aborted before receiving
       // the URL (a long/heavy session can outlast the client's 30s wait; this script
       // still finishes). Authenticated server-side with the shared secret.
-      safe_(function () { updateSessionSheetUrl_(body.sessionId, url); }, "session writeback");
+      safe_(function () { updateSessionSheetUrl_(body.sessionId, url, body.dashboardOrigin); }, "session writeback");
 
       // Share the Sheet with the client AND send our own branded confirmation
       // email (thanks + link + next steps), localised to their onboarding
@@ -230,13 +230,16 @@ function sendClientEmail_(email, firstName, url, lang) {
 // record. Best-effort: any failure is logged and ignored (the client path still
 // works when it doesn't time out). The session endpoint origin is derived from the
 // DASHBOARD_URL Script Property.
-function updateSessionSheetUrl_(sessionId, url) {
+function updateSessionSheetUrl_(sessionId, url, originArg) {
   if (!sessionId || !url) return;
   const props = PropertiesService.getScriptProperties();
   const secret = props.getProperty("SHARED_SECRET");
-  const dash = props.getProperty("DASHBOARD_URL") || "";
+  // Prefer the origin the caller (sheet.js) passed — it is always the site whose
+  // dashboard/session store we must reach. Fall back to the DASHBOARD_URL property
+  // for older callers that don't send it.
+  const dash = String(originArg || props.getProperty("DASHBOARD_URL") || "");
   const origin = (dash.match(/^https?:\/\/[^\/]+/) || [])[0];
-  if (!secret || !origin) return;
+  if (!secret || !origin) { console.log("updateSessionSheetUrl_: no secret/origin (originArg='" + (originArg || "") + "')"); return; }
   const res = UrlFetchApp.fetch(origin + "/.netlify/functions/session", {
     method: "post",
     contentType: "application/json",

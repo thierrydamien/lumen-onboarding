@@ -133,7 +133,12 @@ export default async (req) => {
     try {
       const r = await fetch(appsUrl, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "" }),
+        // dashboardOrigin lets the Apps Script post the Sheet link back to THIS
+        // site's session store when a slow run outlasts the abort below (the client
+        // then never receives the URL). Passing our own origin removes the dependence
+        // on a hand-set DASHBOARD_URL script property that, if unset/stale, silently
+        // dropped the link on long runs.
+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
         signal: ac.signal,
       });
       const d = await r.json().catch(() => ({}));
