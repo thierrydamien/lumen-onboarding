@@ -605,7 +605,12 @@ function fillQueries_(ss, queries) {
   sh.getRange(1, 1).setValue("Migrated queries (client's original content, as submitted)");
   sh.getRange(2, 1).setValue("Reference for rebuilding queries in Lumen. May contain untranslated syntax from the client's previous tool.");
   const lines = q.split("\n");
-  for (let i = 0; i < lines.length; i++) sh.getRange(4 + i, 1).setValue(cellSafe_(lines[i]));
+  // A long paste can exceed the new sheet's default 1000 rows; grow first (Sheets
+  // does not auto-extend on write) or the tail is silently dropped. Then write in ONE
+  // batch instead of a setValue per line, which on a big paste is both slow (N
+  // round-trips risking the timeout) and what truncated silently before.
+  ensureRows_(sh, 3 + lines.length);
+  sh.getRange(4, 1, lines.length, 1).setValues(lines.map(function (l) { return [cellSafe_(l)]; }));
 }
 
 function todayStr_() {
@@ -624,8 +629,11 @@ function postCompletionSlack_(body, company, url) {
   const contactName = body.contactName || company.contact || "";
   const email = company.email || body.clientEmail || "";
   const contact = [contactName, email].filter(Boolean).join(" · ") || "—";
-  const topics = body.topicsCount != null ? String(body.topicsCount) : "—";
-  const users = body.usersCount != null ? String(body.usersCount) : "—";
+  // Coerce the client-supplied counts to a plain number: they land in the Slack
+  // fallback text (not just the slackEsc_'d Block fields), so a crafted value like
+  // "<!channel>" would otherwise inject a channel-wide ping / link there.
+  const topics = Number.isFinite(+body.topicsCount) ? String(+body.topicsCount) : "—";
+  const users = Number.isFinite(+body.usersCount) ? String(+body.usersCount) : "—";
 
   // Two-column fields (Block Kit renders these 2-up), richest first.
   const fields = [slackField_("Client", name), slackField_("Contact", contact),
