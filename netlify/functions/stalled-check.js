@@ -32,6 +32,14 @@ export default async () => {
   let store;
   try { store = getStore("lumen-sessions"); }
   catch (err) { console.error("Blobs store unavailable", err); return resp(500, "store error"); }
+  // Nudge de-dup lives in a SEPARATE store, not on the session record. This removes
+  // the two failure modes of read-modify-writing the record: a transient re-read
+  // error that skipped the stamp (re-firing the alert next run), and any chance of
+  // overwriting a just-completed record with a stale in-progress copy. It also keeps
+  // these markers out of the session list the dashboard renders.
+  let nudgeStore = null;
+  try { nudgeStore = getStore("lumen-nudges"); }
+  catch (err) { console.error("nudge store unavailable — proceeding without marker dedup", err); }
 
   let blobs;
   try { ({ blobs } = await store.list()); }
@@ -43,6 +51,9 @@ export default async () => {
     try { r = await store.get(b.key, { type: "json" }); } catch { continue; }
     scanned++;
     if (!isStalled(r, cutoff)) continue;
+    // Already nudged (dedicated marker)? isStalled already skips old records that
+    // carry the legacy nudgedAt stamp, so both paths stay deduped.
+    if (nudgeStore && await nudgeStore.get(r.id, { type: "json" }).catch(() => null)) continue;
 
     const company = (r.merged && r.merged.company && r.merged.company.name) || "(unnamed client)";
     const pct = Number.isFinite(r.percent) ? Math.max(0, Math.min(100, Math.round(r.percent))) : 0;
@@ -53,18 +64,15 @@ export default async () => {
       + (link ? `\n<${link}|View the partial session>` : "");
 
     const ok = await postSlack(token, channel, text);
-    if (!ok) continue; // leave nudgedAt unset so a failed post retries next run
+    if (!ok) continue; // leave the session un-marked so a failed post retries next run
 
-    // Re-read immediately before writing: a stalled session is idle by definition,
-    // but if the client happened to complete it while we were posting, we must NOT
-    // overwrite that completed record with a stale in-progress copy. Blobs has no
-    // CAS, so this read-then-write only narrows the window — which is enough here,
-    // since the client is not active on a 24h-idle session.
-    const fresh = await store.get(r.id, { type: "json" }).catch(() => null);
-    if (fresh && fresh.status === "in_progress" && !fresh.nudgedAt) {
-      try { await store.setJSON(r.id, { ...fresh, nudgedAt: new Date().toISOString() }); nudged++; }
-      catch (err) { console.error("stalled-check failed to mark nudgedAt", err); }
-    }
+    // Record the nudge in the dedicated store. A simple write (no read-modify-write
+    // of the session record) that cannot clobber a completed record; on the rare
+    // write failure the worst case is one duplicate next run, not a lost completion.
+    if (nudgeStore) {
+      try { await nudgeStore.setJSON(r.id, { at: new Date().toISOString() }); nudged++; }
+      catch (err) { console.error("stalled-check failed to write nudge marker", err); }
+    } else { nudged++; }
   }
   console.log(`stalled-check: scanned ${scanned}, nudged ${nudged}`);
   return resp(200, `nudged ${nudged}`);

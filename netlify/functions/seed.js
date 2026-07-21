@@ -115,7 +115,13 @@ export default async (req) => {
           if (!r || r.id === id) continue;           // skip the record we just wrote
           if (isExpired(r)) continue;                 // only non-expired seeds count
           if (String(r.company || "").trim().toLowerCase() === target) {
-            matches.push({ savedAt: r.savedAt || null, preparedBy: r.preparedBy || "" });
+            // preparedBy names an internal consultant. Only include it when the POST
+            // was actually authenticated (SEED_WRITE_TOKEN set + matched above); on the
+            // Origin-only posture, an attacker who forges Origin could otherwise probe
+            // "who made a link for <company>", so return just the timestamp then.
+            matches.push(writeToken
+              ? { savedAt: r.savedAt || null, preparedBy: r.preparedBy || "" }
+              : { savedAt: r.savedAt || null });
           }
         }
         matches.sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || "")); // most recent first

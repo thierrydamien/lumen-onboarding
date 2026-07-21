@@ -273,7 +273,9 @@
     return ok;
   }
 
+  var _genSeq = 0;
   async function generate() {
+    var myGen = ++_genSeq;
     $("formErr").textContent = "";
     var company = $("company").value.trim();
     var contactName = $("contactName").value.trim();
@@ -306,6 +308,14 @@
       if (res.status === 401) { $("formErr").textContent = "A write token is required to generate links. Ask your admin for the Sales write token."; return; }
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok || !data.id) { $("formErr").textContent = "Could not generate the link. Please try again."; return; }
+      // Don't reveal a stale link: bail if a newer Generate started, or if the form
+      // was edited during the round trip (the on-edit "clear link" invariant is a
+      // no-op while the panel is still hidden, so it can't catch this case).
+      var changed = $("company").value.trim() !== seed.company || $("contactName").value.trim() !== seed.contactName
+        || $("email").value.trim() !== seed.email || $("industry").value.trim() !== seed.industry
+        || $("notes").value.trim() !== seed.notes || $("language").value !== seed.language
+        || $("preparedBy").value.trim() !== seed.preparedBy;
+      if (myGen !== _genSeq || changed) { $("formErr").textContent = "Details changed — click Generate again for an updated link."; return; }
       $("link").value = CHAT_BASE + "?s=" + encodeURIComponent(data.id);
       setExpiryNote(data.expiresAt);
       setDupNote(company, data.duplicates);

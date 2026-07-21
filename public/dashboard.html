@@ -187,14 +187,20 @@
   // teammate sees shouldn't be a native prompt). requestToken() shows the gate and
   // resolves once a token is submitted and stored; the gate never rejects, so an
   // unauthenticated caller simply waits there.
-  var _gateResolve = null;
+  // Queue of pending resolvers (not a single slot): when several authedFetch calls
+  // hit 401 close together, each pushes its resolver here and they ALL resolve when
+  // one token is submitted. A single slot let the second 401 overwrite the first,
+  // orphaning that fetch chain so the dashboard could hang on "Loading...".
+  var _gateWaiters = [];
   function requestToken(message) {
-    $("gateMsg").textContent = message || "Enter the dashboard access token to view client onboarding sessions.";
-    $("gateErr").textContent = "";
-    $("gateInput").value = "";
-    $("gate").classList.add("show");
-    setTimeout(function () { $("gateInput").focus(); }, 50);
-    return new Promise(function (resolve) { _gateResolve = resolve; });
+    if (!$("gate").classList.contains("show")) {
+      $("gateMsg").textContent = message || "Enter the dashboard access token to view client onboarding sessions.";
+      $("gateErr").textContent = "";
+      $("gateInput").value = "";
+      $("gate").classList.add("show");
+      setTimeout(function () { $("gateInput").focus(); }, 50);
+    }
+    return new Promise(function (resolve) { _gateWaiters.push(resolve); });
   }
   $("gateForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -202,8 +208,8 @@
     if (!t) { $("gateErr").textContent = "Enter a token to continue."; return; }
     sessionStorage.setItem("dash_token", t);
     $("gate").classList.remove("show");
-    var r = _gateResolve; _gateResolve = null;
-    if (r) r();
+    var waiters = _gateWaiters; _gateWaiters = [];
+    waiters.forEach(function (r) { r(); });
   });
   function authedFetch(url) {
     return fetch(url, { headers: { "x-dashboard-token": getToken() } }).then(function (r) {
@@ -654,21 +660,27 @@
   // Close from anywhere (button, backdrop, Escape) and hand focus back to where
   // the user was — a Proserv user triages many sessions in a row.
   var lastFocus = null;
+  // Monotonic token so a slow fetch for a previously-opened (or since-closed) session
+  // can't repaint the modal with the wrong client's brief. Each open captures the
+  // current value; a resolve whose token is stale is ignored. Closing bumps it.
+  var _openSeq = 0;
   function closeModal() {
+    _openSeq++;
     $("modal").classList.remove("show");
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
     lastFocus = null;
   }
 
   function openSession(id) {
+    var myReq = ++_openSeq;
     lastFocus = document.activeElement;
     $("sheet").innerHTML = '<div class="empty">Loading…</div>';
     $("modal").classList.add("show");
     $("sheet").focus();
     authedFetch(SESSION_ENDPOINT + "?id=" + encodeURIComponent(id))
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (data) { renderSheet(data.session); loadSeedNotes(data.session); })
-      .catch(function (e) { $("sheet").innerHTML = '<div class="err">Could not open session (' + esc(e.message) + ').</div>'; });
+      .then(function (data) { if (myReq !== _openSeq) return; renderSheet(data.session); loadSeedNotes(data.session); })
+      .catch(function (e) { if (myReq !== _openSeq) return; $("sheet").innerHTML = '<div class="err">Could not open session (' + esc(e.message) + ').</div>'; });
   }
 
   // Consultant notes live in the seed store, not the session record, and are
