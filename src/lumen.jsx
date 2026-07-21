@@ -1268,6 +1268,35 @@ const unionUsers = (a, b) => {
   }
   return out;
 };
+// Reconcile confirmed topic CARDS (client-facing; may be renamed/edited inline) with
+// the %%TOPICS%% MARKER (re-emitted by the model, carrying urls/hashtags/comments and
+// any noise-check NOT exclusions). Cards are the authoritative SET when present. Match
+// a card to its marker by name; a renamed card whose marker didn't name-match is paired
+// to a leftover marker BY POSITION (so a rename merges into one topic instead of
+// duplicating). Markers beyond the card count are genuinely new topics (e.g. a later
+// suggestion batch) and are appended. Marker wins on the fields it updates
+// (keywords/urls/hashtags/comments); card wins on name/rationale/group. No cards -> the
+// marker is the set. The review modal remains the human backstop for edits.
+function mergeTopics(cards, markers) {
+  cards = Array.isArray(cards) ? cards : [];
+  markers = Array.isArray(markers) ? markers : [];
+  const nm = x => String((x && x.name) || "").trim().toLowerCase();
+  const shape = (c, m, i) => ({ name:c.name||m.name||"",
+    keywords:m.keywords||c.keywords||"", urls:m.urls||c.urls||"",
+    hashtags:m.hashtags||c.hashtags||"", comments:m.comments||c.comments||"",
+    rationale:c.rationale||m.rationale||"", group:c.group||m.group||"",
+    id:i, confirmed:!(isGuess(c)||isGuess(m)) });
+  if (!cards.length) return markers.map((m, i) => shape({}, m, i));
+  const markBy = {};
+  markers.forEach(m => { const k = nm(m); if (k && !(k in markBy)) markBy[k] = m; });
+  const used = new Set();
+  const rows = cards.map(c => { const m = markBy[nm(c)]; if (m) used.add(nm(m)); return { c, m: m || null }; });
+  const leftover = markers.filter(m => !used.has(nm(m)));
+  let li = 0;
+  rows.forEach(r => { if (!r.m && li < leftover.length) r.m = leftover[li++]; }); // renamed card absorbs its orphan marker
+  const extras = leftover.slice(li).map(m => ({ c: null, m })); // genuinely-new marker-only topics
+  return rows.concat(extras).map((r, i) => shape(r.c || {}, r.m || {}, i));
+}
 function pProg(t) { const m = t.match(/%%PROGRESS%%([\s\S]*?)%%END%%/); try { return m ? JSON.parse(m[1]) : null; } catch { return null; } }
 function pMark(t, k) { const m = t.match(new RegExp("%%"+k+"%%(\\[?[\\s\\S]*?\\]?)%%END%%")); try { return m ? JSON.parse(m[1]) : null; } catch { return null; } }
 // Neutralize marker delimiters in CLIENT-authored text before it reaches the
@@ -1941,30 +1970,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   // only) and the %%TOPICS%% marker (also urls/hashtags/comments). Merge by name so
   // the marker's urls/hashtags survive into the brief instead of being dropped when
   // the card widget was used.
-  const [topics,setTopics]= useState(() => {
-    // Union confirmed cards with the %%TOPICS%% marker by name. The noise-check step
-    // re-emits the marker with Boolean NOT exclusions folded into keywords AFTER the
-    // card was confirmed, so for the fields the noise check updates
-    // (keywords/urls/hashtags/comments) the MARKER wins; for client-facing display
-    // (name/rationale/group) the card wins. Union (not card-as-base) also keeps a
-    // topic that exists only in the marker — added after the cards were confirmed —
-    // from being dropped. Client can still edit everything in this modal.
-    const cards = gw("TOPICS") || [], markers = cdata.topics || [];
-    const nm = x => String((x && x.name) || "").trim().toLowerCase();
-    const cardBy = {}, markBy = {}, order = [], seen = new Set();
-    cards.forEach(c => { const k = nm(c); if (k) cardBy[k] = c; });
-    markers.forEach(m => { const k = nm(m); if (k) markBy[k] = m; });
-    cards.forEach(c => { const k = nm(c); if (k && !seen.has(k)) { seen.add(k); order.push(k); } });
-    markers.forEach(m => { const k = nm(m); if (k && !seen.has(k)) { seen.add(k); order.push(k); } });
-    return order.map((k,i) => {
-      const tp = cardBy[k] || {}, m = markBy[k] || {};
-      return { name:tp.name||m.name||"",
-        keywords:m.keywords||tp.keywords||"", urls:m.urls||tp.urls||"",
-        hashtags:m.hashtags||tp.hashtags||"", comments:m.comments||tp.comments||"",
-        rationale:tp.rationale||m.rationale||"", group:tp.group||m.group||"",
-        id:i, confirmed:!(isGuess(tp)||isGuess(m)) };
-    });
-  });
+  const [topics,setTopics]= useState(() => mergeTopics(gw("TOPICS") || [], cdata.topics || []));
   const [chans,setChans]= useState((cdata.channels||[]).map((c,i)=>({...c,id:i})));
   const [reports,setReports]= useState((cdata.reports||[]).map((r,i)=>({...r,id:i})));
   const [alerts,setAlerts]= useState((cdata.alerts||[]).map((a,i)=>({...a,id:i})));
@@ -2682,6 +2688,12 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
   const widgetApiPayload = (type, data) =>
     type==="QUERIES" && data!=="__skip__" ? `Full pasted/imported content below — extract what's relevant per your IMPORTED CONTENT instructions:\n${data}`
     : type==="USERS" && Array.isArray(data) ? data.map(u=>`${u.firstName} ${u.lastName} <${u.email}> — ${u.role||"no role"} — ${u.access}`).join("; ")
+    // Send the CONFIRMED topic names + keywords (not just "N topics confirmed"), so
+    // when the model re-emits the %%TOPICS%% marker (e.g. folding in noise-check
+    // exclusions) it uses the client's renamed/edited values. Without this the marker
+    // keeps the model's original name/keywords, which then diverges from the card —
+    // duplicating a renamed topic or overwriting the client's keyword edits on merge.
+    : type==="TOPICS" && Array.isArray(data) ? "Confirmed topics (use these exact names/keywords when you emit or update the TOPICS marker): " + data.map(t=>`${t.name||"(unnamed)"}${t.keywords?` [keywords: ${t.keywords}]`:""}`).join("; ")
     : widgetSum(type, data);
 
 
