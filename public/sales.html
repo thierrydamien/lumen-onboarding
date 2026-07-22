@@ -167,7 +167,18 @@
 
       <div class="sec">Internal — never shown to the client</div>
 
-      <label>Prepared by <span class="opt">(required; remembered on this device)</span></label>
+      <label>Setup package <span class="opt">(optional; scopes how much the assistant gathers, so it never asks the client)</span></label>
+      <select id="pkg">
+        <option value="">Not set — assistant gathers as usual</option>
+        <option value="core-plus">Lumen Core — Plus (5 topics · 5 channels · 1 report)</option>
+        <option value="core-advanced">Lumen Core — Advanced (10 topics · 10 channels · 1 report)</option>
+        <option value="core-elite">Lumen Core — Elite (20 topics · 20 channels · 1 report)</option>
+        <option value="adv-plus">Analyze / Research / Deep Research / Agency — Plus (15 topics · 20 channels · 1 report)</option>
+        <option value="adv-advanced">Analyze / Research / Deep Research / Agency — Advanced (20 topics · 25 channels · 2 reports)</option>
+        <option value="adv-elite">Analyze / Research / Deep Research / Agency — Elite (20 topics · 25 channels · 2 reports)</option>
+      </select>
+
+      <label style="margin-top:14px;">Prepared by <span class="opt">(required; remembered on this device)</span></label>
       <input id="preparedBy" placeholder="Your name"/>
       <div class="ferr" id="err_preparedBy"></div>
 
@@ -294,7 +305,8 @@
       industry: $("industry").value.trim(),
       notes: $("notes").value.trim(),
       language: $("language").value,
-      preparedBy: preparedBy
+      preparedBy: preparedBy,
+      package: $("pkg").value
     };
     var btn = $("gen"), label = btn.textContent;
     btn.disabled = true; btn.textContent = "Generating…";
@@ -459,7 +471,7 @@
 
   // Clear a stale link the moment the form is edited, so a consultant can never
   // copy a link that points to a different client's seed than what's on screen.
-  ["company", "contactName", "email", "industry", "notes", "language", "preparedBy"].forEach(function (id) {
+  ["company", "contactName", "email", "industry", "notes", "language", "preparedBy", "pkg"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     el.addEventListener("input", function () { $("out").classList.remove("show"); });

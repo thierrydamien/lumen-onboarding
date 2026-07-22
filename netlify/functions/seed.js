@@ -87,7 +87,10 @@ export default async (req) => {
     // preparedBy (the consultant's name) is stored but is NOT client-safe: it is
     // returned only to the token-gated dashboard, never to the client chat page.
     const clean = {};
-    for (const k of [...CLIENT_SAFE, "notes", "preparedBy"]) {
+    // package (e.g. "core-advanced") scopes how much the assistant gathers. Like
+    // notes/preparedBy it is NOT client-safe: chat.js reads it server-side to inject
+    // the setup limits, and the dashboard sees it, but the client fetch never returns it.
+    for (const k of [...CLIENT_SAFE, "notes", "preparedBy", "package"]) {
       if (seed[k] != null) clean[k] = String(seed[k]).slice(0, 4000);
     }
     const id = "sd_" + crypto.randomUUID();
@@ -149,7 +152,7 @@ export default async (req) => {
       if (isExpired(rec)) { store.delete(id).catch(() => {}); return json(404, { error: "expired" }); }
       const safe = {};
       for (const k of CLIENT_SAFE) if (rec[k] != null) safe[k] = rec[k];
-      const out = authed ? { ...safe, notes: rec.notes || "", preparedBy: rec.preparedBy || "" } : safe;
+      const out = authed ? { ...safe, notes: rec.notes || "", preparedBy: rec.preparedBy || "", package: rec.package || "" } : safe;
       return json(200, { seed: out });
     }
 
