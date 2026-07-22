@@ -436,7 +436,8 @@
     var em = EMAILS[$("language").value] || EMAILS.English;
     var greeting = first ? (em.hello + " " + first) : em.helloAlone;
     var body = em.body.replace("{greeting}", greeting).replace("{link}", link);
-    window.location.href = "mailto:" + to + "?subject=" + encodeURIComponent(em.subject) + "&body=" + encodeURIComponent(body);
+    // Open the draft in a new tab so the Sales page (and the generated link) stays put.
+    window.open("mailto:" + to + "?subject=" + encodeURIComponent(em.subject) + "&body=" + encodeURIComponent(body), "_blank");
   });
 
   $("gen").addEventListener("click", generate);
