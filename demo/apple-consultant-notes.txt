@@ -1,0 +1,9 @@
+CONSULTANT NOTES (confidential, never shown to the client, these only shape how the assistant probes and suggests):
+
+Large, sophisticated brand, but the champion on this project is a product marketing manager focused on one launch. Keep it practical and launch-focused, not a boil-the-ocean setup.
+
+The real priority is launch-day monitoring: past launches saw fast-moving price and battery complaints, so lead your suggestions on crisis and sentiment-spike alerting.
+
+Competitive focus is Samsung's overlapping Galaxy launch window. Surface Samsung and Google Pixel as competitors to track if they only mention their own brand.
+
+Keep the first setup tight and tied to the launch. They can expand later.
