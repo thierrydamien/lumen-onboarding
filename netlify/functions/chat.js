@@ -161,7 +161,9 @@ async function briefFor(seedId) {
       getStore(SEED_STORE).get(seedId, { type: "json" }),
       new Promise((_, rej) => { timer = setTimeout(() => rej(new Error("brief_lookup_timeout")), NOTES_LOOKUP_MS); }),
     ]);
-    if (rec && typeof rec.brief === "string") brief = rec.brief.trim().slice(0, 4000);
+    // Match the seed store's 8000-char cap (seed.js) so a full uploaded brief is
+    // not silently re-truncated here to half its length before reaching the model.
+    if (rec && typeof rec.brief === "string") brief = rec.brief.trim().slice(0, 8000);
   } catch (err) {
     console.warn("Sales-brief lookup failed; proceeding without brief", err && err.message);
     return ""; // transient failure — don't cache, a retry can still resolve it

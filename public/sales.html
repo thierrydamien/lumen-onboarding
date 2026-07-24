@@ -501,7 +501,7 @@
     el.style.display = "";
   }
 
-  // Email to client: open the rep's mail app with a ready-to-send draft (client's
+  // Email to client: open a Gmail compose draft with a ready-to-send message (client's
   // address and first name pre-filled when known), so they don't hand-copy the
   // link. Localized to the chat language chosen above, so a French/German/... client
   // gets the invite in the same language they'll chat in. It's a starting draft the
@@ -536,8 +536,17 @@
     var em = EMAILS[$("language").value] || EMAILS.English;
     var greeting = first ? (em.hello + " " + first) : em.helloAlone;
     var body = em.body.replace("{greeting}", greeting).replace("{link}", link);
-    // Open the draft in a new tab so the Sales page (and the generated link) stays put.
-    window.open("mailto:" + to + "?subject=" + encodeURIComponent(em.subject) + "&body=" + encodeURIComponent(body), "_blank");
+    // Open a Gmail compose draft in a new tab (everyone here is on Google Workspace),
+    // so the Sales page and the generated link stay put. The body is plain text, but
+    // the link is a full https:// URL on its own line, which Gmail auto-linkifies into
+    // a clickable link both in the draft and in what the client receives. (A draft body
+    // cannot carry a true HTML anchor with custom text; that would need a server-sent
+    // HTML email.) The rep must be signed into Gmail in the browser, which they are.
+    var gmail = "https://mail.google.com/mail/?view=cm&fs=1"
+      + "&to=" + encodeURIComponent(to)
+      + "&su=" + encodeURIComponent(em.subject)
+      + "&body=" + encodeURIComponent(body);
+    window.open(gmail, "_blank", "noopener");
   });
 
   $("gen").addEventListener("click", generate);

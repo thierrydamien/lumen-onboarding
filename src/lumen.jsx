@@ -295,6 +295,10 @@ const I18N = {
     expDownload: "Download a copy",
     expSending: "Sending…",
     expSend: "📨 Send to my Lumen team",
+    expIncompleteTitle: "Your brief isn’t complete yet",
+    expIncompleteBody: "That’s okay. You can send what you have now, and we’ll go through the rest together at your review session.",
+    expSendAnyway: "📨 Send it anyway",
+    expKeepGoing: "Keep going",
     expImport: "Import",
     editPrefill: "Correction, earlier I said \"{quote}\". What I actually meant: ",
     editTitle: "Send a correction without deleting any messages",
@@ -461,6 +465,10 @@ const I18N = {
     expDownload: "Télécharger une copie",
     expSending: "Envoi…",
     expSend: "📨 Envoyer à mon équipe Lumen",
+    expIncompleteTitle: "Votre brief n’est pas encore complet",
+    expIncompleteBody: "Ce n’est pas grave. Vous pouvez envoyer ce que vous avez, et nous compléterons le reste ensemble lors de votre session de revue.",
+    expSendAnyway: "📨 Envoyer quand même",
+    expKeepGoing: "Continuer",
     expImport: "Importer",
     editPrefill: "Correction, j'avais dit précédemment : « {quote} ». Ce que je voulais vraiment dire : ",
     editTitle: "Envoyer une correction sans supprimer de messages",
@@ -627,6 +635,10 @@ const I18N = {
     expDownload: "Kopie herunterladen",
     expSending: "Wird gesendet…",
     expSend: "📨 An mein Lumen-Team senden",
+    expIncompleteTitle: "Ihr Briefing ist noch nicht vollständig",
+    expIncompleteBody: "Das ist in Ordnung. Sie können das Vorhandene jetzt senden, und wir gehen den Rest gemeinsam in Ihrer Review-Sitzung durch.",
+    expSendAnyway: "📨 Trotzdem senden",
+    expKeepGoing: "Weitermachen",
     expImport: "Importieren",
     editPrefill: "Korrektur, ich sagte zuvor: „{quote}“. Was ich eigentlich meinte: ",
     editTitle: "Eine Korrektur senden, ohne Nachrichten zu löschen",
@@ -793,6 +805,10 @@ const I18N = {
     expDownload: "Descargar una copia",
     expSending: "Enviando…",
     expSend: "📨 Enviar a mi equipo de Lumen",
+    expIncompleteTitle: "Su resumen aún no está completo",
+    expIncompleteBody: "No pasa nada. Puede enviar lo que tiene ahora y completaremos el resto juntos en su sesión de revisión.",
+    expSendAnyway: "📨 Enviar de todos modos",
+    expKeepGoing: "Seguir",
     expImport: "Importar",
     editPrefill: "Corrección, antes dije: «{quote}». Lo que realmente quería decir: ",
     editTitle: "Enviar una corrección sin eliminar ningún mensaje",
@@ -959,6 +975,10 @@ const I18N = {
     expDownload: "Scarica una copia",
     expSending: "Invio in corso…",
     expSend: "📨 Invia al mio team Lumen",
+    expIncompleteTitle: "Il tuo brief non è ancora completo",
+    expIncompleteBody: "Va bene così. Puoi inviare quello che hai ora e completeremo il resto insieme durante la sessione di revisione.",
+    expSendAnyway: "📨 Invia comunque",
+    expKeepGoing: "Continua",
     expImport: "Importa",
     editPrefill: "Correzione, prima avevo detto: «{quote}». Ciò che intendevo davvero: ",
     editTitle: "Invia una correzione senza eliminare alcun messaggio",
@@ -1125,6 +1145,10 @@ const I18N = {
     expDownload: "تنزيل نسخة",
     expSending: "جارٍ الإرسال…",
     expSend: "📨 إرسال إلى فريق Lumen الخاص بي",
+    expIncompleteTitle: "ملخصك غير مكتمل بعد",
+    expIncompleteBody: "لا بأس بذلك. يمكنك إرسال ما لديك الآن، وسنكمل الباقي معًا في جلسة المراجعة.",
+    expSendAnyway: "📨 إرسال على أي حال",
+    expKeepGoing: "المتابعة",
     expImport: "استيراد",
     editPrefill: "تصحيح، قلت سابقًا: «{quote}». ما قصدته فعلًا: ",
     editTitle: "إرسال تصحيح دون حذف أي رسائل",
@@ -2003,6 +2027,10 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   const [chans,setChans]= useState((cdata.channels||[]).map((c,i)=>({...c,id:i})));
   const [reports,setReports]= useState((cdata.reports||[]).map((r,i)=>({...r,id:i})));
   const [alerts,setAlerts]= useState((cdata.alerts||[]).map((a,i)=>({...a,id:i})));
+  // When the brief is short of the minimum, Send does not dead-end: it asks for a
+  // one-tap confirmation, then submits anyway (flagged incomplete) so a genuinely
+  // stuck client is never trapped. This holds that confirm step.
+  const [confirmSend,setConfirmSend] = useState(false);
   const emptyUser  = () => ({ firstName:"",lastName:"",email:"",role:"",access:"Full Tool" });
   const emptyChan  = () => ({ author:"",type:"",url:"",owned:"" });
   const emptyReport = () => ({ name:"",objective:"",details:"",comments:"" });
@@ -2035,6 +2063,10 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   </div>;
   const addBtn = (label,onClick) => <button onClick={onClick} style={{background:"transparent",border:`1px dashed ${LINK}`,color:LINK,borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",marginTop:6}}>{label}</button>;
   const merged = { company:{...co,markets:mkts,languages:langs,objectives:objs,objectiveDetails:objDetails,teams,timezone:tz}, topics:topics.map(({confirmed,id,...t})=>t), channels:chans.map(({id,...c})=>c), reports:reports.map(({id,...r})=>r), alerts:alerts.map(({id,...a})=>a), queries:gw("QUERIES")||"" };
+  // Unmet-requirement labels in English (the UI stays in the client's language), so
+  // the consultant reading the handoff sees exactly what to finish at the review call.
+  const openGaps = reqChecks.filter(c => !c[1]).map(c => L(c[0], "English"));
+  const doSend = () => { if (sending) return; onSend(merged, users, ready ? undefined : { incomplete: true, gaps: openGaps }); };
   const dialogRef = useRef(null);
   useEffect(() => {
     // Dialog a11y: Escape closes; focus moves in on open, is TRAPPED while open
@@ -2159,19 +2191,42 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           {addBtn(L("expAddAlert",uiLang), ()=>setAlerts(as=>[...as,{...emptyAlert(),id:Date.now()}]))}
         </Section>
       </div>
-      {/* flexWrap: on a narrow phone the readiness line + three actions cannot fit one
-          row; without wrapping the Send button gets crushed at the conversion moment. */}
-      <div style={{padding:"16px 24px",borderTop:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexShrink:0,flexWrap:"wrap"}}>
-        <div style={{fontSize:11,color:ready?"#16a34a":"#92400e",flex:"1 1 180px",minWidth:0}}>{ready?L("expFooterReady",uiLang):`${L("expStillNeeded",uiLang,{gaps:gaps.slice(0,3).join(", ")})}${gaps.length>3?` ${L("expMore",uiLang,{n:gaps.length-3})}`:""}`}</div>
-        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-          {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
-          <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
-          {/* Pre-send, Download is deliberately a quiet text link: a prominent Download
-              button beside Send invites "download = saved = done", and the brief never
-              reaches the team. Post-send it stays available via the FinishCard. */}
-          {!(sent && sheetLink) && <button onClick={()=>ready&&onExport(merged,users)} disabled={!ready} style={{background:"transparent",border:"none",color:ready?"#64748b":"#cbd5e1",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:ready?"pointer":"not-allowed"}}>{L("expDownload",uiLang)}</button>}
-          <button onClick={()=>ready&&!sending&&onSend(merged,users)} disabled={!ready||sending} style={{background:ready?A:"#e2e8f0",color:ready?"white":"#94a3b8",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:ready&&!sending?"pointer":"not-allowed"}}>{sending?L("expSending",uiLang):L("expSend",uiLang)}</button>
-        </div>
+      {/* flexWrap: on a narrow phone the readiness line + actions cannot fit one row;
+          without wrapping the Send button gets crushed at the conversion moment. When
+          the brief is short of the bar, Send does not dead-end — it opens a one-tap
+          "send anyway" confirmation (with review-session reassurance) so a genuinely
+          stuck client can still submit. Download is available either way. */}
+      <div style={{padding:"16px 24px",borderTop:"1px solid #e2e8f0",flexShrink:0}}>
+        {(!ready && confirmSend) ? (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"10px 12px"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#92400e",marginBottom:2}}>{L("expIncompleteTitle",uiLang)}</div>
+              <div style={{fontSize:12,color:"#92400e",lineHeight:1.5}}>{L("expIncompleteBody",uiLang)}</div>
+            </div>
+            <div style={{display:"flex",gap:10,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
+              {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:sending?"default":"pointer"}}>{L("expKeepGoing",uiLang)}</button>
+              <button onClick={()=>doSend()} disabled={sending} style={{background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{sending?L("expSending",uiLang):L("expSendAnyway",uiLang)}</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{fontSize:11,color:ready?"#16a34a":"#92400e",flex:"1 1 180px",minWidth:0}}>{ready?L("expFooterReady",uiLang):`${L("expStillNeeded",uiLang,{gaps:gaps.slice(0,3).join(", ")})}${gaps.length>3?` ${L("expMore",uiLang,{n:gaps.length-3})}`:""}`}</div>
+            <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+              {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
+              {/* Download stays a quiet text link so it never reads as "download = done"
+                  beside Send, but it is available whether or not the brief is complete —
+                  a stuck client can always keep a copy of their own answers. */}
+              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,users)} style={{background:"transparent",border:"none",color:"#64748b",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
+              {/* Ready: submit directly. Not ready: enabled but amber, opening the confirm
+                  step rather than dead-ending, so a stuck client is never trapped. */}
+              <button onClick={()=>{ if (sending) return; if (ready) doSend(); else setConfirmSend(true); }} disabled={sending} style={ready
+                ? {background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}
+                : {background:"#fffbeb",color:"#92400e",border:"1px solid #f59e0b",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sending?L("expSending",uiLang):L("expSend",uiLang)}</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   </div>;
@@ -2569,7 +2624,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     } finally { busyRef.current = false; }
   }, [callAPI, pop, inferPct, applyCdata]);
 
-  const handleSend = useCallback(async (merged, users) => {
+  const handleSend = useCallback(async (merged, users, meta) => {
     // Double-send guard: `sending` is React state and lags a fast double-click,
     // so a ref (updates synchronously) is what actually prevents two records,
     // two Sheets, or two Slack alerts from one impatient double-tap.
@@ -2590,17 +2645,29 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
       const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
       const sentAt = new Date();
 
+      // A client can deliberately send before the brief meets the bar (the review
+      // modal's "send anyway"). Flag it and, so the consultant is never surprised,
+      // fold the outstanding sections into the handoff's follow-ups for the review call.
+      const incomplete = !!(meta && meta.incomplete);
+      const openGaps = (meta && meta.gaps) || [];
+      const baseHandoff = cdata.handoff || {
+        maturity: "",
+        goalInOwnWords: merged.company?.useCase || "",
+        hesitations: "",
+        aiSuggestedUnconfirmed: "",
+        followUps: "Session sent before the assistant produced a full handoff — review the brief directly and confirm the gaps at the call.",
+        consultantTips: "",
+      };
+      const handoff = incomplete
+        ? { ...baseHandoff, followUps: [baseHandoff.followUps, "Client sent an incomplete brief on purpose. Complete these together at the review session: " + (openGaps.join(", ") || "the missing sections") + "."].filter(Boolean).join(" ") }
+        : baseHandoff;
+
       const record = {
         id: sidRef.current,
         merged, users: users || [],
-        handoff: cdata.handoff || {
-          maturity: "",
-          goalInOwnWords: merged.company?.useCase || "",
-          hesitations: "",
-          aiSuggestedUnconfirmed: "",
-          followUps: "Session sent before the assistant produced a full handoff — review the brief directly and confirm the gaps at the call.",
-          consultantTips: "",
-        },
+        handoff,
+        incomplete,
+        incompleteGaps: openGaps,
         queries: merged.queries || "",
         seed: seed || null,
         seedId: seedId || null,

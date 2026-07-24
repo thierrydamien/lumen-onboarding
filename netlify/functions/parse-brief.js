@@ -171,7 +171,9 @@ function parseMediaBrief(wb) {
     if (lines.length) sections.push("[" + name + "]\n" + lines.join("\n"));
   }
   if (!filledCount) return { error: "template_empty" };
-  return { ok: true, form, brief: sections.join("\n\n").slice(0, 7000), filledCount };
+  // 8000 matches the seed store cap (seed.js) and the chat.js consumer cap, so a
+  // full brief travels end-to-end without being trimmed at any stage.
+  return { ok: true, form, brief: sections.join("\n\n").slice(0, 8000), filledCount };
 }
 
 // SSRF guard: only a docs.google.com spreadsheet URL; return just the id so the
