@@ -2504,18 +2504,30 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     // The system prompt lives server-side in the chat function; the client only
     // flags whether the OVERSTATE correction pass is needed.
     const reqInit = { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(mkBody(trimmed)) };
-    let res = await fetchWithTimeout(CHAT_ENDPOINT, reqInit, 60000);
-    // Rate limited (429): the server's abuse guard tripped — which a real client
-    // should never hit. Treat it as a brief hiccup, not an error: wait the short
-    // window (capped so we never hang on a long one) and retry once transparently,
-    // so the client just sees the spinner a moment longer and continues.
-    if (res.status === 429) {
-      let ra = parseInt(res.headers.get("Retry-After") || "5", 10);
-      if (!Number.isFinite(ra) || ra < 1) ra = 5;
-      await sleep(Math.min(ra, 8) * 1000);
-      res = await fetchWithTimeout(CHAT_ENDPOINT, reqInit, 60000);
+    // Transparent transient-failure retry. The heavy FIRST call of a cold session can
+    // be killed by the function timeout (Netlify then returns 502/504); a redeploy or a
+    // brief infra wobble looks the same, and the abuse guard can 429 momentarily. Any of
+    // these used to surface "we couldn't reach the assistant" and force the client to
+    // click Try again by hand (real clients reported clicking 3x). Retry automatically
+    // with short backoff so they just see the spinner a moment longer. chat.js is a
+    // STATELESS proxy (it persists nothing), so re-sending the identical request is safe.
+    // Non-transient 4xx (bad request/config) are NOT retried — a retry can't fix them.
+    let res = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try { res = await fetchWithTimeout(CHAT_ENDPOINT, reqInit, 60000); }
+      catch (e) { if (attempt === 3) throw e; res = null; }          // network/abort: retry unless out of tries
+      if (res) {
+        if (res.ok) break;                                            // success
+        const transient = res.status === 429 || res.status >= 500;   // cold-start kill / infra / rate blip
+        if (!transient || attempt === 3) throw new Error(`api_${res.status}`);
+        if (res.status === 429) {                                     // honor a short Retry-After when present
+          const ra = parseInt(res.headers.get("Retry-After") || "0", 10);
+          if (Number.isFinite(ra) && ra > 0) { await sleep(Math.min(ra, 6) * 1000); continue; }
+        }
+      }
+      await sleep(Math.min(1000 * attempt, 4000));                    // backoff between tries: 1s, 2s
     }
-    if (!res.ok) throw new Error(`api_${res.status}`);
+    if (!res || !res.ok) throw new Error("api_unreachable");
     const d = await res.json();
     if (d.error) throw new Error("api_error");
     if (d.usage) {
