@@ -49,6 +49,18 @@ const PIPELINE_COL = { account: 1, talkwalker: 21, ic: 22, tam: 23 }; // cols B,
 const PIPELINE_MIN_SCORE = 0.4;  // below this: treat as no match
 const MENTION_MIN_SCORE = 0.7;   // below this: "low confidence" note / fall back to plain name
 
+// Compact signature of a brief's fillable content, used in the idempotency key so a
+// resend with MORE data (e.g. users added after an early send) is treated as new work
+// and regenerates the Sheet, while a byte-identical retry still dedups. Counts for the
+// list sections plus the contact identity — the fields whose absence was the bug.
+function briefSig_(brief) {
+  var b = brief || {}, c = b.company || {};
+  var n = function (a) { return Array.isArray(a) ? a.length : 0; };
+  var clip = function (v) { return String(v == null ? "" : v).slice(0, 60); };
+  return [n(b.users), n(b.topics), n(b.channels), n(b.reports), n(b.alerts),
+    clip(c.contact), clip(c.email), clip(c.name)].join("|");
+}
+
 function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
@@ -64,8 +76,16 @@ function doPost(e) {
     // first request still running server-side after the client aborted at 45s)
     // can't slip through; purely sequential retries are covered even if the lock
     // can't be taken. No sessionId (older client) => no dedup, same as before.
+    //
+    // The key includes a SIGNATURE of the brief's contents, not just the sessionId.
+    // A client who sends early (e.g. "finished early" before users are captured) and
+    // then completes the brief and re-sends uses the SAME sessionId; keying on the
+    // sessionId alone returned the first, half-filled Sheet and never wrote the newly
+    // added users/contact. Keying on sessionId + content signature means an identical
+    // resend (a genuine timeout retry) still dedups, but a resend carrying MORE data
+    // regenerates a fresh, complete Sheet.
     const cache = CacheService.getScriptCache();
-    const idemKey = body.sessionId ? "sheet_done_" + body.sessionId : null;
+    const idemKey = body.sessionId ? "sheet_done_" + body.sessionId + "_" + briefSig_(body.brief || {}) : null;
     const lock = LockService.getScriptLock();
     let locked = false;
     try { lock.waitLock(25000); locked = true; } catch (lockErr) { /* proceed unlocked */ }
@@ -275,6 +295,12 @@ function fillBusinessObjectives_(ss, c) {
     findTabByLabels_(ss, [/business objectives/, /preferred onboarding language/, /geographic markets/, /main point of contact/, /requirements completed by/]);
   if (!sh) { console.log("fillBusinessObjectives_: no tab matched (name or labels) — see the tab list above"); return; }
   const vals = sh.getDataRange().getValues();
+  // Clear any protection over the value column (B) before writing. The template
+  // locks some cells (e.g. Main Point of Contact), and a locked cell makes
+  // setValue THROW — writeCell_ only clears validation, not protection, so the
+  // field silently kept the template placeholder. Scoped to column B across the
+  // used rows, so label/instruction protection outside it survives. Best-effort.
+  clearRegionProtections_(sh, 1, 2, vals.length, 1);
   const contact = [c.contact, c.email].filter(Boolean).join(" – ");
   const rules = [
     [/^date\b/, todayStr_()],
@@ -553,6 +579,17 @@ function ownedLabel_(v) {
   return v || "";
 }
 
+// Dashboard vs Report: the brief carries the model's classification as
+// "Dashboard"/"Report" for each item in the Reports/Dashboards section. Normalize to
+// exactly the template's "Dahboard / Report" column wording; unrecognized stays blank
+// so the client sets it rather than writing an invalid value.
+function reportKind_(v) {
+  var s = String(v == null ? "" : v).trim().toLowerCase();
+  if (s === "dashboard") return "Dashboard";
+  if (s === "report") return "Report";
+  return "";
+}
+
 // Topic vs Filter: the brief carries the model's classification as "Topic"/"Filter".
 // Normalize to exactly the sheet's dropdown wording; anything unrecognized stays
 // blank so the client fills it in rather than writing an invalid dropdown value.
@@ -596,9 +633,10 @@ function fillReportsAlerts_(ss, reports, alerts) {
 
   if (reports.length && repH) {
     // objective -> "Group Name" (the sub-header renames the legend's "Main objective"
-    // column to Group Name). The "Dahboard / Report" type column is left for the team.
+    // column to Group Name). The "Dahboard / Report" type column is filled from the
+    // model's classification (reportKind_), so the client no longer sets it by hand.
     writeRows_(sh, repH, reports, function (r) {
-      return { group: r.objective || "", name: r.name || "", details: r.details || "", comments: r.comments || "" };
+      return { type: reportKind_(r.kind || r.type), group: r.objective || "", name: r.name || "", details: r.details || "", comments: r.comments || "" };
     });
   } else if (reports.length) {
     console.log("fillReportsAlerts_: reports sub-header not detected on '" + sh.getName() + "'");

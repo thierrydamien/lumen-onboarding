@@ -279,6 +279,9 @@ const I18N = {
     expReportsHdr: "Reports and dashboards",
     expNoReports: "No reports captured.",
     expRepName: "Report name",
+    expRepKind: "Type",
+    expRepKindDashboard: "Dashboard",
+    expRepKindReport: "Report",
     expObjective: "Objective",
     expDetails: "Details",
     expComments: "Comments",
@@ -449,6 +452,9 @@ const I18N = {
     expReportsHdr: "Rapports et tableaux de bord",
     expNoReports: "Aucun rapport enregistré.",
     expRepName: "Nom du rapport",
+    expRepKind: "Type",
+    expRepKindDashboard: "Tableau de bord",
+    expRepKindReport: "Rapport",
     expObjective: "Objectif",
     expDetails: "Détails",
     expComments: "Commentaires",
@@ -619,6 +625,9 @@ const I18N = {
     expReportsHdr: "Berichte und Dashboards",
     expNoReports: "Keine Berichte erfasst.",
     expRepName: "Berichtsname",
+    expRepKind: "Typ",
+    expRepKindDashboard: "Dashboard",
+    expRepKindReport: "Bericht",
     expObjective: "Ziel",
     expDetails: "Details",
     expComments: "Kommentare",
@@ -789,6 +798,9 @@ const I18N = {
     expReportsHdr: "Informes y paneles",
     expNoReports: "No se han registrado informes.",
     expRepName: "Nombre del informe",
+    expRepKind: "Tipo",
+    expRepKindDashboard: "Panel",
+    expRepKindReport: "Informe",
     expObjective: "Objetivo",
     expDetails: "Detalles",
     expComments: "Comentarios",
@@ -959,6 +971,9 @@ const I18N = {
     expReportsHdr: "Report e dashboard",
     expNoReports: "Nessun report registrato.",
     expRepName: "Nome del report",
+    expRepKind: "Tipo",
+    expRepKindDashboard: "Dashboard",
+    expRepKindReport: "Report",
     expObjective: "Obiettivo",
     expDetails: "Dettagli",
     expComments: "Commenti",
@@ -1129,6 +1144,9 @@ const I18N = {
     expReportsHdr: "التقارير ولوحات المعلومات",
     expNoReports: "لم يُسجَّل أي تقرير.",
     expRepName: "اسم التقرير",
+    expRepKind: "النوع",
+    expRepKindDashboard: "لوحة معلومات",
+    expRepKindReport: "تقرير",
     expObjective: "الهدف",
     expDetails: "التفاصيل",
     expComments: "التعليقات",
@@ -2178,6 +2196,14 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:6}}>{L("expReportsHdr",uiLang)}</div>
           {reports.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoReports",uiLang)}</div>}
           {reports.map((r,i) => <div key={r.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
+            {/* Dashboard vs Report: the assistant pre-classifies each item (kind); this
+                lets the client see and correct it before it writes to the sheet's
+                "Dashboard / Report" column. Values are literal so they match the sheet. */}
+            <select value={r.kind||""} aria-label={L("expRepKind",uiLang)} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,kind:e.target.value}:x))} style={{flex:"0 0 auto",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none",background:"#fff",color:r.kind?"#1e293b":"#94a3b8"}}>
+              <option value="">{L("expRepKind",uiLang)}</option>
+              <option value="Dashboard">{L("expRepKindDashboard",uiLang)}</option>
+              <option value="Report">{L("expRepKindReport",uiLang)}</option>
+            </select>
             {[["name",L("expRepName",uiLang)],["objective",L("expObjective",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={r[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
             <button onClick={()=>setReports(rs=>rs.filter((_,j)=>j!==i))} aria-label={L("expRemoveReport",uiLang,{name:r.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
           </div>)}
@@ -3247,9 +3273,15 @@ input,textarea,select,button{font-family:inherit}
                 if (chosen) return <div style={{fontSize:11,color:C.muted,marginTop:6,fontStyle:"italic"}}>{L("youChose",uiLang)} <strong style={{color:C.text}}>{chosen}</strong></div>;
                 return null;
               })()}
-              {m.role==="assistant" && m.widgets?.map((w,wi) => <div key={w} ref={i===messages.length-1&&wi===0?lastWidgetRef:null} role="group" aria-label={L("focusWidgetGroup",uiLang)} tabIndex={-1} style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${A}`,borderRadius:12,padding:"12px 14px",marginTop:8,boxShadow:"0 2px 10px rgba(1,43,58,0.08)",outline:"none"}}>
-                {renderWidget(w,i,w==="TOPICS"?m.topicSuggestions:null)}
-              </div>)}
+              {m.role==="assistant" && m.widgets?.map((w,wi) => {
+                // renderWidget returns null for a widget that is suppressed (e.g. a
+                // single-shot type already submitted on an earlier turn, like a
+                // re-offered USERS form). Skip the wrapper entirely in that case;
+                // otherwise it draws an empty card — the blank bubble a client can see.
+                const rendered = renderWidget(w,i,w==="TOPICS"?m.topicSuggestions:null);
+                if (!rendered) return null;
+                return <div key={w} ref={i===messages.length-1&&wi===0?lastWidgetRef:null} role="group" aria-label={L("focusWidgetGroup",uiLang)} tabIndex={-1} style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${A}`,borderRadius:12,padding:"12px 14px",marginTop:8,boxShadow:"0 2px 10px rgba(1,43,58,0.08)",outline:"none"}}>{rendered}</div>;
+              })}
             </div>
           </div>;
         })}
@@ -3286,7 +3318,11 @@ input,textarea,select,button{font-family:inherit}
           </div>
         </div>}
 
-        {done && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} sheetLink={sheetLink} onSeeProserv={onSeeProserv} lang={uiLang}/>}
+        {/* Show the finish state (Sheet link + next steps) on ANY successful send,
+            not only at 100%. A "send anyway" from the review modal submits below 100%,
+            so gating on `done` alone dropped the client back into the chat with no
+            confirmation or link after an early send. `sent` covers both paths. */}
+        {(done || sent) && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} sheetLink={sheetLink} onSeeProserv={onSeeProserv} lang={uiLang}/>}
 
         <div ref={botRef}/>
       </div>
