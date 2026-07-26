@@ -70,6 +70,10 @@
   tr.row:hover .rep .hoff { text-decoration:none; }
   .rep .none { color:var(--muted); }
   .copylink { background:var(--purple-soft); color:var(--purple); border:none; border-radius:7px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .remind { background:#fff; color:var(--teal); border:1px solid #c3ccd6; border-radius:7px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .chase { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .chase .copylink, .chase .remind { padding:7px 13px; font-size:12px; }
+  .remind:hover { border-color:var(--purple); color:var(--purple); }
   .note { font-size:11px; color:var(--muted); margin:14px 2px 0; line-height:1.5; }
   .filters { display:flex; gap:14px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
   .filters label { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
@@ -232,8 +236,8 @@
     <div id="updateBanner"></div>
     <div id="kpis" class="kpis" hidden></div>
     <div id="insightsWrap" hidden>
-      <div class="inshead"><h2>Insights</h2><button type="button" id="insToggle" class="instoggle">Hide</button></div>
-      <div id="insights" class="ins"></div>
+      <div class="inshead"><h2>Insights</h2><button type="button" id="insToggle" class="instoggle">Show</button></div>
+      <div id="insights" class="ins hidden"></div>
     </div>
     <div id="filters" class="filters" hidden></div>
     <div id="activeFilters"></div>
@@ -709,6 +713,13 @@
     // copy of the client link (origin/chat?s=<seedId>) so the consultant can chase it.
     if ((ds === "link_sent" || ds === "stalled") && s.seedId) {
       var cbtn = '<button type="button" class="copylink" data-link="1" data-copy="' + esc(clientLink(s.seedId)) + '">Copy link</button>';
+      // Chasing a stalled client needed more than the link: the consultant had to go
+      // find the address and write the mail by hand. This opens a pre-filled Gmail
+      // draft (same pattern as the Sales page) so the nudge is one click. Only shown
+      // when we actually have an address to send to.
+      if (s.email) {
+        cbtn += ' <button type="button" class="remind" data-link="1" data-id="' + esc(s.id) + '">Send reminder</button>';
+      }
       rep = (rep === dash) ? cbtn : rep + ' ' + cbtn;
     }
     var tok = totalTokens(s.tokens);
@@ -868,6 +879,46 @@
         copyText(b.getAttribute("data-copy"), b, "Copy link");
       });
     });
+    // Reminder buttons: open a pre-filled Gmail draft for a stalled/unopened client.
+    Array.prototype.forEach.call(document.querySelectorAll(".remind"), function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = b.getAttribute("data-id");
+        var s = null;
+        for (var i = 0; i < SESSIONS.length; i++) { if (SESSIONS[i].id === id) { s = SESSIONS[i]; break; } }
+        if (s) openReminderDraft(s);
+      });
+    });
+  }
+
+  // Pre-filled reminder to a client who started (or was sent a link) and went quiet.
+  // Opens a Gmail COMPOSE WINDOW rather than sending: the consultant reads it, adds
+  // anything client-specific, and sends from their own account under their own name
+  // and signature. Nothing is sent automatically, and the draft is AI-drafted copy a
+  // human signs off, which is the posture we want for client-facing mail.
+  function openReminderDraft(s) {
+    var first = String(s.contact || "").trim().split(/\s+/)[0] || "there";
+    var company = s.company && s.company !== "(unnamed)" ? s.company : "your team";
+    var link = s.seedId ? clientLink(s.seedId) : "";
+    var subject = "Pick up your Lumen setup where you left off";
+    var body = [
+      "Hi " + first + ",",
+      "",
+      "You started your Lumen requirements gathering recently and got partway through. Whenever you have a few minutes, you can continue right where you stopped using the same link:",
+      "",
+      link,
+      "",
+      "Finishing it means we can configure " + company + "'s dashboards, topics, and alerts to match how you actually work, so there's less to sort out on your review session. It usually takes about 15 minutes, and you don't need every answer ready.",
+      "",
+      "If anything is unclear, or you'd rather walk through it together, just reply and we'll find a time.",
+      "",
+      "Thanks,"
+    ].join("\n");
+    var gmail = "https://mail.google.com/mail/?view=cm&fs=1"
+      + "&to=" + encodeURIComponent(s.email || "")
+      + "&su=" + encodeURIComponent(subject)
+      + "&body=" + encodeURIComponent(body);
+    window.open(gmail, "_blank", "noopener");
   }
 
   // Feature 3: CSV field escaping. Wrap in double quotes when the value contains
@@ -1012,6 +1063,16 @@
     var html = '<div class="sheethead"><button class="close" id="close">Close</button>' +
       '<h2>' + esc(c.name || "(unnamed)") + '</h2>' +
       '<div class="sub">' + esc(c.contact || "") + (c.email ? " · " + esc(c.email) : "") + '</div>' +
+      // Chase actions live here too, not only in the table row. Opening a stalled
+      // client to read what they captured is exactly when you decide to nudge them,
+      // and previously that meant closing the modal, finding the row again and
+      // scrolling right to reach the buttons.
+      ((displayStatus(s) === "stalled" || displayStatus(s) === "link_sent") && s.seedId
+        ? '<div class="chase">' +
+            '<button type="button" class="copylink" data-copy="' + esc(clientLink(s.seedId)) + '">Copy link</button>' +
+            (s.email ? '<button type="button" class="remind" id="detailRemind">Send reminder</button>' : "") +
+          '</div>'
+        : "") +
       '<div class="stabs"><button type="button" data-sec="topics">Topics</button><button type="button" data-sec="channels">Channels</button><button type="button" data-sec="users">Users</button></div></div>' +
       '<div class="sheetbody"><div class="kv">' +
         kv("Industry", c.industry) +
@@ -1071,6 +1132,13 @@
     $("sheet").innerHTML = html;
     $("close").addEventListener("click", closeModal);
     $("close").focus();
+    // Wire the detail-header chase actions. The table's delegated handlers don't reach
+    // inside the modal, so these are bound here against the session already in scope.
+    var dRemind = document.getElementById("detailRemind");
+    if (dRemind) dRemind.addEventListener("click", function () { openReminderDraft(s); });
+    Array.prototype.forEach.call(document.querySelectorAll(".chase .copylink"), function (b) {
+      b.addEventListener("click", function () { copyText(b.getAttribute("data-copy"), b, "Copy link"); });
+    });
     // E4: jump-to-section tabs scroll the modal to Topics / Channels / Users.
     Array.prototype.forEach.call(document.querySelectorAll(".stabs button"), function (b) {
       b.addEventListener("click", function () {
@@ -1130,12 +1198,14 @@
     this.textContent = hidden ? "Show" : "Hide";
     try { localStorage.setItem("dash_insights_hidden", hidden ? "1" : "0"); } catch (e) {}
   });
-  // Restore the collapsed choice across reloads (defaults to shown). renderInsights
-  // never touches the .hidden class, so setting it once here sticks.
+  // Insights starts COLLAPSED (both in the markup above and here): the session table
+  // is what a consultant opens this page for, and the charts pushed it below the fold
+  // on a laptop screen. Only an explicit "keep it open" choice ("0") expands it, and
+  // that choice persists. renderInsights never touches the .hidden class, so this sticks.
   try {
-    if (localStorage.getItem("dash_insights_hidden") === "1") {
-      $("insights").classList.add("hidden");
-      $("insToggle").textContent = "Show";
+    if (localStorage.getItem("dash_insights_hidden") === "0") {
+      $("insights").classList.remove("hidden");
+      $("insToggle").textContent = "Hide";
     }
   } catch (e) {}
 

@@ -62,6 +62,9 @@ async function fetchSeedFromURL() {
   return { seed: null, seedId: id, seedError: true };
 }
 
+// Maps the UI language to a BCP-47 locale so a date separator reads naturally
+// ("lundi 3 mars" rather than "Monday, 3 March") for the language they chose.
+const LOCALE_OF = { English:"en-GB", French:"fr-FR", German:"de-DE", Spanish:"es-ES", Italian:"it-IT", Arabic:"ar" };
 const MIN_MS = 1500;
 const P = "#012B3A";
 const A = "#7E48EC";   // Lumen purple (sampled from official wordmark)
@@ -175,6 +178,8 @@ const I18N = {
     panelEmpty: "Your answers will appear here as we go.",
     panelPending: "{n} more to fill in as you chat.",
     panelStillTo: "Still to capture",
+    gapToday: "Today",
+    gapYesterday: "Yesterday",
     panelHide: "Hide",
     panelFixAria: "Correct {label} in the chat",
     panelFixStarter: "Actually, {label} should be ",
@@ -306,10 +311,10 @@ const I18N = {
     expCancel: "Cancel",
     expDownload: "Download a copy",
     expSending: "Sending…",
-    expSend: "📨 Send to my Lumen team",
+    expSend: "Send to my Lumen team",
     expIncompleteTitle: "Your brief isn’t complete yet",
     expIncompleteBody: "That’s okay. You can send what you have now, and we’ll go through the rest together at your review session.",
-    expSendAnyway: "📨 Send it anyway",
+    expSendAnyway: "Send it anyway",
     expKeepGoing: "Keep going",
     expImport: "Import",
     editPrefill: "Correction, earlier I said \"{quote}\". What I actually meant: ",
@@ -357,6 +362,8 @@ const I18N = {
     panelEmpty: "Vos réponses apparaîtront ici au fur et à mesure.",
     panelPending: "encore {n} à compléter au fil de la conversation.",
     panelStillTo: "Reste à renseigner",
+    gapToday: "Aujourd'hui",
+    gapYesterday: "Hier",
     panelHide: "Masquer",
     panelFixAria: "Corriger {label} dans le chat",
     panelFixStarter: "En fait, {label} devrait être ",
@@ -488,10 +495,10 @@ const I18N = {
     expCancel: "Annuler",
     expDownload: "Télécharger une copie",
     expSending: "Envoi…",
-    expSend: "📨 Envoyer à mon équipe Lumen",
+    expSend: "Envoyer à mon équipe Lumen",
     expIncompleteTitle: "Votre brief n’est pas encore complet",
     expIncompleteBody: "Ce n’est pas grave. Vous pouvez envoyer ce que vous avez, et nous compléterons le reste ensemble lors de votre session de revue.",
-    expSendAnyway: "📨 Envoyer quand même",
+    expSendAnyway: "Envoyer quand même",
     expKeepGoing: "Continuer",
     expImport: "Importer",
     editPrefill: "Correction, j'avais dit précédemment : « {quote} ». Ce que je voulais vraiment dire : ",
@@ -539,6 +546,8 @@ const I18N = {
     panelEmpty: "Ihre Antworten erscheinen hier nach und nach.",
     panelPending: "noch {n} werden im Gespräch ergänzt.",
     panelStillTo: "Noch zu erfassen",
+    gapToday: "Heute",
+    gapYesterday: "Gestern",
     panelHide: "Ausblenden",
     panelFixAria: "{label} im Chat korrigieren",
     panelFixStarter: "Eigentlich sollte {label} sein: ",
@@ -670,10 +679,10 @@ const I18N = {
     expCancel: "Abbrechen",
     expDownload: "Kopie herunterladen",
     expSending: "Wird gesendet…",
-    expSend: "📨 An mein Lumen-Team senden",
+    expSend: "An mein Lumen-Team senden",
     expIncompleteTitle: "Ihr Briefing ist noch nicht vollständig",
     expIncompleteBody: "Das ist in Ordnung. Sie können das Vorhandene jetzt senden, und wir gehen den Rest gemeinsam in Ihrer Review-Sitzung durch.",
-    expSendAnyway: "📨 Trotzdem senden",
+    expSendAnyway: "Trotzdem senden",
     expKeepGoing: "Weitermachen",
     expImport: "Importieren",
     editPrefill: "Korrektur, ich sagte zuvor: „{quote}“. Was ich eigentlich meinte: ",
@@ -721,6 +730,8 @@ const I18N = {
     panelEmpty: "Sus respuestas aparecerán aquí a medida que avancemos.",
     panelPending: "quedan {n} por completar sobre la marcha.",
     panelStillTo: "Pendiente de registrar",
+    gapToday: "Hoy",
+    gapYesterday: "Ayer",
     panelHide: "Ocultar",
     panelFixAria: "Corregir {label} en el chat",
     panelFixStarter: "En realidad, {label} debería ser ",
@@ -852,10 +863,10 @@ const I18N = {
     expCancel: "Cancelar",
     expDownload: "Descargar una copia",
     expSending: "Enviando…",
-    expSend: "📨 Enviar a mi equipo de Lumen",
+    expSend: "Enviar a mi equipo de Lumen",
     expIncompleteTitle: "Su resumen aún no está completo",
     expIncompleteBody: "No pasa nada. Puede enviar lo que tiene ahora y completaremos el resto juntos en su sesión de revisión.",
-    expSendAnyway: "📨 Enviar de todos modos",
+    expSendAnyway: "Enviar de todos modos",
     expKeepGoing: "Seguir",
     expImport: "Importar",
     editPrefill: "Corrección, antes dije: «{quote}». Lo que realmente quería decir: ",
@@ -903,6 +914,8 @@ const I18N = {
     panelEmpty: "Le tue risposte appariranno qui man mano.",
     panelPending: "ancora {n} da completare durante la chat.",
     panelStillTo: "Ancora da raccogliere",
+    gapToday: "Oggi",
+    gapYesterday: "Ieri",
     panelHide: "Nascondi",
     panelFixAria: "Correggi {label} nella chat",
     panelFixStarter: "In realtà, {label} dovrebbe essere ",
@@ -1034,10 +1047,10 @@ const I18N = {
     expCancel: "Annulla",
     expDownload: "Scarica una copia",
     expSending: "Invio in corso…",
-    expSend: "📨 Invia al mio team Lumen",
+    expSend: "Invia al mio team Lumen",
     expIncompleteTitle: "Il tuo brief non è ancora completo",
     expIncompleteBody: "Va bene così. Puoi inviare quello che hai ora e completeremo il resto insieme durante la sessione di revisione.",
-    expSendAnyway: "📨 Invia comunque",
+    expSendAnyway: "Invia comunque",
     expKeepGoing: "Continua",
     expImport: "Importa",
     editPrefill: "Correzione, prima avevo detto: «{quote}». Ciò che intendevo davvero: ",
@@ -1085,6 +1098,8 @@ const I18N = {
     panelEmpty: "ستظهر إجاباتك هنا أثناء تقدمنا.",
     panelPending: "متبقٍ {n} سيُكمَل أثناء المحادثة.",
     panelStillTo: "ما زال يجب تسجيله",
+    gapToday: "اليوم",
+    gapYesterday: "أمس",
     panelHide: "إخفاء",
     panelFixAria: "تصحيح {label} في المحادثة",
     panelFixStarter: "في الواقع، {label} يجب أن يكون ",
@@ -1216,10 +1231,10 @@ const I18N = {
     expCancel: "إلغاء",
     expDownload: "تنزيل نسخة",
     expSending: "جارٍ الإرسال…",
-    expSend: "📨 إرسال إلى فريق Lumen الخاص بي",
+    expSend: "إرسال إلى فريق Lumen الخاص بي",
     expIncompleteTitle: "ملخصك غير مكتمل بعد",
     expIncompleteBody: "لا بأس بذلك. يمكنك إرسال ما لديك الآن، وسنكمل الباقي معًا في جلسة المراجعة.",
-    expSendAnyway: "📨 إرسال على أي حال",
+    expSendAnyway: "إرسال على أي حال",
     expKeepGoing: "المتابعة",
     expImport: "استيراد",
     editPrefill: "تصحيح، قلت سابقًا: «{quote}». ما قصدته فعلًا: ",
@@ -1246,12 +1261,12 @@ function L(key, lang, vars) {
 // placeholders, tooltips) follows the client's language, so a non-English chat
 // no longer renders an all-English form.
 const WI18N = {
-  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your objectives? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"📎 Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit" },
-  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos objectifs ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"📎 Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier" },
-  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Zielen? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"📎 Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten" },
-  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus objetivos? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"📎 O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar" },
-  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sui tuoi obiettivi? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"📎 Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica" },
-  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أهدافك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"📎 أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل" },
+  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your objectives? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit" },
+  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos objectifs ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier" },
+  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Zielen? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten" },
+  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus objetivos? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar" },
+  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sui tuoi obiettivi? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica" },
+  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أهدافك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل" },
 };
 function WL(key, lang) {
   const dict = WI18N[lang] || WI18N.English;
@@ -1302,6 +1317,29 @@ function AT(key, lang) { const d = AT18N[lang] || AT18N.English; return (d[key] 
 
 
 const gts   = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+// Epoch stamp stored beside the display time. gts() is HH:MM only, which was fine
+// when a session was one sitting, but resume now spans days: without a real date we
+// cannot tell that two adjacent bubbles are three days apart. Older saved drafts have
+// no `at`, so every consumer must treat it as optional.
+const gat   = () => Date.now();
+// Insert a date separator when consecutive messages straddle a real gap: a different
+// calendar day, or more than 6h (a client who pauses over lunch and returns the same
+// evening). Returns null when either side lacks a stamp, so old drafts simply show no
+// separator rather than a wrong one.
+const GAP_MS = 6 * 3600 * 1000;
+function gapLabel(prevAt, at, lang) {
+  if (!prevAt || !at) return null;
+  const a = new Date(prevAt), b = new Date(at);
+  const sameDay = a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  if (sameDay && (at - prevAt) < GAP_MS) return null;
+  const today = new Date(), yest = new Date(today.getTime() - 86400000);
+  const isSame = (x,y) => x.getFullYear()===y.getFullYear() && x.getMonth()===y.getMonth() && x.getDate()===y.getDate();
+  const loc = LOCALE_OF[lang] || undefined;
+  if (isSame(b, today)) return L("gapToday", lang);
+  if (isSame(b, yest))  return L("gapYesterday", lang);
+  try { return b.toLocaleDateString(loc, { weekday:"long", day:"numeric", month:"long" }); }
+  catch { return b.toLocaleDateString(); }
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // In-progress autosave to localStorage for same-device pause/resume. Keyed by the
@@ -1678,6 +1716,7 @@ const IC = {
   chat:   "M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z",
   send:   "M22 2 11 13 M22 2l-7 20-4-9-9-4z",
   pencil: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
+  globe:  "M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z M3.5 9h17 M3.5 15h17 M12 3c2.6 2.6 2.6 15.4 0 18 M12 3c-2.6 2.6-2.6 15.4 0 18",
   clip:   "M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.49",
 };
 function TypingIndicator({ lang }) {
@@ -2050,7 +2089,7 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
     <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
       <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{WL("submitQueries",lang)}</button>
       <button onClick={()=>onSubmit("__skip__")} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("noQueries",lang)}</button>
-      <button onClick={()=>fileRef.current?.click()} style={{background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",textDecoration:"underline",padding:"8px 4px"}}>{WL("importFile",lang)}</button>
+      <button onClick={()=>fileRef.current?.click()} style={{display:"inline-flex",alignItems:"center",gap:6,background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"8px 4px"}}><Ic d={IC.clip} size={12}/><span style={{textDecoration:"underline"}}>{WL("importFile",lang)}</span></button>
     </div>
   </div>;
 }
@@ -2351,7 +2390,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
             <div style={{display:"flex",gap:10,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
               {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
               <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:sending?"default":"pointer"}}>{L("expKeepGoing",uiLang)}</button>
-              <button onClick={()=>doSend()} disabled={sending} style={{background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{sending?L("expSending",uiLang):L("expSendAnyway",uiLang)}</button>
+              <button onClick={()=>doSend()} disabled={sending} style={{display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{sending?L("expSending",uiLang):<><Ic d={IC.send} size={13}/>{L("expSendAnyway",uiLang)}</>}</button>
             </div>
           </div>
         ) : (
@@ -2367,8 +2406,8 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               {/* Ready: submit directly. Not ready: enabled but amber, opening the confirm
                   step rather than dead-ending, so a stuck client is never trapped. */}
               <button onClick={()=>{ if (sending) return; if (ready) doSend(); else setConfirmSend(true); }} disabled={sending} style={ready
-                ? {background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}
-                : {background:"#fffbeb",color:"#92400e",border:"1px solid #f59e0b",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sending?L("expSending",uiLang):L("expSend",uiLang)}</button>
+                ? {display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}
+                : {display:"inline-flex",alignItems:"center",gap:7,background:"#fffbeb",color:"#92400e",border:"1px solid #f59e0b",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sending?L("expSending",uiLang):<><Ic d={IC.send} size={13}/>{L("expSend",uiLang)}</>}</button>
             </div>
           </div>
         )}
@@ -2415,7 +2454,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
         </div>}
         <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
           {sent && sheetLink && <a href={sheetLink} target="_blank" rel="noopener noreferrer" style={{background:P,color:"white",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"inline-block"}}>{FN("openSheet",lang)}</a>}
-          <button onClick={()=>setShowExport(true)} style={{background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?FN("review",lang):FN("reviewDl",lang)):("\ud83d\udce8 " + FN("reviewSend", lang))}</button>
+          <button onClick={()=>setShowExport(true)} style={{display:"inline-flex",alignItems:"center",gap:7,background:sent&&sheetLink?C.card:A,color:sent&&sheetLink?C.muted:"white",border:sent&&sheetLink?`1px solid ${C.border}`:"none",borderRadius:10,padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sent?(sheetLink?FN("review",lang):FN("reviewDl",lang)):<><Ic d={IC.send} size={13}/>{FN("reviewSend", lang)}</>}</button>
           {sent && onSeeProserv && <button onClick={onSeeProserv} style={{background:"#012B3A",color:"white",border:"none",borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>See what Proserv receives →</button>}
         </div>
       </div>
@@ -2814,7 +2853,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
         histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
         if (sndRef.current) pop();
         const dv = maybeDivider(prog, uiLang);
-        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
+        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
         setLoading(false);
         return true;
       } catch(e) {
@@ -2823,7 +2862,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
         // A caller that supplies a failMessage (e.g. an attached document) shows its
         // own clear one-off message instead of the generic resend banner — re-sending
         // the same large doc would just fail again.
-        if (opts.failMessage) setMessages(p=>[...p,{role:"assistant",content:opts.failMessage,timestamp:gts(),raw:""}]);
+        if (opts.failMessage) setMessages(p=>[...p,{role:"assistant",content:opts.failMessage,timestamp:gts(),at:gat(),raw:""}]);
         else setRetryMsg(txt);
         setLoading(false);
         return false;
@@ -3008,7 +3047,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     const pi = SECTION_KEYS.indexOf(prev), ni = SECTION_KEYS.indexOf(sec);
     if (pi === -1 || ni === -1 || ni <= pi) return null;
     const remaining = SECTION_KEYS.length - ni;
-    return { role:"divider", label:L("divDone",lang,{label:L(SECTION_LABEL_KEYS[prev],lang)}), sub: remaining>0?L("divToGo",lang,{n:remaining}):"", timestamp:gts() };
+    return { role:"divider", label:L("divDone",lang,{label:L(SECTION_LABEL_KEYS[prev],lang)}), sub: remaining>0?L("divToGo",lang,{n:remaining}):"", timestamp:gts(),at:gat() };
   }, []);
 
   const widgetSum = (type, data) =>
@@ -3058,7 +3097,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       prevSecRef.current = prog?.section || "company";
-      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
+      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
     } catch (e) {
       // Without this, a failed first turn left a permanent "Assistant is thinking…"
       // spinner with no way out. Clear it and offer a retry instead.
@@ -3092,7 +3131,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       if (sndRef.current) pop();
       const dv = maybeDivider(prog, uiLang);
-      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
+      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
       setSaved(null); // only clear the resume draft once we've actually continued
     } catch (e) {
       // Keep `saved` so the retry can re-resume; clear the spinner and surface a retry.
@@ -3113,7 +3152,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     if (txt.length > COMPOSER_MAX_CHARS) { setAttachNote(AT("pasteTooBig", uiLang)); return; }
     setAttachNote(null);
     setInput(""); if (taRef.current) taRef.current.style.height = "auto";
-    setMessages(p=>[...p,{role:"user",content:txt,timestamp:gts(),raw:txt,isChip:!!chip,chipLabel:chip}]);
+    setMessages(p=>[...p,{role:"user",content:txt,timestamp:gts(),at:gat(),raw:txt,isChip:!!chip,chipLabel:chip}]);
     await sendToAPI(txt);
   }, [input, loading, attaching, sendToAPI, init, uiLang]);
 
@@ -3140,7 +3179,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
       const excerpt = truncated ? raw.slice(0, ATTACH_MAX_CHARS) : raw;
       init();
       // Visible: a clean attachment chip (NOT the raw text).
-      setMessages(p=>[...p,{role:"user",content:file.name,isAttachment:true,attachTrunc:truncated,timestamp:gts(),raw:file.name}]);
+      setMessages(p=>[...p,{role:"user",content:file.name,isAttachment:true,attachTrunc:truncated,timestamp:gts(),at:gat(),raw:file.name}]);
       // Model-facing: framed context (English instruction is fine — the model still
       // replies in the client's language). Bounded so it can't derail or time out.
       const framed = `[The client attached a supporting document named "${file.name}". Use the content below to PRE-FILL anything relevant to the CURRENT step of onboarding and CONFIRM those details with the client in your reply. Do NOT read the document back verbatim and do NOT paste a long summary — weave what's useful into the guided flow, then continue.${truncated ? " NOTE: only the first part of the document is included." : ""}]\n\n${excerpt}`;
@@ -3164,7 +3203,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     const sum = widgetSum(type, data);
     // State updater stays pure; the message + API call happen here, once.
     setWState(prev => ({...prev,[key]:{submitted:true,data}}));
-    setMessages(m=>[...m,{role:"user",content:`${isUp?"✎ Updated":"✓"} ${type}: ${sum}`,isWidget:true,timestamp:gts()}]);
+    setMessages(m=>[...m,{role:"user",content:`${isUp?"✎ Updated":"✓"} ${type}: ${sum}`,isWidget:true,timestamp:gts(),at:gat()}]);
     // A large QUERIES import is the one widget submit big enough to time out the
     // round-trip (what Mckensey hit). Give it the same honest failure message as the
     // composer attach instead of the dead "didn't go through" banner, so the client
@@ -3177,7 +3216,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     if (busyRef.current || attachingRef.current) return; // in-flight / extracting guard, same as onWSubmit
     const key = `${mi}-${type}`;
     setWState(p=>({...p,[key]:{submitted:true,data:"__skip__"}}));
-    setMessages(m=>[...m,{role:"user",content:`Skipped ${type}`,isWidget:true,timestamp:gts()}]);
+    setMessages(m=>[...m,{role:"user",content:`Skipped ${type}`,isWidget:true,timestamp:gts(),at:gat()}]);
     sendToAPI(`[Widget skipped — ${type}]`);
   }, [sendToAPI]);
 
@@ -3395,7 +3434,7 @@ input,textarea,select,button{font-family:inherit}
             <div style={{margin:"0 0 20px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:10}}>{L("chooseLang",uiLang)}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
-                <span aria-hidden="true" style={{fontSize:15,marginInlineEnd:2}}>🌐</span>
+                <span aria-hidden="true" style={{display:"inline-flex",marginInlineEnd:4,color:"currentColor",opacity:0.75}}><Ic d={IC.globe} size={14}/></span>
                 {UI_LANGS.map(l => { const on = uiLang===l.code; return (
                   <button key={l.code} onClick={()=>setUiLang(l.code)} aria-pressed={on} style={{padding:"9px 16px",borderRadius:999,fontSize:13,minHeight:40,cursor:"pointer",border:"1px solid",background:on?A:"transparent",borderColor:on?A:C.border,color:on?"white":C.text,fontWeight:on?700:500,boxShadow:on?"0 4px 14px rgba(126,72,236,0.30)":"none",transition:"all 0.15s"}}>{l.native}</button>
                 ); })}
@@ -3453,12 +3492,21 @@ input,textarea,select,button{font-family:inherit}
         {messages.slice(vStart).map((m,ri) => {
           const i = vStart+ri;
           const canEdit = m.role==="user"&&!m.isWidget&&!m.isAttachment&&!loading;
-          if (m.role==="divider") return <div key={i} style={{display:"flex",alignItems:"center",gap:10,margin:"6px 0 22px"}} role="separator" aria-label={`${m.label}${m.sub?`, ${m.sub}`:""}`}>
+          // Date separator for a resumed conversation. Without it, a bubble from
+          // Monday sits flush against one from Thursday and both just show a time,
+          // which misleads the client AND the consultant reading the transcript.
+          const gap = i>0 ? gapLabel(messages[i-1] && messages[i-1].at, m.at, uiLang) : null;
+          const sep = gap ? <div key={"gap"+i} style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0 18px"}} role="separator" aria-label={gap}>
+            <div style={{flex:1,height:1,background:C.border}}/>
+            <div style={{fontSize:10.5,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase",color:C.muted,whiteSpace:"nowrap"}}>{gap}</div>
+            <div style={{flex:1,height:1,background:C.border}}/>
+          </div> : null;
+          if (m.role==="divider") return <div key={"dw"+i}>{sep}<div style={{display:"flex",alignItems:"center",gap:10,margin:"6px 0 22px"}} role="separator" aria-label={`${m.label}${m.sub?`, ${m.sub}`:""}`}>
             <div style={{flex:1,height:1,background:C.border}}/>
             <div style={{fontSize:11,fontWeight:600,color:C.muted,whiteSpace:"nowrap"}}>✓ {m.label}{m.sub?<span style={{fontWeight:400}}> · {m.sub}</span>:null}</div>
             <div style={{flex:1,height:1,background:C.border}}/>
-          </div>;
-          return <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:18,animation:m.role==="assistant"?"slideUpFade 0.4s ease-out forwards":"none"}}>
+          </div></div>;
+          return <div key={"mw"+i}>{sep}<div style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:18,animation:m.role==="assistant"?"slideUpFade 0.4s ease-out forwards":"none"}}>
             {m.role==="assistant" && <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>}
             <div style={{maxWidth:m.role==="assistant"?"min(88%, 580px)":"78%"}}>
               {m.content && <div>
@@ -3469,7 +3517,6 @@ input,textarea,select,button{font-family:inherit}
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:m.role==="user"?"flex-end":"flex-start",marginTop:4}}>
                   {canEdit && <button onClick={()=>{setInput(L("editPrefill",uiLang,{quote:m.content}));setTimeout(()=>taRef.current?.focus(),50);}} title={L("editTitle",uiLang)} style={{background:"transparent",border:"none",color:"#64748b",cursor:"pointer",fontSize:11,padding:"2px 6px",borderRadius:4,opacity:0.85}}>✎ {L("editLabel",uiLang)}</button>}
-                  {m.timestamp && <div style={{fontSize:10,color:C.muted,opacity:0.85}}>{m.timestamp}</div>}
                 </div>
               </div>}
               {m.role==="assistant" && m.quickReplies?.length>0 && (()=>{
@@ -3498,7 +3545,7 @@ input,textarea,select,button{font-family:inherit}
                 return <div key={w} ref={i===messages.length-1&&wi===0?lastWidgetRef:null} role="group" aria-label={L("focusWidgetGroup",uiLang)} tabIndex={-1} style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${A}`,borderRadius:12,padding:"12px 14px",marginTop:8,boxShadow:"0 2px 10px rgba(1,43,58,0.08)",outline:"none"}}>{rendered}</div>;
               })}
             </div>
-          </div>;
+          </div></div>;
         })}
 
         {showQR && !loading && <div ref={qrRef} role="group" aria-label={L("focusRepliesGroup",uiLang)} tabIndex={-1} style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:-8,marginBottom:18,marginInlineStart:38,marginInlineEnd:0,outline:"none"}}>
@@ -3506,7 +3553,7 @@ input,textarea,select,button{font-family:inherit}
             // Action chip: the literal token @ATTACH (emitted by the model, never
             // translated) opens the composer's file picker instead of sending text.
             const isAttach = String(qr).trim().toUpperCase()==="@ATTACH";
-            return <button key={idx} onClick={isAttach?(()=>attachRef.current?.click()):(()=>sendMsg(qr,qr))} disabled={isAttach&&(loading||attaching)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{isAttach?("📎 "+AT("label",uiLang)):qr}</button>;
+            return <button key={idx} onClick={isAttach?(()=>attachRef.current?.click()):(()=>sendMsg(qr,qr))} disabled={isAttach&&(loading||attaching)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{isAttach?<span style={{display:"inline-flex",alignItems:"center",gap:6}}><Ic d={IC.clip} size={13}/>{AT("label",uiLang)}</span>:qr}</button>;
           })}
         </div>}
         {loading && <div role="status" aria-live="polite" aria-label={L("thinking",uiLang)} style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>

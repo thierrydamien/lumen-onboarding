@@ -178,12 +178,22 @@ function parseMediaBrief(wb) {
 
 // SSRF guard: only a docs.google.com spreadsheet URL; return just the id so the
 // caller builds the export URL itself. Ids are long, so require >=20 chars.
+//
+// The optional `u/<n>/` segment matters: when a consultant is signed into more than
+// one Google account, Docs hands them a link shaped
+// docs.google.com/spreadsheets/u/1/d/<id>/edit — the account index sits BETWEEN
+// "spreadsheets" and "d". Without allowing for it the id never matched and a
+// perfectly good Sheet link was rejected as invalid, which looked like "the paste
+// just doesn't work" to anyone whose work account isn't their browser's default.
+// (The index itself is discarded: we fetch server-side with no Google credentials,
+// so there is no account context to preserve — the Sheet has to be link-readable.)
+// The other shape, docs.google.com/u/1/spreadsheets/d/<id>, already matched.
 export function sheetIdFrom(u) {
   if (typeof u !== "string" || !u) return null;
   let host;
   try { host = new URL(u).host.toLowerCase(); } catch { return null; }
   if (host !== "docs.google.com") return null;
-  const m = u.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/);
+  const m = u.match(/\/spreadsheets\/(?:u\/\d{1,3}\/)?d\/([A-Za-z0-9_-]{20,})/);
   return m ? m[1] : null;
 }
 
