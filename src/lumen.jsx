@@ -148,6 +148,9 @@ const I18N = {
     welcomeBackDesc:  "You have an onboarding session in progress.",
     savedPercent:     "{pct}% complete",
     savedOnDevice:    "Your answers are saved on this device",
+    savedAnyDevice:   "Your answers are saved. Reopen this link on any device to continue.",
+    savedFullAny: "\u2713 Progress saved",
+    step1DescAny: "Pause anytime. Reopen this link on any device and you'll pick up where you left off.",
     resumeBtn:        "Resume session",
     startOverBtn:     "Start over",
     eraseWarn:        "Starting over permanently erases your saved answers. This can't be undone.",
@@ -161,7 +164,7 @@ const I18N = {
     startBtn:       "Start \u2014 about 15 min",
     startBtnSeeded: "Start {company}'s setup \u2014 about 15 min",
     thinking:       "Assistant is thinking\u2026",
-    correctionHint: "Spot something wrong? Just tell me in the chat \u2014 \u201cactually, our main market is Germany\u201d \u2014 and I'll fix it.",
+    correctionHint: "Spot something wrong? Just tell me in the chat (for example, 'actually, our main market is Germany') and I'll fix it.",
     chooseLang:     "Choose your language to begin",
     preparedFor:    "Prepared for {company}",
     think1:         "Reading your answer\u2026",
@@ -171,6 +174,11 @@ const I18N = {
     panelTitle: "Captured so far",
     panelEmpty: "Your answers will appear here as we go.",
     panelPending: "{n} more to fill in as you chat.",
+    panelStillTo: "Still to capture",
+    panelHide: "Hide",
+    panelFixAria: "Correct {label} in the chat",
+    panelFixStarter: "Actually, {label} should be ",
+    panelTip: "Something off?",
     pnlSkipped: "Skipped",
     pnlCompany: "Company",
     pnlEmail: "Email",
@@ -201,12 +209,13 @@ const I18N = {
     divDone: "{label} — done",
     divToGo: "{n} to go",
     hdrAssistant: "Onboarding Assistant",
-    hdrTagline: "Your answers go to your Lumen onboarding team",
+    hdrTagline: "Your answers go straight to your Lumen setup team",
     savedFull: "✓ Saved on this device",
     savedShort: "✓ Saved",
     phReply: "Type your reply…",
     phAnswerAbove: "Answer above — or just type it here",
     reviewBtn: "Finished early, or stuck? Review and send your brief",
+    sendNowBtn: "Review and send what you have",
     sendHint: "↵ to send · Shift+↵ for a new line",
     expTitle: "Your setup brief",
     expSubtitle: "Everything you’ve shared, in one place. Open a section to adjust anything.",
@@ -321,6 +330,9 @@ const I18N = {
     welcomeBackDesc:  "Vous avez une session d'intégration en cours.",
     savedPercent:     "Terminé à {pct} %",
     savedOnDevice:    "Vos réponses sont enregistrées sur cet appareil",
+    savedAnyDevice:   "Vos réponses sont enregistrées. Rouvrez ce lien sur n'importe quel appareil pour continuer.",
+    savedFullAny: "\u2713 Progression enregistrée",
+    step1DescAny: "Faites une pause quand vous voulez. Rouvrez ce lien sur n'importe quel appareil et vous reprendrez là où vous vous étiez arrêté.",
     resumeBtn:        "Reprendre la session",
     startOverBtn:     "Recommencer",
     eraseWarn:        "Recommencer efface définitivement vos réponses enregistrées. Cette action est irréversible.",
@@ -334,7 +346,7 @@ const I18N = {
     startBtn:       "Commencer (environ 15 min)",
     startBtnSeeded: "Démarrer la configuration de {company} (environ 15 min)",
     thinking:       "L'assistant réfléchit\u2026",
-    correctionHint: "Vous voyez une erreur ? Dites-le-moi simplement dans le chat \u2014 « en fait, notre marché principal est l'Allemagne » \u2014 et je la corrigerai.",
+    correctionHint: "Vous voyez une erreur ? Dites-le-moi simplement dans le chat (par exemple, « en fait, notre marché principal est l'Allemagne ») et je la corrigerai.",
     chooseLang:     "Choisissez votre langue pour commencer",
     preparedFor:    "Préparé pour {company}",
     think1:         "Je lis votre réponse…",
@@ -344,6 +356,11 @@ const I18N = {
     panelTitle: "Saisi jusqu'ici",
     panelEmpty: "Vos réponses apparaîtront ici au fur et à mesure.",
     panelPending: "encore {n} à compléter au fil de la conversation.",
+    panelStillTo: "Reste à renseigner",
+    panelHide: "Masquer",
+    panelFixAria: "Corriger {label} dans le chat",
+    panelFixStarter: "En fait, {label} devrait être ",
+    panelTip: "Une erreur ?",
     pnlSkipped: "Passé",
     pnlCompany: "Entreprise",
     pnlEmail: "E-mail",
@@ -374,12 +391,13 @@ const I18N = {
     divDone: "{label} — terminé",
     divToGo: "encore {n}",
     hdrAssistant: "Assistant d'intégration",
-    hdrTagline: "Vos réponses sont transmises à votre équipe d'intégration Lumen",
+    hdrTagline: "Vos réponses sont transmises directement à votre équipe de configuration Lumen",
     savedFull: "✓ Enregistré sur cet appareil",
     savedShort: "✓ Enregistré",
     phReply: "Écrivez votre réponse…",
     phAnswerAbove: "Répondez ci-dessus — ou écrivez-le ici",
     reviewBtn: "Terminé plus tôt ou bloqué ? Revoyez et envoyez votre brief",
+    sendNowBtn: "Vérifier et envoyer ce que vous avez",
     sendHint: "↵ pour envoyer · Maj+↵ pour un saut de ligne",
     expTitle: "Votre brief de configuration",
     expSubtitle: "Tout ce que vous avez partagé, au même endroit. Ouvrez une section pour ajuster ce que vous voulez.",
@@ -494,6 +512,9 @@ const I18N = {
     welcomeBackDesc:  "Sie haben eine laufende Onboarding-Sitzung.",
     savedPercent:     "{pct} % abgeschlossen",
     savedOnDevice:    "Ihre Antworten sind auf diesem Gerät gespeichert",
+    savedAnyDevice:   "Ihre Antworten sind gespeichert. Öffnen Sie diesen Link auf einem beliebigen Gerät, um fortzufahren.",
+    savedFullAny: "\u2713 Fortschritt gespeichert",
+    step1DescAny: "Jederzeit pausieren. Öffnen Sie diesen Link auf einem beliebigen Gerät erneut und Sie machen dort weiter, wo Sie aufgehört haben.",
     resumeBtn:        "Sitzung fortsetzen",
     startOverBtn:     "Neu beginnen",
     eraseWarn:        "Wenn Sie neu beginnen, werden Ihre gespeicherten Antworten dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
@@ -507,7 +528,7 @@ const I18N = {
     startBtn:       "Starten (etwa 15 Min.)",
     startBtnSeeded: "Einrichtung für {company} starten (etwa 15 Min.)",
     thinking:       "Der Assistent denkt nach\u2026",
-    correctionHint: "Etwas stimmt nicht? Sagen Sie es mir einfach im Chat \u2014 „eigentlich ist unser Hauptmarkt Deutschland“ \u2014 und ich korrigiere es.",
+    correctionHint: "Etwas stimmt nicht? Sagen Sie es mir einfach im Chat (zum Beispiel „eigentlich ist unser Hauptmarkt Deutschland“) und ich korrigiere es.",
     chooseLang:     "Wählen Sie Ihre Sprache, um zu beginnen",
     preparedFor:    "Vorbereitet für {company}",
     think1:         "Ich lese Ihre Antwort…",
@@ -517,6 +538,11 @@ const I18N = {
     panelTitle: "Bisher erfasst",
     panelEmpty: "Ihre Antworten erscheinen hier nach und nach.",
     panelPending: "noch {n} werden im Gespräch ergänzt.",
+    panelStillTo: "Noch zu erfassen",
+    panelHide: "Ausblenden",
+    panelFixAria: "{label} im Chat korrigieren",
+    panelFixStarter: "Eigentlich sollte {label} sein: ",
+    panelTip: "Stimmt etwas nicht?",
     pnlSkipped: "Übersprungen",
     pnlCompany: "Unternehmen",
     pnlEmail: "E-Mail",
@@ -547,12 +573,13 @@ const I18N = {
     divDone: "{label} — fertig",
     divToGo: "noch {n}",
     hdrAssistant: "Onboarding-Assistent",
-    hdrTagline: "Ihre Antworten gehen an Ihr Lumen-Onboarding-Team",
+    hdrTagline: "Ihre Antworten gehen direkt an Ihr Lumen-Setup-Team",
     savedFull: "✓ Auf diesem Gerät gespeichert",
     savedShort: "✓ Gespeichert",
     phReply: "Antwort eingeben…",
     phAnswerAbove: "Oben antworten — oder hier eintippen",
     reviewBtn: "Früher fertig oder festgefahren? Briefing prüfen und senden",
+    sendNowBtn: "Vorhandene Angaben prüfen und senden",
     sendHint: "↵ zum Senden · Umschalt+↵ für neue Zeile",
     expTitle: "Ihr Setup-Briefing",
     expSubtitle: "Alles, was Sie geteilt haben, an einem Ort. Öffnen Sie einen Abschnitt, um etwas anzupassen.",
@@ -667,6 +694,9 @@ const I18N = {
     welcomeBackDesc:  "Tiene una sesión de incorporación en curso.",
     savedPercent:     "{pct} % completado",
     savedOnDevice:    "Sus respuestas están guardadas en este dispositivo",
+    savedAnyDevice:   "Sus respuestas están guardadas. Vuelva a abrir este enlace en cualquier dispositivo para continuar.",
+    savedFullAny: "\u2713 Progreso guardado",
+    step1DescAny: "Pause cuando quiera. Vuelva a abrir este enlace en cualquier dispositivo y continuará donde lo dejó.",
     resumeBtn:        "Reanudar la sesión",
     startOverBtn:     "Empezar de nuevo",
     eraseWarn:        "Empezar de nuevo borra permanentemente sus respuestas guardadas. Esta acción no se puede deshacer.",
@@ -680,7 +710,7 @@ const I18N = {
     startBtn:       "Comenzar (unos 15 min)",
     startBtnSeeded: "Comenzar la configuración de {company} (unos 15 min)",
     thinking:       "El asistente está pensando\u2026",
-    correctionHint: "¿Ve algo incorrecto? Solo dígamelo en el chat \u2014 «en realidad, nuestro mercado principal es Alemania» \u2014 y lo corregiré.",
+    correctionHint: "¿Ve algo incorrecto? Solo dígamelo en el chat (por ejemplo, «en realidad, nuestro mercado principal es Alemania») y lo corregiré.",
     chooseLang:     "Elija su idioma para comenzar",
     preparedFor:    "Preparado para {company}",
     think1:         "Leyendo su respuesta…",
@@ -690,6 +720,11 @@ const I18N = {
     panelTitle: "Capturado hasta ahora",
     panelEmpty: "Sus respuestas aparecerán aquí a medida que avancemos.",
     panelPending: "quedan {n} por completar sobre la marcha.",
+    panelStillTo: "Pendiente de registrar",
+    panelHide: "Ocultar",
+    panelFixAria: "Corregir {label} en el chat",
+    panelFixStarter: "En realidad, {label} debería ser ",
+    panelTip: "¿Algo incorrecto?",
     pnlSkipped: "Omitido",
     pnlCompany: "Empresa",
     pnlEmail: "Correo",
@@ -720,12 +755,13 @@ const I18N = {
     divDone: "{label} — listo",
     divToGo: "quedan {n}",
     hdrAssistant: "Asistente de incorporación",
-    hdrTagline: "Sus respuestas se envían a su equipo de incorporación de Lumen",
+    hdrTagline: "Sus respuestas se envían directamente a su equipo de configuración de Lumen",
     savedFull: "✓ Guardado en este dispositivo",
     savedShort: "✓ Guardado",
     phReply: "Escriba su respuesta…",
     phAnswerAbove: "Responda arriba — o escríbalo aquí",
     reviewBtn: "¿Terminó antes o está atascado? Revise y envíe su resumen",
+    sendNowBtn: "Revisar y enviar lo que tiene",
     sendHint: "↵ para enviar · Mayús+↵ para nueva línea",
     expTitle: "Su resumen de configuración",
     expSubtitle: "Todo lo que ha compartido, en un solo lugar. Abra una sección para ajustar lo que quiera.",
@@ -840,6 +876,9 @@ const I18N = {
     welcomeBackDesc:  "Hai una sessione di onboarding in corso.",
     savedPercent:     "{pct} % completato",
     savedOnDevice:    "Le tue risposte sono salvate su questo dispositivo",
+    savedAnyDevice:   "Le tue risposte sono salvate. Riapri questo link su qualsiasi dispositivo per continuare.",
+    savedFullAny: "\u2713 Progressi salvati",
+    step1DescAny: "Fai una pausa quando vuoi. Riapri questo link su qualsiasi dispositivo e riprenderai da dove avevi lasciato.",
     resumeBtn:        "Riprendi la sessione",
     startOverBtn:     "Ricomincia",
     eraseWarn:        "Ricominciando, le tue risposte salvate verranno eliminate definitivamente. L'operazione non può essere annullata.",
@@ -853,7 +892,7 @@ const I18N = {
     startBtn:       "Inizia (circa 15 min)",
     startBtnSeeded: "Avvia la configurazione di {company} (circa 15 min)",
     thinking:       "L'assistente sta pensando\u2026",
-    correctionHint: "Noti qualcosa di sbagliato? Dimmelo semplicemente in chat \u2014 «in realtà, il nostro mercato principale è la Germania» \u2014 e lo correggerò.",
+    correctionHint: "Noti qualcosa di sbagliato? Dimmelo semplicemente in chat (per esempio, «in realtà, il nostro mercato principale è la Germania») e lo correggerò.",
     chooseLang:     "Scegli la tua lingua per iniziare",
     preparedFor:    "Preparato per {company}",
     think1:         "Sto leggendo la tua risposta…",
@@ -863,6 +902,11 @@ const I18N = {
     panelTitle: "Raccolto finora",
     panelEmpty: "Le tue risposte appariranno qui man mano.",
     panelPending: "ancora {n} da completare durante la chat.",
+    panelStillTo: "Ancora da raccogliere",
+    panelHide: "Nascondi",
+    panelFixAria: "Correggi {label} nella chat",
+    panelFixStarter: "In realtà, {label} dovrebbe essere ",
+    panelTip: "Qualcosa non torna?",
     pnlSkipped: "Saltato",
     pnlCompany: "Azienda",
     pnlEmail: "E-mail",
@@ -893,12 +937,13 @@ const I18N = {
     divDone: "{label} — completato",
     divToGo: "ancora {n}",
     hdrAssistant: "Assistente di onboarding",
-    hdrTagline: "Le tue risposte vanno al tuo team di onboarding Lumen",
+    hdrTagline: "Le tue risposte vanno direttamente al tuo team di configurazione Lumen",
     savedFull: "✓ Salvato su questo dispositivo",
     savedShort: "✓ Salvato",
     phReply: "Scrivi la tua risposta…",
     phAnswerAbove: "Rispondi sopra — o scrivilo qui",
     reviewBtn: "Finito prima o bloccato? Rivedi e invia il tuo brief",
+    sendNowBtn: "Rivedi e invia quello che hai",
     sendHint: "↵ per inviare · Maiusc+↵ per andare a capo",
     expTitle: "Il tuo brief di configurazione",
     expSubtitle: "Tutto ciò che hai condiviso, in un unico posto. Apri una sezione per modificare qualcosa.",
@@ -1013,6 +1058,9 @@ const I18N = {
     welcomeBackDesc:  "لديك جلسة إعداد قيد التقدم.",
     savedPercent:     "اكتمل {pct}%",
     savedOnDevice:    "إجاباتك محفوظة على هذا الجهاز",
+    savedAnyDevice:   "إجاباتك محفوظة. أعد فتح هذا الرابط على أي جهاز للمتابعة.",
+    savedFullAny: "\u2713 تم حفظ التقدّم",
+    step1DescAny: "توقّف وقتما تشاء. أعد فتح هذا الرابط على أي جهاز وستتابع من حيث توقفت.",
     resumeBtn:        "استئناف الجلسة",
     startOverBtn:     "البدء من جديد",
     eraseWarn:        "البدء من جديد يحذف إجاباتك المحفوظة نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
@@ -1026,7 +1074,7 @@ const I18N = {
     startBtn:       "ابدأ (حوالي 15 دقيقة)",
     startBtnSeeded: "ابدأ إعداد {company} (حوالي 15 دقيقة)",
     thinking:       "المساعد يفكّر\u2026",
-    correctionHint: "لاحظت شيئًا غير صحيح؟ فقط أخبرني في المحادثة \u2014 «في الواقع، سوقنا الرئيسي هو ألمانيا» \u2014 وسأصححه.",
+    correctionHint: "لاحظت شيئًا غير صحيح؟ فقط أخبرني في المحادثة (على سبيل المثال، «في الواقع، سوقنا الرئيسي هو ألمانيا») وسأصححه.",
     chooseLang:     "اختر لغتك للبدء",
     preparedFor:    "أُعدّ لأجل {company}",
     think1:         "أقرأ إجابتك…",
@@ -1036,6 +1084,11 @@ const I18N = {
     panelTitle: "ما تم جمعه حتى الآن",
     panelEmpty: "ستظهر إجاباتك هنا أثناء تقدمنا.",
     panelPending: "متبقٍ {n} سيُكمَل أثناء المحادثة.",
+    panelStillTo: "ما زال يجب تسجيله",
+    panelHide: "إخفاء",
+    panelFixAria: "تصحيح {label} في المحادثة",
+    panelFixStarter: "في الواقع، {label} يجب أن يكون ",
+    panelTip: "هل هناك خطأ؟",
     pnlSkipped: "تم التخطي",
     pnlCompany: "الشركة",
     pnlEmail: "البريد الإلكتروني",
@@ -1066,12 +1119,13 @@ const I18N = {
     divDone: "{label} — تم",
     divToGo: "متبقٍ {n}",
     hdrAssistant: "مساعد الإعداد",
-    hdrTagline: "تُرسَل إجاباتك إلى فريق الإعداد لديك في Lumen",
+    hdrTagline: "تُرسَل إجاباتك مباشرةً إلى فريق الإعداد لديك في Lumen",
     savedFull: "✓ محفوظ على هذا الجهاز",
     savedShort: "✓ محفوظ",
     phReply: "اكتب ردك…",
     phAnswerAbove: "أجب أعلاه — أو اكتبه هنا",
     reviewBtn: "انتهيت مبكرًا أو تواجه صعوبة؟ راجع وأرسل ملخصك",
+    sendNowBtn: "راجع وأرسل ما لديك",
     sendHint: "↵ للإرسال · Shift+↵ لسطر جديد",
     expTitle: "ملخص الإعداد الخاص بك",
     expSubtitle: "كل ما شاركته في مكان واحد. افتح أي قسم لتعديل ما تشاء.",
@@ -1270,6 +1324,69 @@ function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), J
 function lsProbe() { try { const k = "__lumen_probe__"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch { return false; } }
 function lsClearDraft(seedId) { try { localStorage.removeItem(lsKey(seedId)); } catch {} }
 
+// Server-side draft, keyed by the LINK's seed id, so a client who reopens their link
+// on ANY device resumes exactly where they left off. localStorage alone was
+// same-browser only: start on a laptop, reopen on a phone, and the work was gone —
+// which pressured busy clients into sending an incomplete brief. Both sinks are kept:
+// the local copy is instant and survives a network blip, the server copy travels.
+// All three helpers are best-effort and never throw into the chat.
+// Non-seeded sessions have no stable key, so they stay local-only (unchanged).
+const DRAFT_ENDPOINT = "/.netlify/functions/draft";
+// Trim the model history before storing: callAPI only ever sends the last
+// MAX_HIST_TURNS (20) entries, so keeping ~4x that is far more than a resume needs
+// while stopping a very long session from bloating the stored snapshot.
+const DRAFT_HIST_KEEP = 80;
+function draftPayload(snap) {
+  const hist = Array.isArray(snap.history) ? snap.history.slice(-DRAFT_HIST_KEEP) : [];
+  return { ...snap, history: hist };
+}
+async function srvSaveDraft(seedId, snap, opts) {
+  if (!seedId) return false;
+  try {
+    const res = await fetch(DRAFT_ENDPOINT, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seedId, snapshot: draftPayload(snap) }),
+      // keepalive lets the write survive the page being backgrounded/closed, which is
+      // exactly when the last-moment save matters most.
+      keepalive: !!(opts && opts.keepalive),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+async function srvLoadDraft(seedId) {
+  if (!seedId) return null;
+  try {
+    const res = await fetchWithTimeout(`${DRAFT_ENDPOINT}?seedId=${encodeURIComponent(seedId)}`, {}, 12000);
+    if (!res.ok) return null; // 404 = nothing saved yet, which is the normal first visit
+    const data = await res.json();
+    const d = data && data.draft;
+    // Same validity bar as the local draft: a real conversation that isn't finished.
+    return (d && Array.isArray(d.messages) && d.messages.length && d.progress && (d.progress.percent || 0) < 100)
+      ? { ...d, savedAt: Date.parse(data.savedAt) || d.savedAt || 0 }
+      : null;
+  } catch { return null; }
+}
+// Choose between the on-device draft and the server draft: most recently saved wins,
+// so continuing on a second device picks up the latest state and a same-device return
+// still wins if it got further while the network was down. Either side may be null.
+// Both stamps are wall-clock, so a device whose clock is badly wrong could prefer a
+// slightly older draft. Accepted: modern devices sync time, and the downside is
+// resuming a turn or two earlier (the assistant simply continues), not a corrupt brief.
+function pickDraft(local, remote) {
+  const at = d => (d && Number(d.savedAt)) || 0;
+  if (remote && at(remote) > at(local)) return remote;
+  return local || remote || null;
+}
+function srvClearDraft(seedId) {
+  if (!seedId) return;
+  try {
+    fetch(DRAFT_ENDPOINT, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seedId, done: true }), keepalive: true,
+    }).catch(() => {});
+  } catch {}
+}
+
 // Pure fold of one parsed reply's markers onto a cdata object. Used live and to
 // rebuild cdata from surviving messages after a rewind.
 // Arrays REPLACE wholesale: the system prompt re-emits the FULL array each time,
@@ -1368,6 +1485,7 @@ function stripAll(t) {
     .replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/g, "")
     .replace(/^\s*<(thought|thoughts|thinking|think)>[\s\S]*$/, "")
     .replace(/\[SUGGESTIONS:[\s\S]*?\]/g, "")
+    .replace(/\[OFFER_SEND\]/g, "")
     .replace(/TOPIC_SUGGESTION\s*\{[^{}]*\}/g, "")
     .replace(/^TOPIC_SUGGESTION\|.*$/gm, "");
   // Safety net: a reply truncated mid-marker leaves an opening %%MARKER%% with no
@@ -1484,7 +1602,7 @@ function parseReply(r) {
   const { suggestions:topicSuggestions, stripped } = procTopics(r);
   const clean = stripAll(stripped);
   if (topicSuggestions.length > 0 && !widgets.includes("TOPICS")) widgets.push("TOPICS");
-  return { clean, widgets, topicSuggestions, quickReplies, progress,
+  return { clean, widgets, topicSuggestions, quickReplies, progress, offerSend: /\[OFFER_SEND\]/.test(r),
     companyData:pMark(r,"COMPANY"), topicsData:pMark(r,"TOPICS"),
     channelsData:pMark(r,"CHANNELS"), reportsData:pMark(r,"REPORTS"), alertsData:pMark(r,"ALERTS"), usersData:pMark(r,"USERS"), handoffData:pMark(r,"HANDOFF"), raw:r };
 }
@@ -1559,6 +1677,7 @@ const IC = {
   clock:  "M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z M12 8v4l3 2",
   chat:   "M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z",
   send:   "M22 2 11 13 M22 2l-7 20-4-9-9-4z",
+  pencil: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
   clip:   "M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.49",
 };
 function TypingIndicator({ lang }) {
@@ -2377,6 +2496,9 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
   const sendingRef = useRef(false); // synchronous double-send guard (state lags a fast double-click)
   const startedAtRef = useRef(null);
   const saveT   = useRef(null);
+  // Latest draft snapshot, kept current so the flush-on-hide handler below can save
+  // without re-binding a listener on every render.
+  const snapRef = useRef(null);
   const wRef    = useRef(wState);
   useEffect(() => { sndRef.current = sound; }, [sound]);
   useEffect(() => { wRef.current = wState; }, [wState]);
@@ -2430,31 +2552,56 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
   // prepared-for-you rather than generic (B6).
   useEffect(() => { if (seed && seed.company && typeof document !== "undefined") document.title = `Lumen Onboarding — ${seed.company}`; }, [seed]);
 
-  // On mount, offer to resume an in-progress draft saved on this device.
+  // On mount, offer to resume an in-progress draft. Two sources: the local copy
+  // (instant, same browser only) and the server copy keyed by the link's seed id
+  // (works on ANY device the link is opened on). Take whichever is NEWER, so
+  // continuing on a second device picks up the latest state, while a same-device
+  // return still wins if it got further while the network was down.
   useEffect(() => {
-    const draft = lsLoadDraft(seedId);
-    if (draft) {
-      setSaved(draft);
-      // Render the "Welcome back" screen in the language the draft was saved in.
-      // For a non-seeded return uiLang defaults to English until resume restores
-      // it, so without this the resume screen would greet a French/Arabic/... client
-      // in English. Clamp to a supported UI language (L() also falls back safely).
-      if (draft.uiLang && UI_LANGS.some(l => l.code === draft.uiLang)) setUiLang(draft.uiLang);
-    }
-    setChecked(true);
+    let cancelled = false;
+    (async () => {
+      const local = lsLoadDraft(seedId);
+      let remote = null;
+      // Only seeded links have a stable server key. Skip the fetch otherwise so a
+      // non-seeded session behaves exactly as before (local-only, no extra request).
+      if (seedId) { try { remote = await srvLoadDraft(seedId); } catch { remote = null; } }
+      if (cancelled) return;
+      const draft = pickDraft(local, remote);
+      if (draft) {
+        setSaved(draft);
+        // Render the "Welcome back" screen in the language the draft was saved in.
+        // For a non-seeded return uiLang defaults to English until resume restores
+        // it, so without this the resume screen would greet a French/Arabic/... client
+        // in English. Clamp to a supported UI language (L() also falls back safely).
+        if (draft.uiLang && UI_LANGS.some(l => l.code === draft.uiLang)) setUiLang(draft.uiLang);
+      }
+      setChecked(true);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Autosave the in-progress draft after each turn, until sent. Two sinks:
-  //  - localStorage: the full draft (messages/history) for resume on this device.
-  //  - server (from the first real answer on): a TRIMMED snapshot — structured
-  //    progress only, no messages/history — so Proserv sees live and stalled
-  //    sessions, not just completed ones. Keyed by session id, marked
+  // Autosave the in-progress draft after each turn, until sent. Three sinks:
+  //  - localStorage: the full draft (messages/history) for instant same-device resume.
+  //  - draft store (seeded links): the SAME full snapshot, keyed by the link's seed
+  //    id, so reopening the link on another device resumes exactly where it stopped.
+  //  - server session record (from the first real answer on): a TRIMMED snapshot —
+  //    structured progress only, no messages/history — so Proserv sees live and
+  //    stalled sessions, not just completed ones. Keyed by session id, marked
   //    in_progress; the completed record overwrites it on send (same id).
   useEffect(() => {
     if (!started || sent || messages.length === 0) return;
+    // Keep the live snapshot available to the flush-on-hide handler below. Set
+    // OUTSIDE the debounce timer, so a client who closes the tab within the debounce
+    // window still has their latest turn saved rather than losing it.
+    snapRef.current = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current } };
     if (saveT.current) clearTimeout(saveT.current);
     saveT.current = setTimeout(() => {
-      setDraftOk(lsSaveDraft(seedId, { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, savedAt: Date.now() }));
+      const snap = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, savedAt: Date.now() };
+      setDraftOk(lsSaveDraft(seedId, snap));
+      // Cross-device copy. Best-effort and never blocks the chat; the local copy
+      // already covers this device if it fails. Skipped while a send is in flight so
+      // a late autosave can't resurrect a draft for an already-sent session.
+      if (seedId && !sendingRef.current) srvSaveDraft(seedId, snap);
       // Server upsert. Best-effort, never blocks the chat. Skipped while a send is
       // in flight so a late autosave can't overwrite the completed record.
       const pct = (progress && progress.percent) || 0;
@@ -2495,6 +2642,29 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     }, 600);
     return () => { if (saveT.current) clearTimeout(saveT.current); };
   }, [messages, progress, wState, cdata, started, sent, uiLang, seedId, seed]);
+
+  // Flush the draft the moment the page is backgrounded or closed. The autosave above
+  // is debounced by 600ms, so without this a client who answers and immediately closes
+  // the tab (or switches apps on a phone, where the tab can be discarded outright)
+  // loses that last turn. visibilitychange is the reliable signal on mobile; pagehide
+  // covers the desktop close/navigate case. keepalive lets the request outlive the page.
+  useEffect(() => {
+    const flush = () => {
+      if (!started || sent || sendingRef.current) return;
+      const snap = snapRef.current;
+      if (!snap || !Array.isArray(snap.messages) || snap.messages.length === 0) return;
+      const stamped = { ...snap, savedAt: Date.now() };
+      lsSaveDraft(seedId, stamped);
+      if (seedId) srvSaveDraft(seedId, stamped, { keepalive: true });
+    };
+    const onVis = () => { if (typeof document !== "undefined" && document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [started, sent, seedId]);
 
   const resetSession = useCallback(() => {
     sidRef.current = crypto.randomUUID();
@@ -2631,7 +2801,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
         const t0 = Date.now(), raw = await callAPILive(histRef.current), el = Date.now()-t0;
         if (el < MIN_MS) await sleep(MIN_MS-el);
         const pr = parseReply(raw);
-        const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = pr;
+        const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = pr;
         // Dead-reply guard: after callAPILive's retries a reply can still come back
         // malformed (e.g. truncated on a large import), which strips to nothing and
         // carries no widget/chips — an empty bubble that leaves the flow with nothing
@@ -2644,7 +2814,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
         histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
         if (sndRef.current) pop();
         const dv = maybeDivider(prog, uiLang);
-        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
+        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
         setLoading(false);
         return true;
       } catch(e) {
@@ -2812,7 +2982,7 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
       // Clear the resume draft only once the record is safely stored; if the save
       // failed but the Sheet carried it through, keep the draft so the session can
       // still be re-sent later to populate the dashboard.
-      if (saveOk) lsClearDraft(seedId);
+      if (saveOk) { lsClearDraft(seedId); srvClearDraft(seedId); }
       // Bring the "Brief sent" confirmation into view — without this the modal just
       // closes and the client is left looking at empty scroll space (reads as a blank
       // screen / no confirmation).
@@ -2884,11 +3054,11 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     setInitErr(null);
     try {
       const raw = await callAPILive([ini]);
-      const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
+      const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       prevSecRef.current = prog?.section || "company";
-      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
+      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
     } catch (e) {
       // Without this, a failed first turn left a permanent "Assistant is thinking…"
       // spinner with no way out. Clear it and offer a retry instead.
@@ -2917,12 +3087,12 @@ function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
     histRef.current = [...(saved.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
     try {
       const raw = await callAPILive(histRef.current);
-      const { clean,widgets,topicSuggestions,quickReplies,progress:prog } = parseReply(raw);
+      const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       if (sndRef.current) pop();
       const dv = maybeDivider(prog, uiLang);
-      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,timestamp:gts(),raw}]);
+      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),raw}]);
       setSaved(null); // only clear the resume draft once we've actually continued
     } catch (e) {
       // Keep `saved` so the retry can re-resume; clear the spinner and surface a retry.
@@ -3105,25 +3275,56 @@ input,textarea,select,button{font-family:inherit}
       {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink} uiLang={uiLang}/></ModalBoundary>}
 
       {showPanel && started && <div style={{position:"fixed",top:56,...(uiLang==="Arabic"?{left:0,borderRight:`1px solid ${C.border}`}:{right:0,borderLeft:`1px solid ${C.border}`}),bottom:0,width:mob?"100%":320,background:C.card,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":`${uiLang==="Arabic"?"4px":"-4px"} 0 16px rgba(0,0,0,0.08)`}}>
-        <div style={{fontSize:11,color:C.muted,margin:"0 0 12px",lineHeight:1.5,background:C.hi,borderRadius:8,padding:"8px 10px"}}>{L("correctionHint", uiLang)}</div>
+        {/* Header: a LABELLED "Hide" control, not a lone ✕. The faint ✕ read as
+            decoration and clients did not realise the panel could be closed. */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:14,color:C.text}}>📋 {L("panelTitle",uiLang)}</div>
-          <button onClick={()=>setShowPanel(false)} style={{background:"transparent",border:"none",fontSize:16,cursor:"pointer",color:C.muted}}>✕</button>
+          <button onClick={()=>setShowPanel(false)} aria-label={L("panelHide",uiLang)} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.hi,border:`1px solid ${C.border}`,borderRadius:999,color:C.muted,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 11px"}}>
+            {L("panelHide",uiLang)}<span aria-hidden="true" style={{fontSize:13,lineHeight:1}}>{uiLang==="Arabic"?"‹":"›"}</span>
+          </button>
         </div>
-        {/* A wall of identical "Not captured yet" rows reads as emptiness. Show only
-            what's captured (in 600 weight, flashing once as it lands — the "the bot
-            heard me" beat), and collapse everything still to come into one calm line
-            that reframes the blanks as anticipation rather than gaps (C8). */}
+        {/* Captured rows carry a check and a per-field Fix button; everything still to
+            come is listed by name rather than collapsed into a count, so the client can
+            see what's ahead instead of facing dead space. No progress bar here: the
+            stepper above the chat already owns overall progress. */}
         {(() => {
           const captured = panelRows.filter(([,v]) => v);
           const pending  = panelRows.filter(([,v]) => !v);
+          const tick = <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style={{flexShrink:0}}><circle cx="8" cy="8" r="8" fill="#16a34a"/><path d="M4.5 8.2l2.2 2.2 4.8-4.8" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
           return <>
-            {captured.map(([label,val]) => <div key={label} style={{margin:"0 -6px 10px",padding:"3px 6px",borderRadius:6,animation:REDUCE_MOTION?"none":"captureFlash 1.2s ease-out"}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{label}</div>
-              <div style={{fontSize:12,color:C.text,lineHeight:1.5,fontWeight:600}}>{val}</div>
+            {captured.map(([label,val]) => <div key={label} style={{display:"flex",alignItems:"flex-start",gap:8,margin:"0 -6px 10px",padding:"3px 6px",borderRadius:6,animation:REDUCE_MOTION?"none":"captureFlash 1.2s ease-out"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3,display:"flex",alignItems:"center",gap:5}}>{tick}{label}</div>
+                <div style={{fontSize:12,color:C.text,lineHeight:1.5,fontWeight:600}}>{val}</div>
+              </div>
+              {/* Values stay READ-ONLY. Editing them here would desync the assistant
+                  (it re-emits its own understanding and would silently overwrite a
+                  manual edit), so Fix seeds a correction into the composer and lets the
+                  correction flow through the conversation instead. Full hands-on editing
+                  lives in the review modal at send, where there's no model left to desync. */}
+              <button onClick={()=>{setInput(L("panelFixStarter",uiLang,{label}));if(mob)setShowPanel(false);setTimeout(()=>taRef.current?.focus(),50);}}
+                aria-label={L("panelFixAria",uiLang,{label})} title={L("panelFixAria",uiLang,{label})}
+                style={{flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",width:24,height:24,marginTop:1,borderRadius:6,background:"transparent",border:`1px solid ${C.border}`,color:C.muted,cursor:"pointer",padding:0}}>
+                <Ic d={IC.pencil} size={11}/>
+              </button>
             </div>)}
             {captured.length===0 && <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{L("panelEmpty",uiLang)}</div>}
-            {pending.length>0 && <div style={{marginTop:captured.length?6:12,paddingTop:captured.length?10:0,borderTop:captured.length?`1px solid ${C.border}`:"none",fontSize:11,color:C.muted,lineHeight:1.5}}>{L("panelPending",uiLang,{n:pending.length})}</div>}
+            {pending.length>0 && <div style={{marginTop:captured.length?12:14,paddingTop:captured.length?12:0,borderTop:captured.length?`1px solid ${C.border}`:"none"}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:7}}>{L("panelStillTo",uiLang)}</div>
+              {pending.map(([label]) => <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",fontSize:12,color:C.muted}}>
+                <span aria-hidden="true" style={{flexShrink:0,width:13,height:13,borderRadius:"50%",border:`1.5px solid ${C.border}`}}/>{label}
+              </div>)}
+            </div>}
+            {/* The correction hint used to sit at the TOP in a grey bubble styled just
+                like a chat message, so it read as something the assistant had said.
+                Demoted to a quiet tip at the bottom, clearly guidance rather than
+                dialogue, and it no longer competes with the captured values. */}
+            <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:16,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+              <span style={{flexShrink:0,color:LINK,marginTop:1}}><Ic d={IC.pencil} size={12}/></span>
+              <p style={{margin:0,fontSize:11,lineHeight:1.5,color:C.muted}}>
+                <strong style={{color:C.text,fontWeight:700}}>{L("panelTip",uiLang)}</strong> {L("correctionHint",uiLang)}
+              </p>
+            </div>
           </>;
         })()}
       </div>}
@@ -3138,7 +3339,11 @@ input,textarea,select,button{font-family:inherit}
                 <span style={{fontWeight:800,fontSize:16,color:A,letterSpacing:"-0.01em"}}>Lumen</span>
                 <span style={{fontWeight:700,fontSize:8,color:dark?"#8fa8d8":NAVY,letterSpacing:"0.02em"}}>by Talkwalker</span>
               </span>
-              <span style={{color:C.muted,fontSize:12,paddingLeft:2}}>{L("hdrAssistant",uiLang)}</span>
+              {/* The mode label is deliberately quieter than the wordmark: at equal
+                  weight "Lumen" and "Onboarding Assistant" read as two competing
+                  headlines. Small uppercase behind a hairline divider makes the brand
+                  lead and this read as what it is, the mode. */}
+              <span style={{color:C.muted,fontSize:9.5,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",paddingInlineStart:8,borderInlineStart:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{L("hdrAssistant",uiLang)}</span>
             </div>
             <div style={{fontSize:11,color:C.muted,marginTop:1}}>
               <>{L("hdrTagline",uiLang)}</>
@@ -3158,7 +3363,7 @@ input,textarea,select,button{font-family:inherit}
           <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob} lang={uiLang}/></div>
           {/* Shown on mobile too (compact form): the welcome screen promises "pause
               anytime", and the mostly-mobile audience needs the safe-to-leave signal. */}
-          {!sent && draftOk && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>{L(mob?"savedShort":"savedFull",uiLang)}</div>}
+          {!sent && (draftOk || seedId) && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>{L(mob?"savedShort":(seedId?"savedFullAny":"savedFull"),uiLang)}</div>}
         </div>
       </div>}
 
@@ -3197,7 +3402,7 @@ input,textarea,select,button{font-family:inherit}
               </div>
             </div>
             <div style={{width:"100%",maxWidth:480,margin:"0 auto 22px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
-              {[[L("step1Title",uiLang),draftOk?L("step1Desc",uiLang):L("step1DescNoSave",uiLang)],
+              {[[L("step1Title",uiLang),seedId?L("step1DescAny",uiLang):(draftOk?L("step1Desc",uiLang):L("step1DescNoSave",uiLang))],
                 [L("step2Title",uiLang),L("step2Desc",uiLang)],
                 [L("step3Title",uiLang),L("step3Desc",uiLang)]].map(([t,d],i) => (
                 <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
@@ -3219,7 +3424,7 @@ input,textarea,select,button{font-family:inherit}
             <p style={{color:C.muted,fontSize:14,margin:"0 0 8px"}}>{L("welcomeBackDesc",uiLang)}</p>
             {/* Hide a meaningless "0% complete" — a saved-but-barely-started draft
                 shouldn't greet the client with a zero. */}
-            <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{(saved?.progress?.percent||0) > 0 ? L("savedPercent",uiLang,{pct:saved.progress.percent}) : L("savedOnDevice",uiLang)}</p>
+            <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{(saved?.progress?.percent||0) > 0 ? L("savedPercent",uiLang,{pct:saved.progress.percent}) : L(seedId?"savedAnyDevice":"savedOnDevice",uiLang)}</p>
             {!confirmFresh ? (
               <div style={{display:"flex",gap:12}}>
                 <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("resumeBtn",uiLang)}</button>
@@ -3233,7 +3438,7 @@ input,textarea,select,button{font-family:inherit}
                 <p style={{color:"#92400e",fontSize:13,margin:0,maxWidth:340,lineHeight:1.5}}>{L("eraseWarn",uiLang)}</p>
                 <div style={{display:"flex",gap:12}}>
                   <button onClick={()=>setConfirmFresh(false)} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("keepBtn",uiLang)}</button>
-                  <button onClick={()=>{setConfirmFresh(false);const keep=sidRef.current;lsClearDraft(seedId);resetSession();sidRef.current=keep;}} style={{background:"transparent",border:"1px solid #fca5a5",color:"#dc2626",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("eraseBtn",uiLang)}</button>
+                  <button onClick={()=>{setConfirmFresh(false);const keep=sidRef.current;lsClearDraft(seedId);srvClearDraft(seedId);resetSession();sidRef.current=keep;}} style={{background:"transparent",border:"1px solid #fca5a5",color:"#dc2626",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("eraseBtn",uiLang)}</button>
                 </div>
               </div>
             )}
@@ -3273,6 +3478,16 @@ input,textarea,select,button{font-family:inherit}
                 if (chosen) return <div style={{fontSize:11,color:C.muted,marginTop:6,fontStyle:"italic"}}>{L("youChose",uiLang)} <strong style={{color:C.text}}>{chosen}</strong></div>;
                 return null;
               })()}
+              {/* Early-send offer. There is deliberately NO standing "send now" control
+                  during the chat: an always-visible exit invites clients to submit a
+                  half-finished brief. Instead the assistant emits [OFFER_SEND] only when
+                  the client signals they have to stop, so the option appears at the one
+                  moment it is the right answer. Suppressed once sent. */}
+              {m.role==="assistant" && m.offerSend && !sent && !done && <div style={{marginTop:10}}>
+                <button onClick={()=>setShowExport(true)} style={{display:"inline-flex",alignItems:"center",gap:7,background:dark?"#241c3d":"#f4f1fe",border:`1px solid ${dark?"#3a2f5c":"#e0d6fb"}`,color:LINK,borderRadius:9,padding:"9px 15px",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
+                  <Ic d={IC.send} size={13}/>{L("sendNowBtn",uiLang)}
+                </button>
+              </div>}
               {m.role==="assistant" && m.widgets?.map((w,wi) => {
                 // renderWidget returns null for a widget that is suppressed (e.g. a
                 // single-shot type already submitted on an earlier turn, like a
@@ -3349,13 +3564,13 @@ input,textarea,select,button{font-family:inherit}
           </div>
           {attachNote && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"6px 10px",marginTop:6}}>{attachNote}</div>}
           {!mob && input.trim() && <div style={{fontSize:11,color:C.muted,marginTop:6,opacity:0.75,textAlign:uiLang==="Arabic"?"left":"right"}}>{L("sendHint",uiLang)}</div>}
-          {/* The safety net for a stuck client (or a model that never reaches 100%)
-              must be findable: a real secondary button with a tap-sized target, not
-              11px faint underlined micro-text — the least visible thing on screen at
-              exactly the moment it matters. */}
-          {!done && progress.percent >= 15 && <div style={{textAlign:"center",marginTop:8}}>
-            <button onClick={()=>setShowExport(true)} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:12,fontWeight:600,cursor:"pointer",padding:"8px 14px",minHeight:36}}>{L("reviewBtn",uiLang)}</button>
-          </div>}
+          {/* NO standing early-send control here, by design. A permanent "review and
+              send" under the composer put an exit in front of every client on every
+              turn, and answered "stuck" with "give up", which is exactly the behaviour
+              we want to discourage. The escape hatch still exists: the assistant emits
+              [OFFER_SEND] the moment a client says they have to stop (see the inline
+              offer in the transcript above), and the finish card covers the client who
+              completes normally. So it appears when it is the right answer, not before. */}
         </div>
       </div>}
     </div>

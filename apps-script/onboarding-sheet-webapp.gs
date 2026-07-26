@@ -61,6 +61,9 @@ function briefSig_(brief) {
     clip(c.contact), clip(c.email), clip(c.name)].join("|");
 }
 
+// Lightweight logger used across the fill (resilient: a logging failure never breaks a step).
+function dlog_(m) { try { console.log(m); } catch (e) {} }
+
 function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
@@ -116,7 +119,7 @@ function doPost(e) {
       if (idemKey) cache.put(idemKey, url, 21600); // 6h (cache max); real retries land far sooner
       // Log the actual tab names so a fill that can't find its tab is diagnosable
       // from the execution log (the fill matches tabs by name at runtime).
-      console.log("Requirements Sheet tabs: " + ss.getSheets().map(function (s) { return s.getName(); }).join(" | "));
+      dlog_("Requirements Sheet tabs: " + ss.getSheets().map(function (s) { return s.getName(); }).join(" | "));
 
       // Populate each tab best-effort; one failure must not abort the rest.
       safe_(function () { fillBusinessObjectives_(ss, company); });
@@ -128,6 +131,7 @@ function doPost(e) {
       // flush() forces pending writes; the setValues above have already applied, so a
       // rare flush error must not abort the run before the writeback + email.
       safe_(function () { SpreadsheetApp.flush(); }, "flush");
+
 
       // Push the Sheet link to the dashboard's session store now (best-effort), so
       // the "Open Sheet" link appears even when the client aborted before receiving
@@ -267,7 +271,7 @@ function updateSessionSheetUrl_(sessionId, url, originArg) {
   // for older callers that don't send it.
   const dash = String(originArg || props.getProperty("DASHBOARD_URL") || "");
   const origin = (dash.match(/^https?:\/\/[^\/]+/) || [])[0];
-  if (!secret || !origin) { console.log("updateSessionSheetUrl_: no secret/origin (originArg='" + (originArg || "") + "')"); return; }
+  if (!secret || !origin) { dlog_("updateSessionSheetUrl_: no secret/origin (originArg='" + (originArg || "") + "')"); return; }
   const res = UrlFetchApp.fetch(origin + "/.netlify/functions/session", {
     method: "post",
     contentType: "application/json",
@@ -275,13 +279,13 @@ function updateSessionSheetUrl_(sessionId, url, originArg) {
     muteHttpExceptions: true,
   });
   const code = res.getResponseCode();
-  if (code < 200 || code >= 300) console.log("session sheetUrl writeback HTTP " + code + ": " + res.getContentText());
+  if (code < 200 || code >= 300) dlog_("session sheetUrl writeback HTTP " + code + ": " + res.getContentText());
 }
 
 // ---- populate helpers -------------------------------------------------------
 
 function norm_(v) { return String(v == null ? "" : v).toLowerCase().replace(/\s+/g, " ").trim(); }
-function safe_(fn, label) { try { fn(); } catch (e) { console.log("safe_ swallowed" + (label ? " [" + label + "]" : "") + ": " + e); } }
+function safe_(fn, label) { try { fn(); } catch (e) { dlog_("safe_ swallowed" + (label ? " [" + label + "]" : "") + ": " + e); } }
 
 function sheetLike_(ss, re) {
   const sheets = ss.getSheets();
@@ -293,7 +297,7 @@ function sheetLike_(ss, re) {
 function fillBusinessObjectives_(ss, c) {
   const sh = sheetLike_(ss, /business objectives|launch requirements/) ||
     findTabByLabels_(ss, [/business objectives/, /preferred onboarding language/, /geographic markets/, /main point of contact/, /requirements completed by/]);
-  if (!sh) { console.log("fillBusinessObjectives_: no tab matched (name or labels) — see the tab list above"); return; }
+  if (!sh) { dlog_("fillBusinessObjectives_: no tab matched (name or labels) — see the tab list above"); return; }
   const vals = sh.getDataRange().getValues();
   // Clear any protection over the value column (B) before writing. The template
   // locks some cells (e.g. Main Point of Contact), and a locked cell makes
@@ -301,6 +305,15 @@ function fillBusinessObjectives_(ss, c) {
   // field silently kept the template placeholder. Scoped to column B across the
   // used rows, so label/instruction protection outside it survives. Best-effort.
   clearRegionProtections_(sh, 1, 2, vals.length, 1);
+  // Clear data validation over the value column (B) BEFORE writing. "Business
+  // Objectives (Select top 3 priorities)" carries a SINGLE-SELECT dropdown, but we
+  // fill it with a comma-separated list of the client's top objectives, which the
+  // dropdown rejects. Because Sheets applies writes lazily, that rejection did not
+  // surface at writeCell_ (so its per-cell validation-clear+retry never triggered);
+  // it threw later during the NEXT section's read, aborting fillUsers_ before it
+  // wrote a row and dropping the contact cell. Clearing the column's validations up
+  // front removes the trap for every value cell at once.
+  try { sh.getRange(1, 2, vals.length, 1).clearDataValidations(); } catch (e) { dlog_("fillBusinessObjectives_ clearDataValidations: " + e); }
   const contact = [c.contact, c.email].filter(Boolean).join(" – ");
   const rules = [
     [/^date\b/, todayStr_()],
@@ -331,6 +344,10 @@ function fillBusinessObjectives_(ss, c) {
       }
     }
   }
+  // Commit this tab's writes now, so any residual lazy validation error is raised
+  // and contained HERE (caught by the caller's safe_) instead of surfacing during
+  // the next section's read and aborting it.
+  try { SpreadsheetApp.flush(); } catch (e) { dlog_("fillBusinessObjectives_ flush: " + e); }
 }
 
 // Detect a header row (the row matching the most field regexes) and return
@@ -420,7 +437,7 @@ function clearRegionProtections_(sh, top, left, height, width) {
     }
     const sps = sh.getProtections(SpreadsheetApp.ProtectionType.SHEET) || [];
     for (let j = 0; j < sps.length; j++) { try { sps[j].remove(); } catch (e) {} }
-  } catch (e) { console.log("clearRegionProtections_ on '" + sh.getName() + "': " + e); }
+  } catch (e) { dlog_("clearRegionProtections_ on '" + sh.getName() + "': " + e); }
 }
 
 // Grow the sheet so `lastRow` (1-based) is addressable. No-op when it already fits.
@@ -428,7 +445,7 @@ function ensureRows_(sh, lastRow) {
   try {
     const mr = sh.getMaxRows();
     if (lastRow > mr) sh.insertRowsAfter(mr, lastRow - mr);
-  } catch (e) { console.log("ensureRows_ (" + lastRow + ") on '" + sh.getName() + "': " + e); }
+  } catch (e) { dlog_("ensureRows_ (" + lastRow + ") on '" + sh.getName() + "': " + e); }
 }
 function writeCell_(sh, row, col1, value) {
   if (value == null || value === "") return true;
@@ -436,7 +453,7 @@ function writeCell_(sh, row, col1, value) {
   try { rng.setValue(cellSafe_(value)); return true; }
   catch (e1) {
     try { rng.setDataValidation(null); rng.setValue(cellSafe_(value)); return true; }
-    catch (e2) { console.log("writeCell_ skip r" + row + " c" + col1 + " on '" + sh.getName() + "': " + e2); return false; }
+    catch (e2) { dlog_("writeCell_ skip r" + row + " c" + col1 + " on '" + sh.getName() + "': " + e2); return false; }
   }
 }
 function writeRows_(sh, header, items, toRow) {
@@ -516,17 +533,17 @@ function writeRows_(sh, header, items, toRow) {
       // Own try/catch: a formatting failure must NOT fall into the per-cell fallback
       // below (setValues already succeeded).
       try { region.setBackground("#FFFFFF").setFontColor("#000000"); }
-      catch (fmtErr) { console.log("writeRows_ '" + sh.getName() + "' formatting normalize skipped: " + fmtErr); }
-      console.log("writeRows_ '" + sh.getName() + "': wrote " + items.length + " item(s) (batched)");
+      catch (fmtErr) { dlog_("writeRows_ '" + sh.getName() + "' formatting normalize skipped: " + fmtErr); }
+      dlog_("writeRows_ '" + sh.getName() + "': wrote " + items.length + " item(s) (batched)");
       return;
-    } catch (e) { console.log("writeRows_ '" + sh.getName() + "' batch rejected, per-cell fallback: " + e); }
+    } catch (e) { dlog_("writeRows_ '" + sh.getName() + "' batch rejected, per-cell fallback: " + e); }
   }
   let fails = 0;
   for (let i = 0; i < items.length; i++) {
     const rv = toRow(items[i]);
     for (const field in header.cols) if (!writeCell_(sh, anchors[i], header.cols[field] + 1, rv[field])) fails++;
   }
-  console.log("writeRows_ '" + sh.getName() + "': wrote " + items.length + " item(s) per-cell, " + fails + " cell(s) skipped");
+  dlog_("writeRows_ '" + sh.getName() + "': wrote " + items.length + " item(s) per-cell, " + fails + " cell(s) skipped");
 }
 
 function fillUsers_(ss, users) {
@@ -537,10 +554,10 @@ function fillUsers_(ss, users) {
   // other tab, so the fallback can't mis-latch.
   const sh = sheetLike_(ss, /user|team/) ||
     findTabByHeader_(ss, { firstName: /first ?name/, lastName: /last ?name|surname/, email: /e-?mail/, access: /access|permission|licen/ });
-  if (!sh) { console.log("fillUsers_: no tab matched /user|team/ (and no content match) — see the tab list above"); return; }
-  console.log("fillUsers_: tab='" + sh.getName() + "', received " + users.length + " user(s)");
+  if (!sh) { dlog_("fillUsers_: no tab matched /user|team/ (and no content match) — see the tab list above"); return; }
+  dlog_("fillUsers_: tab='" + sh.getName() + "', received " + users.length + " user(s)");
   const header = detectHeader_(sh, { firstName: /first ?name|^name$/, lastName: /last ?name|surname/, role: /role|department|team/, email: /e-?mail/, access: /access|permission|licen/ });
-  if (!header) { console.log("fillUsers_: header not detected on '" + sh.getName() + "'"); return; }
+  if (!header) { dlog_("fillUsers_: header not detected on '" + sh.getName() + "'"); return; }
   writeRows_(sh, header, users, function (u) {
     return { firstName: u.firstName || "", lastName: u.lastName || "", role: u.role || "", email: u.email || "", access: u.access || "" };
   });
@@ -550,9 +567,9 @@ function fillTopics_(ss, topics) {
   if (!topics.length) return;
   const sh = sheetLike_(ss, /topic/) ||
     findTabByHeader_(ss, { group: /group/, keywords: /keyword/, urls: /url/, hashtags: /hashtag/ });
-  if (!sh) { console.log("fillTopics_: no tab matched /topic/ (and no content match) — see the tab list above"); return; }
+  if (!sh) { dlog_("fillTopics_: no tab matched /topic/ (and no content match) — see the tab list above"); return; }
   const header = detectHeader_(sh, { type: /topics?\s*\/\s*filters?/, group: /group/, name: /topic.*name|filter name/, keywords: /keyword/, urls: /url/, hashtags: /hashtag/, comments: /comment/ });
-  if (!header) { console.log("fillTopics_: header not detected on '" + sh.getName() + "'"); return; }
+  if (!header) { dlog_("fillTopics_: header not detected on '" + sh.getName() + "'"); return; }
   writeRows_(sh, header, topics, function (t) {
     return { type: topicKind_(t.type), group: t.group || "", name: t.name || "", keywords: t.keywords || "", urls: t.urls || "", hashtags: t.hashtags || "", comments: t.comments || t.rationale || "" };
   });
@@ -562,9 +579,9 @@ function fillChannels_(ss, channels) {
   if (!channels.length) return;
   const sh = sheetLike_(ss, /channel|social/) ||
     findTabByHeader_(ss, { author: /author/, type: /channel type/, url: /url/, owned: /owned|public/ });
-  if (!sh) { console.log("fillChannels_: no tab matched /channel|social/ (and no content match) — see the tab list above"); return; }
+  if (!sh) { dlog_("fillChannels_: no tab matched /channel|social/ (and no content match) — see the tab list above"); return; }
   const header = detectHeader_(sh, { author: /author/, type: /channel type|^type$/, url: /url/, owned: /owned|public/ });
-  if (!header) { console.log("fillChannels_: header not detected on '" + sh.getName() + "'"); return; }
+  if (!header) { dlog_("fillChannels_: header not detected on '" + sh.getName() + "'"); return; }
   writeRows_(sh, header, channels, function (ch) {
     return { author: ch.author || "", type: ch.type || "", url: ch.url || "", owned: ownedLabel_(ch.owned) };
   });
@@ -611,7 +628,7 @@ function fillReportsAlerts_(ss, reports, alerts) {
   if (!reports.length && !alerts.length) return;
   const sh = sheetLike_(ss, /report|dashboard|alert/) ||
     findTabByHeader_(ss, { name: /^name$/, type: /^type$/, details: /detail|time frame|kpi/, comments: /comment/ });
-  if (!sh) { console.log("fillReportsAlerts_: no tab matched (and no content match) — see the tab list above"); return; }
+  if (!sh) { dlog_("fillReportsAlerts_: no tab matched (and no content match) — see the tab list above"); return; }
 
   // Reports/dashboards sub-header: first col "Dahboard / Report" (template typo kept),
   // plus a "Group Name" column that the alert/legend rows don't have.
@@ -627,7 +644,7 @@ function fillReportsAlerts_(ss, reports, alerts) {
     if (reports.length > capacity) {
       const need = reports.length - capacity;
       try { sh.insertRowsBefore(alertHeaderRow, need); alH.row += need; }
-      catch (e) { console.log("fillReportsAlerts_ insertRows failed: " + e); }
+      catch (e) { dlog_("fillReportsAlerts_ insertRows failed: " + e); }
     }
   }
 
@@ -639,7 +656,7 @@ function fillReportsAlerts_(ss, reports, alerts) {
       return { type: reportKind_(r.kind || r.type), group: r.objective || "", name: r.name || "", details: r.details || "", comments: r.comments || "" };
     });
   } else if (reports.length) {
-    console.log("fillReportsAlerts_: reports sub-header not detected on '" + sh.getName() + "'");
+    dlog_("fillReportsAlerts_: reports sub-header not detected on '" + sh.getName() + "'");
   }
 
   if (alerts.length && alH) {
@@ -647,7 +664,7 @@ function fillReportsAlerts_(ss, reports, alerts) {
       return { name: a.name || "", type: a.type || "", details: a.details || "", comments: a.comments || "" };
     });
   } else if (alerts.length) {
-    console.log("fillReportsAlerts_: alert sub-header not detected on '" + sh.getName() + "'");
+    dlog_("fillReportsAlerts_: alert sub-header not detected on '" + sh.getName() + "'");
   }
 }
 
