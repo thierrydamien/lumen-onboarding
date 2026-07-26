@@ -83,6 +83,14 @@
   .filters input[type="date"] { font-family:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:9px; background:#fff; color:var(--ink); cursor:pointer; outline:none; }
   .filters input[type="date"]:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
   .fexport { background:var(--purple-soft); color:var(--purple); border:none; border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  /* Status is a multi-select: toggle pills rather than a dropdown, so picking two
+     (e.g. stalled + link sent) is two clicks and the active set is always visible. */
+  .fstatus { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .fslabel { font-size:12px; color:var(--muted); margin-right:2px; }
+  .spill { background:#fff; color:var(--teal); border:1px solid var(--border); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .spill:hover { border-color:var(--purple); color:var(--purple); }
+  .spill.on { background:var(--purple); border-color:var(--purple); color:#fff; font-weight:700; }
+  .spill:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
   th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
   th.sortable:hover { color:var(--purple); }
   th.sortable .sorthint { opacity:.5; font-size:10px; }
@@ -465,7 +473,9 @@
 
   var SESSIONS = [];
   var LINKSENT = []; // pseudo-rows: seeds (links) generated but never opened
-  var FILTER = { status: "all", minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
+  // status is a LIST so several can be active at once (e.g. stalled + link sent,
+  // the two that need chasing). Empty means no status filter rather than a magic "all".
+  var FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
   // Package code -> friendly label (product line + support tier), for the filter
   // dropdown, the "by package" chart, and CSV. Codes come from the sales page.
   var PKG_PRODUCT = { core: "Core", analyze: "Analyze/Research", business: "Business/Premium" };
@@ -491,27 +501,32 @@
 
   function renderKpis(sessions) {
     var box = $("kpis");
-    var fs = FILTER.status;
+    // No status pills active == the unfiltered headline view.
+    var fs = FILTER.status, noStatus = fs.length === 0;
     // "Link sent" pseudo-rows (links generated but never opened) carry no
     // timing/cost, so they never feed the completion rate or the time/spend
     // cards. They ARE counted when you filter to the "Link sent" status.
     var real = sessions.filter(function (s) { return !s._linkSent; });
     // Total: real sessions in the default view; the rows actually shown when a
     // specific status is filtered (so a "Link sent" filter counts those).
-    var total = (fs === "all") ? real.length : sessions.length;
+    var total = noStatus ? real.length : sessions.length;
 
     // Second card follows the active status filter. Otherwise it always said
     // "completed" and read "0 (0%) completed" whenever you filtered to another
     // status. "All statuses" keeps the completion-rate headline.
     var card2v, card2l;
-    if (fs === "all") {
+    if (noStatus) {
       var compN = real.filter(function (s) { return s.status === "completed"; }).length;
       var rate = real.length ? Math.round(compN / real.length * 100) : 0;
       card2v = compN + (real.length ? " (" + rate + "%)" : "");
       card2l = "completed";
     } else {
-      card2v = String(sessions.filter(function (s) { return displayStatus(s) === fs; }).length);
-      card2l = ((STATUS_META[fs] || {}).l || fs).toLowerCase();
+      // One status reads as that status; several read as a combined count, so the
+      // card never claims a single label for a mixed selection.
+      card2v = String(sessions.filter(function (s) { return fs.indexOf(displayStatus(s)) !== -1; }).length);
+      card2l = fs.length === 1
+        ? ((STATUS_META[fs[0]] || {}).l || fs[0]).toLowerCase()
+        : fs.map(function (k) { return ((STATUS_META[k] || {}).l || k).toLowerCase(); }).join(" + ");
     }
 
     // Median + time-saved + spend are over completed sessions with known timing,
@@ -520,7 +535,10 @@
     var durs = completed.map(function (s) { return s.durationMs; }).filter(function (n) { return n != null; });
     var medMs = median(durs);
     var medMin = medMs != null ? Math.round(medMs / 60000) : null;
-    var savedH = medMin != null ? (durs.length * Math.max(0, 90 - medMin)) / 60 : null;
+    // Manual baseline for the time-saved estimate: how long gathering these
+    // requirements by hand (calls, emails, chasing) used to take per client.
+    var MANUAL_MIN = 60;
+    var savedH = medMin != null ? (durs.length * Math.max(0, MANUAL_MIN - medMin)) / 60 : null;
     var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
     var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
     var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
@@ -528,7 +546,7 @@
       [String(total), total === 1 ? "session" : "sessions"],
       [card2v, card2l],
       [medMin != null ? medMin + " min" : "—", "median time, start to submit"],
-      [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 90 min manual)"],
+      [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 60 min manual)"],
       [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
     ];
     box.innerHTML = kpis.map(function (k) {
@@ -651,7 +669,7 @@
   }
 
   function renderFilters() {
-    var statusOpts = [["all", "All statuses"], ["completed", "Completed"], ["in_progress", "In progress"], ["stalled", "Stalled"], ["link_sent", "Link sent"]];
+    var statusOpts = [["completed", "Completed"], ["in_progress", "In progress"], ["stalled", "Stalled"], ["link_sent", "Link sent"]];
     var pctOpts = [["0", "Any progress"], ["25", "25% or more"], ["50", "50% or more"], ["75", "75% or more"], ["100", "100% progress"]];
     var ownerMap = {}, pkgMap = {}, langMap = {};
     SESSIONS.concat(LINKSENT).forEach(function (s) {
@@ -676,7 +694,13 @@
     var box = $("filters");
     box.innerHTML =
       '<input id="fSearch" type="search" placeholder="Search client, contact, email, prepared by…" value="' + esc(FILTER.q) + '"/>' +
-      sel("fStatus", "Status", statusOpts, FILTER.status) + sel("fPct", "Progress", pctOpts, FILTER.minPct) +
+      '<div class="fstatus"><span class="fslabel">Status</span>' +
+        statusOpts.map(function (o) {
+          var on = FILTER.status.indexOf(o[0]) !== -1;
+          return '<button type="button" class="spill' + (on ? " on" : "") + '" data-status="' + esc(o[0]) +
+            '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(o[1]) + '</button>';
+        }).join("") + '</div>' +
+      sel("fPct", "Progress", pctOpts, FILTER.minPct) +
       (ownerKeys.length ? sel("fOwner", "Prepared by", ownerOpts, FILTER.owner) : "") +
       (pkgKeys.length ? sel("fPkg", "Package", pkgOpts, FILTER.pkg) : "") +
       (langKeys.length ? sel("fLang", "Language", langOpts, FILTER.lang) : "") +
@@ -688,7 +712,14 @@
     // #filters is a separate container from #body, so re-rendering the table on
     // each keystroke does not steal focus from this input.
     $("fSearch").addEventListener("input", function (e) { FILTER.q = e.target.value; renderTable(); });
-    $("fStatus").addEventListener("change", function (e) { FILTER.status = e.target.value; renderTable(); });
+    // Each pill toggles one status in/out of the active set.
+    Array.prototype.forEach.call(document.querySelectorAll(".spill"), function (b) {
+      b.addEventListener("click", function () {
+        var v = b.getAttribute("data-status"), i = FILTER.status.indexOf(v);
+        if (i === -1) FILTER.status.push(v); else FILTER.status.splice(i, 1);
+        renderFilters(); renderTable();
+      });
+    });
     $("fPct").addEventListener("change", function (e) { FILTER.minPct = parseInt(e.target.value, 10) || 0; renderTable(); });
     if (ownerKeys.length) $("fOwner").addEventListener("change", function (e) { FILTER.owner = e.target.value; renderTable(); });
     if (pkgKeys.length) $("fPkg").addEventListener("change", function (e) { FILTER.pkg = e.target.value; renderTable(); });
@@ -696,7 +727,7 @@
     // Feature 4: date-range inputs. Empty means unbounded; the predicate treats "To" as end-of-day.
     $("fFrom").addEventListener("change", function (e) { FILTER.dateFrom = e.target.value; renderTable(); });
     $("fTo").addEventListener("change", function (e) { FILTER.dateTo = e.target.value; renderTable(); });
-    $("fClear").addEventListener("click", function () { FILTER = { status: "all", minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" }; renderFilters(); renderTable(); });
+    $("fClear").addEventListener("click", function () { FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" }; renderFilters(); renderTable(); });
     // Feature 3: export exactly the current filtered view.
     $("fExport").addEventListener("click", exportCsv);
   }
@@ -789,7 +820,7 @@
     var fromMs = localDay(FILTER.dateFrom, false);
     var toMs = localDay(FILTER.dateTo, true);
     return SESSIONS.concat(LINKSENT).filter(function (s) {
-      if (FILTER.status !== "all" && displayStatus(s) !== FILTER.status) return false;
+      if (FILTER.status.length && FILTER.status.indexOf(displayStatus(s)) === -1) return false;
       if (FILTER.minPct > 0 && (s.percent != null ? s.percent : 0) < FILTER.minPct) return false;
       if (except !== "owner" && ownersKnown && FILTER.owner && FILTER.owner !== "all" && (s.owner || "") !== FILTER.owner) return false;
       if (except !== "pkg" && pkgKnown && FILTER.pkg && FILTER.pkg !== "all" && (s.pkg || "") !== FILTER.pkg) return false;
@@ -814,7 +845,9 @@
   function renderActiveFilters() {
     var el = $("activeFilters"); if (!el) return;
     var chips = [];
-    if (FILTER.status !== "all") chips.push(["status", "Status: " + ((STATUS_META[FILTER.status] || {}).l || FILTER.status)]);
+    FILTER.status.forEach(function (st) {
+      chips.push(["status:" + st, "Status: " + ((STATUS_META[st] || {}).l || st)]);
+    });
     if (FILTER.minPct > 0) chips.push(["minPct", "Progress: ≥" + FILTER.minPct + "%"]);
     if (FILTER.owner && FILTER.owner !== "all") chips.push(["owner", "Prepared by: " + FILTER.owner]);
     if (FILTER.pkg && FILTER.pkg !== "all") chips.push(["pkg", "Package: " + pkgLabel(FILTER.pkg)]);
@@ -830,7 +863,13 @@
   // Reset a single filter (or all) to its default, then re-render.
   function clearFilter(dim) {
     if (dim === "__all__") { var fc = $("fClear"); if (fc) { fc.click(); return; } }
-    var defs = { status: "all", minPct: 0, owner: "all", pkg: "all", lang: "all", q: "", dateFrom: "", dateTo: "" };
+    // "status:<value>" removes just that one status; bare "status" clears them all.
+    if (dim.indexOf("status:") === 0) {
+      var st = dim.slice(7), si = FILTER.status.indexOf(st);
+      if (si !== -1) FILTER.status.splice(si, 1);
+      renderFilters(); renderTable(); return;
+    }
+    var defs = { status: [], minPct: 0, owner: "all", pkg: "all", lang: "all", q: "", dateFrom: "", dateTo: "" };
     if (dim in defs) { FILTER[dim] = defs[dim]; renderFilters(); renderTable(); }
   }
 
@@ -990,7 +1029,7 @@
       ' stalled (no activity for 48h+).</span>' +
       '<button type="button" id="stalledView">View stalled</button></div>';
     $("stalledView").addEventListener("click", function () {
-      FILTER.status = "stalled";
+      FILTER.status = ["stalled"];
       renderFilters();
       renderTable();
     });

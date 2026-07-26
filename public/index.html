@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Lumen Onboarding · Team hub</title>
+<!-- Internal landing page. The site root had nothing on it, so anyone who trimmed a
+     URL back to the domain hit a dead end and the three tools were only reachable if
+     you already knew /sales, /dashboard and /chat. This is the one link to bookmark.
+     Nothing sensitive lives here: it is signposting only, and both real tools still
+     enforce their own access (the dashboard needs its token, Sales its write token). -->
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#fff; --ink:#0f2b3a; --muted:#5b6b76; --line:#e3e8ee;
+    --purple:#7c3aed; --purple-soft:#f1ebfe; --teal:#012b3a; --radius:14px;
+    --shadow:0 1px 3px rgba(1,43,58,.06); --shadow-h:0 6px 22px rgba(1,43,58,.11);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Arial,Helvetica,"Segoe UI",sans-serif;line-height:1.55;
+    -webkit-font-smoothing:antialiased;padding:44px 20px 64px}
+  .wrap{max-width:760px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .mark{width:40px;height:40px;border-radius:50%;background:#ede7fb;display:flex;
+    align-items:center;justify-content:center;flex-shrink:0}
+  .mark img{width:24px;height:24px;display:block}
+  .brand{font-size:19px;font-weight:800;color:var(--purple);letter-spacing:-.01em;line-height:1.1}
+  .by{font-size:10px;font-weight:700;color:#1a3b7b}
+  h1{font-size:22px;margin:18px 0 4px;font-weight:700;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 26px;max-width:60ch}
+  .grid{display:grid;gap:14px}
+  a.card{display:block;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:18px 20px;text-decoration:none;color:inherit;
+    box-shadow:var(--shadow);transition:box-shadow .16s ease,transform .16s ease,border-color .16s ease}
+  a.card:hover{box-shadow:var(--shadow-h);transform:translateY(-1px);border-color:#cdb9fb}
+  a.card:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+  .top{display:flex;align-items:center;gap:11px}
+  .ic{width:34px;height:34px;border-radius:9px;background:var(--purple-soft);color:var(--purple);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ic svg{width:17px;height:17px}
+  .t{font-size:15px;font-weight:700}
+  .who{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);background:#eef1f5;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .d{font-size:13px;color:var(--muted);margin:9px 0 0}
+  .note{margin-top:26px;background:var(--card);border:1px solid var(--line);
+    border-left:3px solid var(--purple);border-radius:12px;padding:14px 18px;font-size:12.5px;color:var(--muted)}
+  .note strong{color:var(--ink)}
+  @media (max-width:560px){ body{padding:28px 14px 48px} .who{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="mark"><img src="/lumen-mark.png" alt=""/></span>
+    <span>
+      <span class="brand">Lumen</span>
+      <span class="by">by Talkwalker</span>
+    </span>
+  </header>
+
+  <h1>Onboarding Assistant · team hub</h1>
+  <p class="sub">The three tools behind Lumen client onboarding. Bookmark this page rather than the individual URLs.</p>
+
+  <div class="grid">
+    <a class="card" href="/sales">
+      <span class="top">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4v6h6"/><path d="M8 14h8M8 17.5h5"/></svg></span>
+        <span class="t">Create a client link</span>
+        <span class="who">Sales &amp; CS</span>
+      </span>
+      <p class="d">Fill in the client's details, attach or paste their brief, and generate the personalised onboarding link to send them. This is the starting point for every client.</p>
+    </a>
+
+    <a class="card" href="/dashboard">
+      <span class="top">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span>
+        <span class="t">Sessions dashboard</span>
+        <span class="who">Proserv</span>
+      </span>
+      <p class="d">Every client session: what they captured, their requirements document, who is stalled and needs a nudge, and the time saved across the team. Needs the Proserv access token.</p>
+    </a>
+
+    <a class="card" href="/chat">
+      <span class="top">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
+        <span class="t">Open the assistant</span>
+        <span class="who">Demo &amp; testing</span>
+      </span>
+      <p class="d">The client-facing chat with no client attached, so nothing is pre-filled. Use it to demo the experience or test a change. A real client always gets their own link from Sales instead.</p>
+    </a>
+  </div>
+
+  <p class="note"><strong>A note on the last one:</strong> opening the assistant here starts an unseeded session, so it will not know a company or contact and the brief it produces is not tied to a client. For anything real, generate a link from Sales.</p>
+</div>
+</body>
+</html>
