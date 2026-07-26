@@ -2399,7 +2399,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
             check + glow + a "what happens next" timeline pay the moment off (C14/L3). */}
         {sent
           ? <svg width="46" height="46" viewBox="0 0 52 52" aria-hidden="true" style={{marginBottom:6}}><circle cx="26" cy="26" r="24" fill="none" stroke={A} strokeWidth="2" strokeOpacity="0.25"/><path d="M15 27l7 7 15-17" fill="none" stroke={A} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{strokeDasharray:44,strokeDashoffset:REDUCE_MOTION?0:44,animation:REDUCE_MOTION?"none":"drawCheck .55s .15s ease-out forwards"}}/></svg>
-          : <div style={{fontSize:20,marginBottom:8}}>{"\ud83d\udce8"}</div>}
+          : <div style={{color:A,marginBottom:8,display:"flex",justifyContent:"center"}}><Ic d={IC.send} size={26}/></div>}
         <div style={{fontWeight:700,fontSize:15,color:C.text,marginBottom:6}}>{sent?FN("titleSent",lang):FN("titlePre",lang)}</div>
         <div style={{fontSize:13,color:C.muted,marginBottom:16,lineHeight:1.5}}>
           {sent ? (sheetLink ? FN("descSheet",lang) : FN("descPlain",lang)) : FN("descPre",lang)}
@@ -3278,7 +3278,7 @@ input,textarea,select,button{font-family:inherit}
         {/* Header: a LABELLED "Hide" control, not a lone ✕. The faint ✕ read as
             decoration and clients did not realise the panel could be closed. */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:14,color:C.text}}>📋 {L("panelTitle",uiLang)}</div>
+          <div style={{fontWeight:700,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:7}}><span style={{color:LINK,display:"inline-flex"}}><Ic d={IC.panel} size={14}/></span>{L("panelTitle",uiLang)}</div>
           <button onClick={()=>setShowPanel(false)} aria-label={L("panelHide",uiLang)} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.hi,border:`1px solid ${C.border}`,borderRadius:999,color:C.muted,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 11px"}}>
             {L("panelHide",uiLang)}<span aria-hidden="true" style={{fontSize:13,lineHeight:1}}>{uiLang==="Arabic"?"‹":"›"}</span>
           </button>
