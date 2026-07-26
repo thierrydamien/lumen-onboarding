@@ -3,94 +3,141 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
 <title>Lumen Onboarding · Team hub</title>
 <!-- Internal landing page. The site root had nothing on it, so anyone who trimmed a
      URL back to the domain hit a dead end and the three tools were only reachable if
-     you already knew /sales, /dashboard and /chat. This is the one link to bookmark.
-     Nothing sensitive lives here: it is signposting only, and both real tools still
-     enforce their own access (the dashboard needs its token, Sales its write token). -->
+     you already knew /sales, /dashboard and /chat.
+
+     Structure matters here: Sales and the Dashboard are the two ENDS OF ONE SEQUENCE,
+     with the client's own session in between, while /chat is a side utility for demos.
+     Three identical cards implied three equal siblings and hid that, so the workflow is
+     numbered and the client's step is shown as a non-clickable connector (there is no
+     generic client link to give — every client gets their own from Sales).
+
+     Signposting only: no credentials here, and both tools still enforce their own
+     access (the dashboard asks for its token, Sales for its write token). -->
 <style>
   :root{
-    --bg:#f4f6f9; --card:#fff; --ink:#0f2b3a; --muted:#5b6b76; --line:#e3e8ee;
-    --purple:#7c3aed; --purple-soft:#f1ebfe; --teal:#012b3a; --radius:14px;
-    --shadow:0 1px 3px rgba(1,43,58,.06); --shadow-h:0 6px 22px rgba(1,43,58,.11);
+    --bg:#f4f6f9; --card:#fff; --ink:#0f2b3a; --muted:#5b6b76; --faint:#8b98a4;
+    --line:#e3e8ee; --rule:#dde3ea; --purple:#7c3aed; --purple-soft:#f1ebfe;
+    --navy:#1a3b7b; --step:#ede7fb; --radius:14px;
+    --shadow:0 1px 3px rgba(1,43,58,.06); --shadow-h:0 8px 24px rgba(1,43,58,.12);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0b1220; --card:#141c2c; --ink:#e9edf4; --muted:#9aa6b8; --faint:#75818f;
+      --line:#26313f; --rule:#2b3746; --purple:#a586f5; --purple-soft:#241c3d;
+      --navy:#8fa8d8; --step:#2a2145;
+      --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-h:0 8px 24px rgba(0,0,0,.5);
+    }
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:Arial,Helvetica,"Segoe UI",sans-serif;line-height:1.55;
     -webkit-font-smoothing:antialiased;padding:44px 20px 64px}
-  .wrap{max-width:760px;margin:0 auto}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-  .mark{width:40px;height:40px;border-radius:50%;background:#ede7fb;display:flex;
+  .wrap{max-width:660px;margin:0 auto}
+
+  /* Brand lockup: stacked, matching the app header exactly. */
+  header{display:flex;align-items:center;gap:11px;margin-bottom:26px}
+  .mark{width:38px;height:38px;border-radius:50%;background:#ede7fb;display:flex;
     align-items:center;justify-content:center;flex-shrink:0}
-  .mark img{width:24px;height:24px;display:block}
-  .brand{font-size:19px;font-weight:800;color:var(--purple);letter-spacing:-.01em;line-height:1.1}
-  .by{font-size:10px;font-weight:700;color:#1a3b7b}
-  h1{font-size:22px;margin:18px 0 4px;font-weight:700;letter-spacing:-.01em}
-  .sub{color:var(--muted);font-size:14px;margin:0 0 26px;max-width:60ch}
-  .grid{display:grid;gap:14px}
-  a.card{display:block;background:var(--card);border:1px solid var(--line);
-    border-radius:var(--radius);padding:18px 20px;text-decoration:none;color:inherit;
-    box-shadow:var(--shadow);transition:box-shadow .16s ease,transform .16s ease,border-color .16s ease}
-  a.card:hover{box-shadow:var(--shadow-h);transform:translateY(-1px);border-color:#cdb9fb}
+  .mark img{width:23px;height:23px;display:block}
+  .lock{display:flex;flex-direction:column;line-height:1.05}
+  .brand{font-size:18px;font-weight:800;color:var(--purple);letter-spacing:-.01em}
+  .by{font-size:9px;font-weight:700;color:var(--navy);letter-spacing:.02em}
+  .mode{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--faint);border-left:1px solid var(--line);padding-left:10px}
+
+  h1{font-size:21px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 30px;max-width:56ch}
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--faint);display:flex;align-items:center;gap:10px;margin:0 0 12px}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+  a.card{display:flex;gap:13px;align-items:flex-start;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;
+    text-decoration:none;color:inherit;box-shadow:var(--shadow);
+    transition:box-shadow .16s ease,transform .16s ease,border-color .16s ease}
+  a.card:hover{box-shadow:var(--shadow-h);transform:translateY(-1px);border-color:var(--purple)}
   a.card:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
-  .top{display:flex;align-items:center;gap:11px}
-  .ic{width:34px;height:34px;border-radius:9px;background:var(--purple-soft);color:var(--purple);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .ic svg{width:17px;height:17px}
-  .t{font-size:15px;font-weight:700}
-  .who{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.05em;
-    text-transform:uppercase;color:var(--muted);background:#eef1f5;border-radius:999px;padding:3px 9px;white-space:nowrap}
-  .d{font-size:13px;color:var(--muted);margin:9px 0 0}
-  .note{margin-top:26px;background:var(--card);border:1px solid var(--line);
-    border-left:3px solid var(--purple);border-radius:12px;padding:14px 18px;font-size:12.5px;color:var(--muted)}
-  .note strong{color:var(--ink)}
-  @media (max-width:560px){ body{padding:28px 14px 48px} .who{display:none} }
+  .num{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--step);
+    color:var(--purple);font-size:12px;font-weight:800;display:flex;
+    align-items:center;justify-content:center;margin-top:1px}
+  .txt{min-width:0}
+  .t{font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .who{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);background:var(--bg);border:1px solid var(--line);
+    border-radius:999px;padding:2px 8px;white-space:nowrap}
+  .d{font-size:13px;color:var(--muted);margin:5px 0 0}
+  .go{color:var(--purple);font-weight:700}
+
+  /* The client's own step: real, but not somewhere the team can navigate to. */
+  .between{display:flex;gap:13px;align-items:flex-start;padding:12px 18px;margin:9px 0}
+  .between .dot{flex-shrink:0;width:26px;display:flex;justify-content:center;color:var(--faint)}
+  .between .dot svg{width:15px;height:15px}
+  .between p{margin:0;font-size:12.5px;color:var(--faint);line-height:1.5}
+
+  .util{margin-top:34px}
+  a.card.quiet{background:transparent;box-shadow:none;border-style:dashed}
+  a.card.quiet:hover{background:var(--card);border-style:solid}
+  .ic{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--step);
+    color:var(--purple);display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .ic svg{width:14px;height:14px}
+  @media (max-width:560px){
+    body{padding:28px 14px 48px}
+    .who{display:none}
+    .mode{display:none}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <span class="mark"><img src="/lumen-mark.png" alt=""/></span>
-    <span>
+    <span class="lock">
       <span class="brand">Lumen</span>
       <span class="by">by Talkwalker</span>
     </span>
+    <span class="mode">Internal</span>
   </header>
 
-  <h1>Onboarding Assistant · team hub</h1>
-  <p class="sub">The three tools behind Lumen client onboarding. Bookmark this page rather than the individual URLs.</p>
+  <h1>Onboarding Assistant</h1>
+  <p class="sub">Everything behind Lumen client onboarding. Start at step one to set a new client up.</p>
 
-  <div class="grid">
-    <a class="card" href="/sales">
-      <span class="top">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4v6h6"/><path d="M8 14h8M8 17.5h5"/></svg></span>
-        <span class="t">Create a client link</span>
-        <span class="who">Sales &amp; CS</span>
-      </span>
-      <p class="d">Fill in the client's details, attach or paste their brief, and generate the personalised onboarding link to send them. This is the starting point for every client.</p>
-    </a>
+  <p class="eyebrow">Setting up a client</p>
 
-    <a class="card" href="/dashboard">
-      <span class="top">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></span>
-        <span class="t">Sessions dashboard</span>
-        <span class="who">Proserv</span>
-      </span>
-      <p class="d">Every client session: what they captured, their requirements document, who is stalled and needs a nudge, and the time saved across the team. Needs the Proserv access token.</p>
-    </a>
+  <a class="card" href="/sales">
+    <span class="num">1</span>
+    <span class="txt">
+      <span class="t">Create their link <span class="who">Sales &amp; CS</span></span>
+      <p class="d">Add the client's details, attach or paste their brief, and generate the personalised link to send them.</p>
+    </span>
+  </a>
 
-    <a class="card" href="/chat">
-      <span class="top">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
-        <span class="t">Open the assistant</span>
-        <span class="who">Demo &amp; testing</span>
-      </span>
-      <p class="d">The client-facing chat with no client attached, so nothing is pre-filled. Use it to demo the experience or test a change. A real client always gets their own link from Sales instead.</p>
-    </a>
+  <div class="between">
+    <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>
+    <p>The client works through the conversation on their own link, in their own language, whenever suits them. It takes them about 15 minutes and they can pause and pick it up on any device.</p>
   </div>
 
-  <p class="note"><strong>A note on the last one:</strong> opening the assistant here starts an unseeded session, so it will not know a company or contact and the brief it produces is not tied to a client. For anything real, generate a link from Sales.</p>
+  <a class="card" href="/dashboard">
+    <span class="num">2</span>
+    <span class="txt">
+      <span class="t">Review what came back <span class="who">Proserv</span></span>
+      <p class="d">Every session and its requirements document, who has stalled and needs a nudge, and the time saved across the team. Asks for the Proserv access token.</p>
+    </span>
+  </a>
+
+  <div class="util">
+    <p class="eyebrow">Demo &amp; testing</p>
+    <a class="card quiet" href="/chat">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
+      <span class="txt">
+        <span class="t">Open the assistant with no client attached</span>
+        <p class="d">Nothing is pre-filled and any brief it produces is not tied to a client, so it is for showing the experience or trying a change. Real clients always get their own link from step one.</p>
+      </span>
+    </a>
+  </div>
 </div>
 </body>
 </html>

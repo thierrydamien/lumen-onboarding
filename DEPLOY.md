@@ -70,8 +70,40 @@ build fails. If you want the extra headroom (up to the 26s max) and are on a pla
 that allows it, raise it in the Netlify UI: Site configuration > Functions >
 Function timeout. It is optional — the prompt-side cuts carry the fix on their own.
 
-Note: /dashboard and /sales carry noindex but are NOT access-gated in code. Put
-them behind Netlify password protection or Identity before real-client use.
+### Who can reach the internal pages
+
+The internal pages are /  (the team hub), /sales and /dashboard. All three carry
+`noindex, nofollow`, which keeps them out of search results. Note what that is and
+is not: it is a request to well-behaved crawlers, NOT access control. Anyone holding
+the URL still gets in, and the paths are short and guessable.
+
+What each one actually enforces today:
+
+- **/dashboard** — the page shell is public, but every session read requires
+  `DASHBOARD_TOKEN` server-side, so the client data (and any PII) is protected.
+- **/sales** — protected ONLY when `SEED_WRITE_TOKEN` is set in the Netlify
+  environment. Leave it unset and the page falls back to an Origin check alone,
+  which means anyone who reaches the page can generate client links. **Set it.**
+  This is the one genuine gap and it costs nothing to close.
+- **/** (hub) — links only, no data. Deliberately NOT given its own gate: the pages
+  it points to are directly reachable, so gating the index would add code and
+  maintenance without adding protection.
+
+To actually restrict this to Hootsuite staff, two real options, neither of which is
+a code tweak:
+
+1. **Netlify password protection** — one shared password over the whole site, set in
+   the Netlify UI, no code. Best effort-to-benefit. Shows "Upgrade to unlock" on the
+   Personal plan, so it needs a paid plan. Still a shared password, not per-person
+   identity.
+2. **Google OAuth restricted to @hootsuite.com** (or Okta SSO, the org standard) —
+   genuine identity, and what the demo shell already implies with its "Google
+   sign-in, @hootsuite.com only · simulated" label. This is a proper build (OAuth
+   flow, callback, session cookie) plus a Google Cloud OAuth client, and should be
+   scoped with IT/security rather than bolted on.
+
+GOVERNANCE: these pages surface client data and consultant notes, so the access
+decision belongs in the ISO 42001 review rather than being left implicit.
 
 ## 2. Apps Script Web App
 

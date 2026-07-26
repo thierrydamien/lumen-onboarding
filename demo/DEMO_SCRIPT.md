@@ -9,21 +9,23 @@ Apple is used as an illustrative example with public information only. Frame it 
 
 ---
 
-## BEFORE YOU PRESENT (about 15 minutes, on the laptop you will use on stage)
+## BEFORE YOU PRESENT (about 20 minutes, on the laptop you will use on stage)
 
-1. Make sure the latest version is deployed (Claude will confirm this once the fix is pushed).
-2. Open the tool's Sales page. Enter the client and paste the two blocks from the bottom of this doc (the brief and the notes). Company is Apple, language English. Click Generate link.
+1. Open the site root. That is the team hub, and it links the Sales page, the Dashboard and the assistant, so you only need one URL to hand.
+2. Open the Sales page. Enter the client and paste the two blocks from the bottom of this doc (the brief and the notes). Company is Apple, language English. Click Generate link.
 3. Open that link and have the full conversation to the end, answering as if you are Apple. Leave that browser tab open. This finished conversation is what you reveal on stage.
-4. Optional: open a second client tab and switch it to Arabic, so you have an Arabic screen ready to flash.
-5. Record a screen capture of one full run as your backup.
-6. Pre-open these tabs, in this order: Sales page, a fresh Apple client link, the finished conversation from step 3, the Dashboard.
-7. Zoom the browser to about 125 percent. Turn off notifications.
+4. REQUIRED, not optional: generate a second Apple link and open it, then pick العربية on its welcome screen and start it. Language is chosen on the welcome screen and CANNOT be changed once the conversation has started, so an Arabic tab prepared in advance is the only way to show Arabic on stage.
+5. Open the requirements document that step 3 produced (the Google Sheet link in the finished conversation) in its own tab. You will show it in Beat 5.
+6. Record a screen capture of one full run as your backup.
+7. Pre-open these tabs, in this order: Sales page, a fresh Apple client link, the finished conversation from step 3, its requirements document, the Arabic tab, the Dashboard.
+8. On the Dashboard, decide whether you want the Insights charts open. They are collapsed by default now, so click Show once during prep if you plan to point at them.
+9. Zoom the browser to about 125 percent. Turn off notifications.
 
 ---
 
 ## THE SCRIPT
 
-### Problem  [SLIDE]  (about 2 minutes)
+### Problem  [SLIDE]  (about 1.5 minutes)
 
 Hi everyone. I want to show you how Professional Services is using AI to speed up onboarding and get clients to value faster. The tool is the Lumen Onboarding Assistant. We recently tested it with a client, Fortinet, and the feedback was positive.
 
@@ -53,11 +55,17 @@ You can see it has picked up the brand, the competitors, the channels, and the c
 
 Now I generate the client's own private link, and that is what we send them.
 
-### Beat 2 — The client opens the link  [TOOL, LIVE]  (about 1.5 minutes)
+### Beat 2 — The client opens the link  [TOOL, LIVE]  (about 2 minutes)
 
-▸ Open the fresh Apple client link in a new tab.
+▸ Switch to the fresh Apple client link tab.
 
-This is what the client sees when they open their link.
+This is what the client sees when they open their link. It is personalised before they type anything.
+
+▸ Point at the welcome screen: the greeting by name, the "Prepared for Apple" tag, and the three lines below.
+
+It greets them by name, tells them it takes about 15 minutes, and tells them they can stop and pick up later on any device. It also says plainly that they are talking to an AI assistant and that a consultant reviews everything before any setup happens. We are not hiding that, and clients respond better when you are upfront about it.
+
+▸ Click "Start Apple's setup".
 
 ▸ The assistant greets them and already references Apple and their context.
 
@@ -83,29 +91,41 @@ Here it is already suggesting topics tied to exactly what they said: the iPhone 
 
 One more thing. Our clients are not always working in English.
 
-▸ Switch the conversation language to Arabic.
+▸ Switch to the Arabic tab you prepared. Do NOT try to change the language in this tab: it is set on the welcome screen and cannot be changed mid-conversation.
 
-The whole conversation runs in the client's own language, live. Here it is in Arabic, right to left.
+The whole conversation runs in the client's own language, live. Here it is in Arabic, right to left, and the requirements document comes back the same way.
 
-▸ Switch back to English.
+▸ Switch back to the English tab.
 
-Back to English for the rest.
-
-### Beat 5 — The finished document  [TOOL, PREPARED]  (about 2 minutes)
+### Beat 5 — The finished document  [TOOL, PREPARED]  (about 2.5 minutes)
 
 Rather than have you watch me answer twenty questions, here is the same conversation finished. I ran it earlier this morning.
 
 ▸ Switch to the finished conversation tab.
 
-After about a 15-minute conversation, we have a complete, consistent requirements document: their business objectives, what they want to track, the reports and alerts they need, and who should have access to the platform.
+After about a 15-minute conversation, the client gets a confirmation and a link to their finished document, and it is emailed to them as well.
+
+▸ Switch to the requirements document tab.
+
+And this is the document itself, in the exact template our consultants already use. Their business objectives, the topics and competitors to track, the channels, the reports and alerts, and the people who need access, with their access level. Nothing was retyped by us, and nothing is left half filled in.
+
+The client keeps edit access to this until the review call, so if they think of something afterwards they just add it and the consultant sees it.
 
 And to be clear, this does not replace our consultants. The client still meets with our team before implementation begins. The difference is that the consultant now starts with complete, consistent information, instead of chasing missing details.
 
-### Beat 6 — What the team sees  [TOOL, LIVE]  (about 1 minute)
+### Beat 6 — What the team sees  [TOOL, LIVE]  (about 1.5 minutes)
 
 ▸ Open the Dashboard tab.
 
-And this is what the team sees across every onboarding: who has started, what languages they are using, and the time we are saving.
+And this is what the team sees across every onboarding: who has started, who has finished, what languages they are using, and the time we are saving.
+
+▸ Point at the row of numbers along the top.
+
+That last figure is the estimate: the median session against the hour it used to take by hand.
+
+▸ Point at a stalled row and its "Send reminder" button. Do not click it, it opens a real email draft.
+
+And when a client goes quiet, the consultant does not have to go digging for their address. One click opens a ready-to-send nudge with the client's own link in it.
 
 ### Impact  [SLIDE]  (about 2.5 minutes)
 
@@ -123,10 +143,26 @@ These are just two examples of how Professional Services is using AI to work sma
 
 ---
 
+## IF YOU ARE RUNNING LONG
+
+The beats add up to about 15 minutes with no slack, and a live conversation is the
+part most likely to over-run. Cut in this order, and say nothing about cutting:
+
+1. Beat 3's second answer. One answer is enough to show the panel filling in.
+2. The stalled-reminder moment in Beat 6. Nice to have, not the story.
+3. The Query Builder paragraph. Mention it in one sentence instead.
+
+Do NOT cut Beat 4 (Arabic) or Beat 5 (the document). Those are the two moments
+people remember.
+
+---
+
 ## IF SOMETHING BREAKS
 - An AI reply hangs: keep talking, and if it does not appear in a few seconds, cut to your screen recording for that beat.
 - The link fails: use the backup link you made in prep, or the recording.
 - Wifi dies: run the whole thing from the recording and narrate over it. That is why you record it.
+- You cannot find a way to change the language mid-conversation: there isn't one, by design. Use the Arabic tab from prep step 4.
+- The Dashboard asks for a token: that is the Proserv access gate. Have the token to hand before you go on stage.
 
 ---
 

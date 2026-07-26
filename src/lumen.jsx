@@ -57,6 +57,14 @@ async function fetchSeedFromURL() {
         const seed = data && data.seed && data.seed.company ? data.seed : null;
         return { seed, seedId: id, seedError: !seed };
       }
+      // A 404 is DEFINITIVE: the link expired (the record is swept on read) or was
+      // never stored. Retrying cannot succeed, and it needs different wording —
+      // "refresh to try again" is false for an expired link. Distinguish it so the
+      // client is told the truth instead of being sent to reload forever.
+      if (res.status === 404) {
+        const body = await res.json().catch(() => null);
+        return { seed: null, seedId: id, seedError: true, seedExpired: !!body && body.error === "expired" };
+      }
     } catch { /* fall through to retry */ }
   }
   return { seed: null, seedId: id, seedError: true };
@@ -179,6 +187,8 @@ const I18N = {
     panelPending: "{n} more to fill in as you chat.",
     panelStillTo: "Still to capture",
     gapToday: "Today",
+    seedErrTransient: "We couldn't load your prepared setup just now, so we'll start fresh below. Your details are still safe with your Lumen contact, or refresh the page to try loading them again.",
+    seedErrExpired: "This link has expired, so we'll start fresh below. Everything still reaches your Lumen team, but they can send you a new link if you'd rather pick up where you left off.",
     gapYesterday: "Yesterday",
     panelHide: "Hide",
     panelFixAria: "Correct {label} in the chat",
@@ -324,7 +334,7 @@ const I18N = {
     focusRepliesGroup: "Suggested replies",
   },
   French: {
-    welcomeTitle:       "Bienvenue dans l'intégration Lumen",
+    welcomeTitle:       "Bienvenue dans l'onboarding Lumen",
     welcomeTitleSeeded: "Bienvenue, {name} !",
     welcomeSub:         "Nous vous poserons des questions sur vos objectifs, vos marchés et votre équipe, puis nous générerons votre brief de configuration Lumen.",
     welcomeSubSeeded:   "Nous aborderons vos objectifs, vos marchés et votre équipe, et construirons votre brief au fur et à mesure.",
@@ -332,7 +342,7 @@ const I18N = {
     step1Desc:  "Faites une pause quand vous voulez : rouvrez ce lien sur le même appareil et vous reprendrez là où vous vous étiez arrêté.",
     step1DescNoSave: "À noter : ce navigateur n'enregistre pas votre progression (mode privé ?). Essayez de terminer en une seule fois.",
     welcomeBackTitle: "Bon retour !",
-    welcomeBackDesc:  "Vous avez une session d'intégration en cours.",
+    welcomeBackDesc:  "Vous avez une session d'onboarding en cours.",
     savedPercent:     "Terminé à {pct} %",
     savedOnDevice:    "Vos réponses sont enregistrées sur cet appareil",
     savedAnyDevice:   "Vos réponses sont enregistrées. Rouvrez ce lien sur n'importe quel appareil pour continuer.",
@@ -347,7 +357,7 @@ const I18N = {
     step2Desc:  "Nous aborderons vos objectifs, ce qu'il faut suivre, où votre audience s'exprime, les rapports et votre équipe.",
     step3Title: "Ensuite, nous prenons le relais",
     step3Desc:  "Votre brief de configuration est transmis directement à votre équipe Lumen. Un consultant vous contacte pour planifier votre appel de révision.",
-    disclaimer: "Vous échangez avec un assistant IA. Vos réponses sont transmises uniquement à votre équipe d'intégration Lumen, et un consultant vérifie tout avant le début de la configuration.",
+    disclaimer: "Vous échangez avec un assistant IA. Vos réponses sont transmises uniquement à votre équipe d'onboarding Lumen, et un consultant vérifie tout avant le début de la configuration.",
     startBtn:       "Commencer",
     startBtnSeeded: "Démarrer la configuration de {company}",
     thinking:       "L'assistant réfléchit\u2026",
@@ -357,12 +367,14 @@ const I18N = {
     think1:         "Je lis votre réponse…",
     think2:         "Je mets à jour votre brief…",
     think3:         "Je prépare la suite…",
-    privacyNote:    "Vos réponses ne sont partagées qu'avec votre équipe d'intégration Lumen.",
+    privacyNote:    "Vos réponses ne sont partagées qu'avec votre équipe d'onboarding Lumen.",
     panelTitle: "Saisi jusqu'ici",
     panelEmpty: "Vos réponses apparaîtront ici au fur et à mesure.",
     panelPending: "encore {n} à compléter au fil de la conversation.",
     panelStillTo: "Reste à renseigner",
     gapToday: "Aujourd'hui",
+    seedErrTransient: "Nous n'avons pas pu charger votre configuration préparée pour le moment, nous repartons donc de zéro ci-dessous. Vos informations restent en sécurité auprès de votre contact Lumen, ou actualisez la page pour réessayer.",
+    seedErrExpired: "Ce lien a expiré, nous repartons donc de zéro ci-dessous. Tout parvient toujours à votre équipe Lumen, mais elle peut vous envoyer un nouveau lien si vous préférez reprendre où vous en étiez.",
     gapYesterday: "Hier",
     panelHide: "Masquer",
     panelFixAria: "Corriger {label} dans le chat",
@@ -397,8 +409,8 @@ const I18N = {
     stepN: "Étape {n} sur {total}",
     divDone: "{label} — terminé",
     divToGo: "encore {n}",
-    hdrAssistant: "Assistant d'intégration",
-    hdrTagline: "Vos réponses sont transmises directement à votre équipe d'intégration Lumen",
+    hdrAssistant: "Assistant d'onboarding",
+    hdrTagline: "Vos réponses sont transmises directement à votre équipe d'onboarding Lumen",
     savedFull: "✓ Enregistré sur cet appareil",
     savedShort: "✓ Enregistré",
     phReply: "Écrivez votre réponse…",
@@ -547,6 +559,8 @@ const I18N = {
     panelPending: "noch {n} werden im Gespräch ergänzt.",
     panelStillTo: "Noch zu erfassen",
     gapToday: "Heute",
+    seedErrTransient: "Wir konnten Ihre vorbereitete Einrichtung gerade nicht laden, daher beginnen wir unten neu. Ihre Angaben sind bei Ihrem Lumen-Kontakt weiterhin sicher, oder laden Sie die Seite neu, um es noch einmal zu versuchen.",
+    seedErrExpired: "Dieser Link ist abgelaufen, daher beginnen wir unten neu. Alles erreicht weiterhin Ihr Lumen-Team, aber es kann Ihnen einen neuen Link senden, wenn Sie dort weitermachen möchten, wo Sie aufgehört haben.",
     gapYesterday: "Gestern",
     panelHide: "Ausblenden",
     panelFixAria: "{label} im Chat korrigieren",
@@ -692,7 +706,7 @@ const I18N = {
     focusRepliesGroup: "Vorgeschlagene Antworten",
   },
   Spanish: {
-    welcomeTitle:       "Bienvenido a la incorporación de Lumen",
+    welcomeTitle:       "Bienvenido al onboarding de Lumen",
     welcomeTitleSeeded: "¡Bienvenido, {name}!",
     welcomeSub:         "Le preguntaremos por sus objetivos, mercados y equipo, y luego generaremos su resumen de configuración de Lumen.",
     welcomeSubSeeded:   "Hablaremos de sus objetivos, mercados y equipo, y crearemos su resumen de configuración sobre la marcha.",
@@ -700,7 +714,7 @@ const I18N = {
     step1Desc:  "Haga una pausa cuando quiera: vuelva a abrir este enlace en el mismo dispositivo y continuará donde lo dejó.",
     step1DescNoSave: "Aviso: este navegador no está guardando su progreso (¿modo privado?). Intente completarlo de una sola vez.",
     welcomeBackTitle: "¡Bienvenido de nuevo!",
-    welcomeBackDesc:  "Tiene una sesión de incorporación en curso.",
+    welcomeBackDesc:  "Tiene una sesión de onboarding en curso.",
     savedPercent:     "{pct} % completado",
     savedOnDevice:    "Sus respuestas están guardadas en este dispositivo",
     savedAnyDevice:   "Sus respuestas están guardadas. Vuelva a abrir este enlace en cualquier dispositivo para continuar.",
@@ -715,7 +729,7 @@ const I18N = {
     step2Desc:  "Cubriremos sus objetivos, qué monitorizar, dónde habla su audiencia, los informes y su equipo.",
     step3Title: "Después seguimos nosotros",
     step3Desc:  "Su resumen de configuración va directamente a su equipo de Lumen. Un consultor le contactará para agendar su llamada de revisión.",
-    disclaimer: "Está chateando con un asistente de IA. Sus respuestas solo se envían a su equipo de incorporación de Lumen, y un consultor lo revisa todo antes de iniciar la configuración.",
+    disclaimer: "Está chateando con un asistente de IA. Sus respuestas solo se envían a su equipo de onboarding de Lumen, y un consultor lo revisa todo antes de iniciar la configuración.",
     startBtn:       "Comenzar",
     startBtnSeeded: "Comenzar la configuración de {company}",
     thinking:       "El asistente está pensando\u2026",
@@ -725,12 +739,14 @@ const I18N = {
     think1:         "Leyendo su respuesta…",
     think2:         "Actualizando su resumen…",
     think3:         "Preparando el siguiente paso…",
-    privacyNote:    "Sus respuestas solo se comparten con su equipo de incorporación de Lumen.",
+    privacyNote:    "Sus respuestas solo se comparten con su equipo de onboarding de Lumen.",
     panelTitle: "Capturado hasta ahora",
     panelEmpty: "Sus respuestas aparecerán aquí a medida que avancemos.",
     panelPending: "quedan {n} por completar sobre la marcha.",
     panelStillTo: "Pendiente de registrar",
     gapToday: "Hoy",
+    seedErrTransient: "No hemos podido cargar su configuración preparada en este momento, así que empezaremos de nuevo abajo. Sus datos siguen a salvo con su contacto de Lumen, o actualice la página para volver a intentarlo.",
+    seedErrExpired: "Este enlace ha caducado, así que empezaremos de nuevo abajo. Todo sigue llegando a su equipo de Lumen, pero pueden enviarle un enlace nuevo si prefiere continuar donde lo dejó.",
     gapYesterday: "Ayer",
     panelHide: "Ocultar",
     panelFixAria: "Corregir {label} en el chat",
@@ -765,8 +781,8 @@ const I18N = {
     stepN: "Paso {n} de {total}",
     divDone: "{label} — listo",
     divToGo: "quedan {n}",
-    hdrAssistant: "Asistente de incorporación",
-    hdrTagline: "Sus respuestas se envían directamente a su equipo de incorporación de Lumen",
+    hdrAssistant: "Asistente de onboarding",
+    hdrTagline: "Sus respuestas se envían directamente a su equipo de onboarding de Lumen",
     savedFull: "✓ Guardado en este dispositivo",
     savedShort: "✓ Guardado",
     phReply: "Escriba su respuesta…",
@@ -915,6 +931,8 @@ const I18N = {
     panelPending: "ancora {n} da completare durante la chat.",
     panelStillTo: "Ancora da raccogliere",
     gapToday: "Oggi",
+    seedErrTransient: "Non abbiamo potuto caricare la tua configurazione preparata in questo momento, quindi ricominciamo qui sotto. I tuoi dati sono al sicuro presso il tuo contatto Lumen, oppure aggiorna la pagina per riprovare.",
+    seedErrExpired: "Questo link è scaduto, quindi ricominciamo qui sotto. Tutto arriva comunque al tuo team Lumen, ma può inviarti un nuovo link se preferisci riprendere da dove avevi lasciato.",
     gapYesterday: "Ieri",
     panelHide: "Nascondi",
     panelFixAria: "Correggi {label} nella chat",
@@ -1099,6 +1117,8 @@ const I18N = {
     panelPending: "متبقٍ {n} سيُكمَل أثناء المحادثة.",
     panelStillTo: "ما زال يجب تسجيله",
     gapToday: "اليوم",
+    seedErrTransient: "لم نتمكّن من تحميل الإعداد المُهيّأ لك الآن، لذا سنبدأ من جديد أدناه. بياناتك لا تزال آمنة مع جهة اتصالك في Lumen، أو حدّث الصفحة للمحاولة مرة أخرى.",
+    seedErrExpired: "انتهت صلاحية هذا الرابط، لذا سنبدأ من جديد أدناه. كل شيء يصل إلى فريق Lumen الخاص بك، ويمكنهم إرسال رابط جديد إذا كنت تفضّل المتابعة من حيث توقفت.",
     gapYesterday: "أمس",
     panelHide: "إخفاء",
     panelFixAria: "تصحيح {label} في المحادثة",
@@ -2462,7 +2482,7 @@ function FinishCard({ C, cdata, setShowExport, linkCopied, setLinkCopied, sent, 
   );
 }
 
-function OnboardingApp({ seed, seedId, seedError, onBriefSent, onSeeProserv }) {
+function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSeeProserv }) {
   const [theme,setTheme]       = useState("light");
   const [sound,setSound]       = useState(false);
   // Clamp the seed's language to a SUPPORTED UI language. seed.language can carry a
@@ -3430,7 +3450,7 @@ input,textarea,select,button{font-family:inherit}
                 inline English: this path forces uiLang to English (the seed, and its
                 language, never loaded), so an i18n key would only ever render English
                 here anyway. Non-blocking — the client can still start fresh below. */}
-            {seedError && !seed && <div role="status" style={{maxWidth:440,margin:"0 0 22px",padding:"11px 15px",borderRadius:T.radius.md,background:dark?"#3a2f12":"#fffbeb",border:`1px solid ${dark?"#5b4a1a":"#fde68a"}`,color:dark?"#fde68a":"#92400e",fontSize:13,lineHeight:1.5,textAlign:"left",animation:"slideUpFade .5s ease-out both",animationDelay:"170ms"}}>We couldn't load your prepared setup just now, so we'll start fresh below. Your details are still safe with your Lumen contact — or refresh the page to try loading them again.</div>}
+            {seedError && !seed && <div role="status" style={{maxWidth:440,margin:"0 0 22px",padding:"11px 15px",borderRadius:T.radius.md,background:dark?"#3a2f12":"#fffbeb",border:`1px solid ${dark?"#5b4a1a":"#fde68a"}`,color:dark?"#fde68a":"#92400e",fontSize:13,lineHeight:1.5,textAlign:"left",animation:"slideUpFade .5s ease-out both",animationDelay:"170ms"}}>{L(seedExpired ? "seedErrExpired" : "seedErrTransient", uiLang)}</div>}
             <div style={{margin:"0 0 20px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:10}}>{L("chooseLang",uiLang)}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
@@ -4049,7 +4069,7 @@ export default function Demo() {
 // store (handled inside OnboardingApp.handleSend); here we just need a no-op sink
 // and no "see Proserv" navigation.
 export function LiveChat() {
-  const [state, setState] = useState({ loading: true, seed: null, seedId: null, seedError: false });
+  const [state, setState] = useState({ loading: true, seed: null, seedId: null, seedError: false, seedExpired: false });
   useEffect(() => {
     let alive = true;
     // seedError is true when a ?s= link was present but its prepared profile could
@@ -4057,14 +4077,14 @@ export function LiveChat() {
     // the client gets an explanation instead of silently dropping to a generic
     // session. (Notes still shape the session server-side via seedId if the record
     // is actually reachable there.)
-    fetchSeedFromURL().then(r => { if (alive) setState({ loading: false, seed: r.seed, seedId: r.seedId, seedError: !!r.seedError }); });
+    fetchSeedFromURL().then(r => { if (alive) setState({ loading: false, seed: r.seed, seedId: r.seedId, seedError: !!r.seedError, seedExpired: !!r.seedExpired }); });
     return () => { alive = false; };
   }, []);
   if (state.loading) return <BootScreen/>;
   return (
     <div style={{height:VH_FULL,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{flex:1,minHeight:0}}>
-        <OnboardingApp seed={state.seed} seedId={state.seedId} seedError={state.seedError} onBriefSent={()=>{}} onSeeProserv={null}/>
+        <OnboardingApp seed={state.seed} seedId={state.seedId} seedError={state.seedError} seedExpired={state.seedExpired} onBriefSent={()=>{}} onSeeProserv={null}/>
       </div>
     </div>
   );

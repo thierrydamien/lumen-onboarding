@@ -30,11 +30,19 @@
  * Keep the URL + secret + Slack token server-side (Netlify env / Script
  * Properties); never hardcode secrets here.
  *
- * NOTE: the Business Objectives / Users / Topics / Social channels tabs are
- * populated by matching the template's own labels and headers at runtime, so it
- * survives minor template edits. The Reports/Dashboards/Alerts tab is filled
- * best-effort (its layout could not be fully verified) and may need a manual
- * check; adjust REPORT_COLS / ALERT_COLS below once confirmed.
+ * NOTE: every tab is populated by matching the template's own labels and headers at
+ * runtime, so the fill survives minor template edits. That includes
+ * Reports/Dashboards/Alerts, which detects BOTH stacked sub-headers ("Dahboard /
+ * Report" and "Alert") and has been verified filling correctly against real client
+ * output; there are no REPORT_COLS / ALERT_COLS constants to tune.
+ *
+ * WATCH OUT: the template puts a single-select dropdown on "Business Objectives
+ * (Select top 3 priorities)" while we write a comma-separated list of the client's
+ * top objectives, which the dropdown rejects. Sheets applies writes lazily, so that
+ * rejection surfaces during the NEXT section's read, not where the value was
+ * written — it silently aborted the Users fill and left the contact cell on the
+ * template placeholder. fillBusinessObjectives_ therefore clears validation on the
+ * value column before writing and flushes at the end of the tab. Keep both.
  */
 
 const TEMPLATE_ID = "1VC7nIstJw-H4XMqVPe8stQRIwV88S2bZv6sZGgNPus0"; // "do not modify" master (copied, never edited)
