@@ -203,43 +203,43 @@ var CLIENT_EMAIL_I18N = {
     thanks: "Thanks for taking the time to walk through your Lumen setup with us.",
     intro: "We've turned everything you shared into a setup brief, and shared a copy with you:",
     button: "Open your setup brief",
+    editSheet: "Need to add or fix something? Edit the Google Sheet directly — your consultant will see your changes before the review call.",
     next: "What happens next: one of our consultants will reach out to book a short review call, where we'll finalise your setup together. Nothing is live yet; the brief is the starting point for that call.",
-    extra: "If you think of anything else in the meantime (a competitor, a campaign, a colleague to add), bring it to the review call or share it with your Lumen contact.",
     signoff: "Thanks,\nYour team at Hootsuite" },
   French: { subject: "Votre brief de configuration Lumen", hi: "Bonjour",
     thanks: "Merci d'avoir pris le temps de préparer votre configuration Lumen avec nous.",
     intro: "Nous avons rassemblé tout ce que vous nous avez indiqué dans un brief de configuration, dont voici une copie :",
     button: "Ouvrir votre brief de configuration",
+    editSheet: "Besoin d'ajouter ou de corriger quelque chose ? Modifiez directement la Google Sheet — votre consultant verra vos changements avant l'appel de revue.",
     next: "Prochaine étape : l'un de nos consultants vous contactera pour planifier un court appel de revue, au cours duquel nous finaliserons votre configuration ensemble. Rien n'est encore actif ; le brief est le point de départ de cet appel.",
-    extra: "Si vous pensez à autre chose d'ici là (un concurrent, une campagne, un collègue à ajouter), apportez-le à l'appel de revue ou communiquez-le à votre contact Lumen.",
     signoff: "Merci,\nVotre équipe chez Hootsuite" },
   German: { subject: "Ihr Lumen Setup-Briefing", hi: "Hallo",
     thanks: "vielen Dank, dass Sie sich die Zeit genommen haben, Ihre Lumen-Einrichtung mit uns durchzugehen.",
     intro: "Wir haben alles, was Sie uns mitgeteilt haben, in einem Setup-Briefing zusammengefasst. Hier ist Ihre Kopie:",
     button: "Ihr Setup-Briefing öffnen",
+    editSheet: "Möchten Sie etwas ergänzen oder korrigieren? Bearbeiten Sie das Google Sheet direkt — Ihr Berater sieht Ihre Änderungen vor dem Review-Termin.",
     next: "Wie es weitergeht: Einer unserer Berater meldet sich bei Ihnen, um einen kurzen Review-Termin zu vereinbaren, bei dem wir Ihre Einrichtung gemeinsam finalisieren. Es ist noch nichts aktiv; das Briefing ist der Ausgangspunkt für diesen Termin.",
-    extra: "Wenn Ihnen in der Zwischenzeit noch etwas einfällt (ein Wettbewerber, eine Kampagne, ein hinzuzufügender Kollege), bringen Sie es zum Review-Termin mit oder teilen Sie es Ihrem Lumen-Kontakt mit.",
     signoff: "Danke,\nIhr Team bei Hootsuite" },
   Spanish: { subject: "Su resumen de configuración de Lumen", hi: "Hola",
     thanks: "Gracias por dedicar tiempo a preparar su configuración de Lumen con nosotros.",
     intro: "Hemos reunido todo lo que nos indicó en un resumen de configuración, del que aquí tiene una copia:",
     button: "Abrir su resumen de configuración",
+    editSheet: "¿Necesita añadir o corregir algo? Edite la Google Sheet directamente: su consultor verá sus cambios antes de la llamada de revisión.",
     next: "Qué sucede después: uno de nuestros consultores se pondrá en contacto para agendar una breve llamada de revisión, en la que finalizaremos su configuración juntos. Todavía no hay nada activo; el resumen es el punto de partida de esa llamada.",
-    extra: "Si se le ocurre algo más mientras tanto (un competidor, una campaña, un colega para añadir), llévelo a la llamada de revisión o compártalo con su contacto de Lumen.",
     signoff: "Gracias,\nSu equipo en Hootsuite" },
   Italian: { subject: "Il tuo brief di configurazione Lumen", hi: "Ciao",
     thanks: "Grazie per aver dedicato del tempo a definire la tua configurazione Lumen con noi.",
     intro: "Abbiamo raccolto tutto ciò che ci hai indicato in un brief di configurazione, di cui trovi qui una copia:",
     button: "Apri il tuo brief di configurazione",
+    editSheet: "Devi aggiungere o correggere qualcosa? Modifica il Google Sheet direttamente — il tuo consulente vedrà le modifiche prima della call di revisione.",
     next: "Cosa succede dopo: uno dei nostri consulenti ti contatterà per fissare una breve call di revisione, durante la quale finalizzeremo insieme la tua configurazione. Non è ancora attivo nulla; il brief è il punto di partenza per quella call.",
-    extra: "Se ti viene in mente qualcos'altro nel frattempo (un concorrente, una campagna, un collega da aggiungere), portalo alla call di revisione o comunicalo al tuo contatto Lumen.",
     signoff: "Grazie,\nIl tuo team di Hootsuite" },
   Arabic: { subject: "ملخص إعداد Lumen الخاص بك", hi: "مرحبًا",
     thanks: "شكرًا لك على الوقت الذي خصصته لإعداد Lumen معنا.",
     intro: "لقد جمعنا كل ما شاركته معنا في ملخص إعداد، وهذه نسخة منه:",
     button: "افتح ملخص الإعداد الخاص بك",
+    editSheet: "هل تحتاج إلى إضافة أو تصحيح شيء؟ عدّل جدول بيانات Google مباشرة — سيرى مستشارك تغييراتك قبل مكالمة المراجعة.",
     next: "ما الذي يحدث بعد ذلك: سيتواصل معك أحد مستشارينا لتحديد موعد مكالمة مراجعة قصيرة نُكمل خلالها إعدادك معًا. لا شيء مُفعّل بعد؛ الملخص هو نقطة البداية لتلك المكالمة.",
-    extra: "إذا خطر لك أي شيء آخر في هذه الأثناء (منافس، حملة، زميل تريد إضافته)، فأحضره إلى مكالمة المراجعة أو شاركه مع جهة اتصالك في Lumen.",
     signoff: "شكرًا،\nفريقك في Hootsuite" }
 };
 
@@ -254,11 +254,11 @@ function sendClientEmail_(email, firstName, url, lang) {
       '<p style="margin:0 0 14px">' + htmlEsc_(t.thanks) + '</p>' +
       '<p style="margin:0 0 16px">' + htmlEsc_(t.intro) + '</p>' +
       '<p style="margin:0 0 20px"><a href="' + htmlEsc_(url) + '" style="display:inline-block;background:#7C3AED;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:8px">' + htmlEsc_(t.button) + '</a></p>' +
+      '<p style="margin:0 0 18px;font-weight:bold">' + htmlEsc_(t.editSheet) + '</p>' +
       '<p style="margin:0 0 14px">' + htmlEsc_(t.next) + '</p>' +
-      '<p style="margin:0 0 18px">' + htmlEsc_(t.extra) + '</p>' +
       '<p style="margin:0;color:#475569">' + htmlEsc_(t.signoff).replace(/\n/g, "<br>") + '</p>' +
     '</div>';
-  var plain = greet + comma + "\n\n" + t.thanks + "\n\n" + t.intro + "\n" + url + "\n\n" + t.next + "\n\n" + t.extra + "\n\n" + t.signoff;
+  var plain = greet + comma + "\n\n" + t.thanks + "\n\n" + t.intro + "\n" + url + "\n\n" + t.editSheet + "\n\n" + t.next + "\n\n" + t.signoff;
   MailApp.sendEmail({ to: email, subject: t.subject, htmlBody: html, body: plain, name: "Lumen Onboarding" });
 }
 
