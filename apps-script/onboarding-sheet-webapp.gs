@@ -203,43 +203,43 @@ var CLIENT_EMAIL_I18N = {
     thanks: "Thanks for taking the time to walk through your Lumen setup with us.",
     intro: "We've turned everything you shared into a setup brief, and shared a copy with you:",
     button: "Open your setup brief",
-    editSheet: "Need to add or fix something? Edit the Google Sheet directly — your consultant will see your changes before the review call.",
-    next: "What happens next: one of our consultants will reach out to book a short review call, where we'll finalise your setup together. Nothing is live yet; the brief is the starting point for that call.",
+    editSheet: "Need to add or change something? Make the edits directly in your brief — your consultant will see them before the review call.",
+    next: "What happens next:\n1. A consultant will reach out to schedule your review call.\n2. On the call, we'll finalise your setup together based on your brief.\n3. Setup begins once everything's confirmed.\n4. Go live.",
     signoff: "Thanks,\nYour team at Hootsuite" },
   French: { subject: "Votre brief de configuration Lumen", hi: "Bonjour",
     thanks: "Merci d'avoir pris le temps de préparer votre configuration Lumen avec nous.",
     intro: "Nous avons rassemblé tout ce que vous nous avez indiqué dans un brief de configuration, dont voici une copie :",
     button: "Ouvrir votre brief de configuration",
-    editSheet: "Besoin d'ajouter ou de corriger quelque chose ? Modifiez directement la Google Sheet — votre consultant verra vos changements avant l'appel de revue.",
-    next: "Prochaine étape : l'un de nos consultants vous contactera pour planifier un court appel de revue, au cours duquel nous finaliserons votre configuration ensemble. Rien n'est encore actif ; le brief est le point de départ de cet appel.",
+    editSheet: "Besoin d'ajouter ou de modifier quelque chose ? Apportez vos modifications directement dans votre brief — votre consultant les verra avant l'appel de revue.",
+    next: "Prochaine étape :\n1. Un consultant vous contactera pour planifier votre appel de revue.\n2. Lors de l'appel, nous finaliserons votre configuration ensemble à partir de votre brief.\n3. La configuration démarre une fois tout confirmé.\n4. Mise en service.",
     signoff: "Merci,\nVotre équipe chez Hootsuite" },
   German: { subject: "Ihr Lumen Setup-Briefing", hi: "Hallo",
     thanks: "vielen Dank, dass Sie sich die Zeit genommen haben, Ihre Lumen-Einrichtung mit uns durchzugehen.",
     intro: "Wir haben alles, was Sie uns mitgeteilt haben, in einem Setup-Briefing zusammengefasst. Hier ist Ihre Kopie:",
     button: "Ihr Setup-Briefing öffnen",
-    editSheet: "Möchten Sie etwas ergänzen oder korrigieren? Bearbeiten Sie das Google Sheet direkt — Ihr Berater sieht Ihre Änderungen vor dem Review-Termin.",
-    next: "Wie es weitergeht: Einer unserer Berater meldet sich bei Ihnen, um einen kurzen Review-Termin zu vereinbaren, bei dem wir Ihre Einrichtung gemeinsam finalisieren. Es ist noch nichts aktiv; das Briefing ist der Ausgangspunkt für diesen Termin.",
+    editSheet: "Möchten Sie etwas ergänzen oder ändern? Nehmen Sie die Änderungen direkt in Ihrem Briefing vor — Ihr Berater sieht sie vor dem Review-Termin.",
+    next: "Wie es weitergeht:\n1. Einer unserer Berater meldet sich bei Ihnen, um Ihren Review-Termin zu vereinbaren.\n2. Im Termin finalisieren wir gemeinsam Ihre Einrichtung auf Basis Ihres Briefings.\n3. Die Einrichtung beginnt, sobald alles bestätigt ist.\n4. Go-Live.",
     signoff: "Danke,\nIhr Team bei Hootsuite" },
   Spanish: { subject: "Su resumen de configuración de Lumen", hi: "Hola",
     thanks: "Gracias por dedicar tiempo a preparar su configuración de Lumen con nosotros.",
     intro: "Hemos reunido todo lo que nos indicó en un resumen de configuración, del que aquí tiene una copia:",
     button: "Abrir su resumen de configuración",
-    editSheet: "¿Necesita añadir o corregir algo? Edite la Google Sheet directamente: su consultor verá sus cambios antes de la llamada de revisión.",
-    next: "Qué sucede después: uno de nuestros consultores se pondrá en contacto para agendar una breve llamada de revisión, en la que finalizaremos su configuración juntos. Todavía no hay nada activo; el resumen es el punto de partida de esa llamada.",
+    editSheet: "¿Necesita añadir o cambiar algo? Haga los cambios directamente en su resumen — su consultor los verá antes de la llamada de revisión.",
+    next: "Qué sucede después:\n1. Un consultor se pondrá en contacto para agendar su llamada de revisión.\n2. En la llamada, finalizaremos su configuración juntos según su resumen.\n3. La configuración comienza una vez confirmado todo.\n4. Puesta en marcha.",
     signoff: "Gracias,\nSu equipo en Hootsuite" },
   Italian: { subject: "Il tuo brief di configurazione Lumen", hi: "Ciao",
     thanks: "Grazie per aver dedicato del tempo a definire la tua configurazione Lumen con noi.",
     intro: "Abbiamo raccolto tutto ciò che ci hai indicato in un brief di configurazione, di cui trovi qui una copia:",
     button: "Apri il tuo brief di configurazione",
-    editSheet: "Devi aggiungere o correggere qualcosa? Modifica il Google Sheet direttamente — il tuo consulente vedrà le modifiche prima della call di revisione.",
-    next: "Cosa succede dopo: uno dei nostri consulenti ti contatterà per fissare una breve call di revisione, durante la quale finalizzeremo insieme la tua configurazione. Non è ancora attivo nulla; il brief è il punto di partenza per quella call.",
+    editSheet: "Devi aggiungere o cambiare qualcosa? Apporta le modifiche direttamente nel tuo brief — il tuo consulente le vedrà prima della call di revisione.",
+    next: "Cosa succede dopo:\n1. Un consulente ti contatterà per fissare la tua call di revisione.\n2. Durante la call, finalizzeremo insieme la tua configurazione in base al tuo brief.\n3. La configurazione inizia una volta confermato tutto.\n4. Go live.",
     signoff: "Grazie,\nIl tuo team di Hootsuite" },
   Arabic: { subject: "ملخص إعداد Lumen الخاص بك", hi: "مرحبًا",
     thanks: "شكرًا لك على الوقت الذي خصصته لإعداد Lumen معنا.",
     intro: "لقد جمعنا كل ما شاركته معنا في ملخص إعداد، وهذه نسخة منه:",
     button: "افتح ملخص الإعداد الخاص بك",
-    editSheet: "هل تحتاج إلى إضافة أو تصحيح شيء؟ عدّل جدول بيانات Google مباشرة — سيرى مستشارك تغييراتك قبل مكالمة المراجعة.",
-    next: "ما الذي يحدث بعد ذلك: سيتواصل معك أحد مستشارينا لتحديد موعد مكالمة مراجعة قصيرة نُكمل خلالها إعدادك معًا. لا شيء مُفعّل بعد؛ الملخص هو نقطة البداية لتلك المكالمة.",
+    editSheet: "هل تحتاج إلى إضافة أو تغيير شيء؟ أدخل التغييرات مباشرة في ملخص الإعداد الخاص بك — سيرى مستشارك هذه التغييرات قبل مكالمة المراجعة.",
+    next: "ما الذي يحدث بعد ذلك:\n1. سيتواصل معك مستشار لتحديد موعد مكالمة المراجعة.\n2. خلال المكالمة، سننهي إعدادك معنا بناءً على ملخصك.\n3. يبدأ الإعداد بعد تأكيد كل شيء.\n4. الانطلاق الفعلي.",
     signoff: "شكرًا،\nفريقك في Hootsuite" }
 };
 
@@ -255,7 +255,7 @@ function sendClientEmail_(email, firstName, url, lang) {
       '<p style="margin:0 0 16px">' + htmlEsc_(t.intro) + '</p>' +
       '<p style="margin:0 0 20px"><a href="' + htmlEsc_(url) + '" style="display:inline-block;background:#7C3AED;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:8px">' + htmlEsc_(t.button) + '</a></p>' +
       '<p style="margin:0 0 18px;font-weight:bold">' + htmlEsc_(t.editSheet) + '</p>' +
-      '<p style="margin:0 0 14px">' + htmlEsc_(t.next) + '</p>' +
+      '<p style="margin:0 0 14px">' + htmlEsc_(t.next).replace(/\n/g, "<br>") + '</p>' +
       '<p style="margin:0;color:#475569">' + htmlEsc_(t.signoff).replace(/\n/g, "<br>") + '</p>' +
     '</div>';
   var plain = greet + comma + "\n\n" + t.thanks + "\n\n" + t.intro + "\n" + url + "\n\n" + t.editSheet + "\n\n" + t.next + "\n\n" + t.signoff;
