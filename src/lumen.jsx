@@ -2811,7 +2811,11 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         catch { continue; }
         if (!pr || !pr.ok) continue;
         const pd = await pr.json().catch(() => null);
-        if (pd && pd.state === "done") { polled = pd; break; }
+        // Surfaced in the browser console (not just the Netlify request log, which
+        // only shows the kickoff duration, not the actual background generation
+        // time) so a slow-turn diagnosis doesn't require digging through Netlify's
+        // function-log UI.
+        if (pd && pd.state === "done") { console.log(`chat turn: server genMs=${pd.genMs}`); polled = pd; break; }
         // pd.state === "pending" -> keep waiting
       }
       if (!polled) { if (attempt === 3) throw new Error("api_timeout"); continue; } // stuck job: re-roll

@@ -44,6 +44,12 @@ export default async (req) => {
   // function (after 1 min, then 2 min), which would fire a DUPLICATE model call.
   // Instead we always persist a result (success OR error) and return 200, letting
   // the client surface any error through the polled result.
+  // Timestamp the actual generation, not the kickoff: the request-log "duration"
+  // for this function only reflects the synchronous 202 accept, not the background
+  // continuation, so it can't answer "how long did generation really take". This
+  // makes that number visible directly in the persisted/polled result instead of
+  // requiring a dig through Netlify's function-specific log view.
+  const genStart = Date.now();
   let result;
   try {
     const resp = await generateReply(req, { abortMs: BG_ABORT_MS });
@@ -53,9 +59,11 @@ export default async (req) => {
     console.error("chat-background: generateReply threw", err && err.message);
     result = { status: 502, body: { error: "background_failed" } };
   }
+  const genMs = Date.now() - genStart;
+  console.log("chat-background: generation took", genMs, "ms for", rid);
 
   try {
-    await store.setJSON(rid, { ...result, savedAt: new Date().toISOString() });
+    await store.setJSON(rid, { ...result, genMs, savedAt: new Date().toISOString() });
   } catch (err) {
     // If we can't persist, the client will poll to its deadline and re-roll a fresh
     // job — degraded but not broken.

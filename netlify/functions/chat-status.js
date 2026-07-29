@@ -46,7 +46,7 @@ export default async (req) => {
   // Terminal result found. Delete it so the store doesn't grow without bound
   // (best effort — a failed delete just leaves a blob for a later sweep to reap).
   store.delete(rid).catch(() => {});
-  return json(200, { state: "done", status: rec.status, body: rec.body });
+  return json(200, { state: "done", status: rec.status, body: rec.body, genMs: rec.genMs });
 };
 
 function json(status, obj) {
