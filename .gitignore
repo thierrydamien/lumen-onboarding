@@ -1,3 +1,5 @@
 node_modules/
 dist/
 ab-transcripts.txt
+
+.DS_Store
