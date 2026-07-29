@@ -2780,8 +2780,19 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // fresh job with a new rid. Return value + usage accounting are unchanged from
     // the old synchronous version, so callAPILive / sendToAPI and their malformed /
     // overstate retries all keep working exactly as before.
+    // Retry budget for a TRANSIENT upstream failure (429, or Anthropic's 529
+    // "Overloaded"). This used to be capped at 3 fast attempts because the old
+    // synchronous path had to finish inside a 26s wall — that ceiling is gone now
+    // (the background function has 15 min), and Anthropic's own guidance for 529
+    // is to back off and retry rather than give up in a few seconds. 6 attempts
+    // with exponential backoff (capped at 15s) gives ~45s of absorbed retrying
+    // before surfacing anything to the client, which should ride out a normal
+    // capacity blip invisibly instead of showing "we couldn't reach the assistant"
+    // for something that would have succeeded 10 seconds later.
+    const MAX_ATTEMPTS = 6;
+    const backoffMs = attempt => Math.min(1000 * 2 ** (attempt - 1), 15000);
     let result = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       // Fresh id per attempt so a retry can never pick up a stale/partial result.
       const rid = "r_" + ((typeof crypto !== "undefined" && crypto.randomUUID)
         ? crypto.randomUUID()
@@ -2793,10 +2804,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       try {
         kicked = await fetchWithTimeout(`${CHAT_BG_ENDPOINT}?rid=${encodeURIComponent(rid)}`,
           { method:"POST", headers:{"Content-Type":"application/json"}, body: bodyStr }, 15000);
-      } catch (e) { if (attempt === 3) throw e; await sleep(Math.min(1000*attempt,4000)); continue; }
+      } catch (e) { if (attempt === MAX_ATTEMPTS) throw e; await sleep(backoffMs(attempt)); continue; }
       if (!kicked || (kicked.status !== 202 && kicked.status !== 200)) {
-        if (attempt === 3) throw new Error(`kickoff_${kicked ? kicked.status : "net"}`);
-        await sleep(Math.min(1000*attempt,4000)); continue;
+        if (attempt === MAX_ATTEMPTS) throw new Error(`kickoff_${kicked ? kicked.status : "net"}`);
+        await sleep(backoffMs(attempt)); continue;
       }
 
       // 2) Poll for the persisted result until it lands or we pass the deadline.
@@ -2818,14 +2829,15 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         if (pd && pd.state === "done") { console.log(`chat turn: server genMs=${pd.genMs}`); polled = pd; break; }
         // pd.state === "pending" -> keep waiting
       }
-      if (!polled) { if (attempt === 3) throw new Error("api_timeout"); continue; } // stuck job: re-roll
+      if (!polled) { if (attempt === MAX_ATTEMPTS) throw new Error("api_timeout"); continue; } // stuck job: re-roll
 
-      // 3) Terminal result. 200 -> use it. 429/5xx -> transient, retry with backoff.
-      //    Other 4xx -> a retry can't fix it, so surface immediately.
+      // 3) Terminal result. 200 -> use it. 429/5xx (incl. Anthropic's 529
+      //    "Overloaded") -> transient, retry with backoff. Other 4xx -> a retry
+      //    can't fix it, so surface immediately.
       if (polled.status === 200) { result = polled.body; break; }
       const transient = polled.status === 429 || polled.status >= 500;
-      if (!transient || attempt === 3) throw new Error(`api_${polled.status}`);
-      await sleep(Math.min(1000*attempt,4000));
+      if (!transient || attempt === MAX_ATTEMPTS) throw new Error(`api_${polled.status}`);
+      await sleep(backoffMs(attempt));
     }
     if (!result) throw new Error("api_unreachable");
     if (result.error) throw new Error("api_error");
