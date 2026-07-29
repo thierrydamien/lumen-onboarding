@@ -11,7 +11,11 @@ async function loadXLSX() {
 // ================= LIVE CONFIG =================
 // Frontends are served from the same Netlify site as the functions, so these
 // are same-origin relative paths (no CORS).
-const CHAT_ENDPOINT = "/.netlify/functions/chat";
+const CHAT_ENDPOINT = "/.netlify/functions/chat"; // synchronous fallback (see chat.js)
+// Live path: kick off generation on a BACKGROUND function (no 26s ceiling), then
+// poll for the result. See callAPI and netlify/functions/chat-background.js.
+const CHAT_BG_ENDPOINT = "/.netlify/functions/chat-background";
+const CHAT_STATUS_ENDPOINT = "/.netlify/functions/chat-status";
 const SESSION_ENDPOINT = "/.netlify/functions/session";
 const SEED_ENDPOINT = "/.netlify/functions/seed";
 const SHEET_ENDPOINT = "/.netlify/functions/sheet";
@@ -1326,12 +1330,12 @@ function FN(key, lang) { const d = FN18N[lang] || FN18N.English; return (d[key] 
 
 // Composer attach (upload a supporting document at any point) strings, by language.
 const AT18N = {
-  English: { label:"Attach a document", trunc:"Only the first part was shared (large file).", failed:"I couldn't read that document in time. It may be long. Try a shorter section, or paste the key part into the chat.", pasteTooBig:"That's a lot of text to paste. Attach it as a file with the paperclip instead (.txt, .csv, .xlsx or .docx) and I'll read the whole thing." },
-  French:  { label:"Joindre un document", trunc:"Seule la première partie a été partagée (fichier volumineux).", failed:"Je n'ai pas pu lire ce document à temps. Il est peut-être long. Essayez une section plus courte, ou collez la partie essentielle dans le chat.", pasteTooBig:"Cela fait beaucoup de texte à coller. Joignez-le plutôt sous forme de fichier avec le trombone (.txt, .csv, .xlsx ou .docx) et je lirai l'ensemble." },
-  German:  { label:"Dokument anhängen", trunc:"Nur der erste Teil wurde geteilt (große Datei).", failed:"Ich konnte dieses Dokument nicht rechtzeitig lesen. Es ist möglicherweise lang. Versuchen Sie einen kürzeren Abschnitt oder fügen Sie den wichtigsten Teil in den Chat ein.", pasteTooBig:"Das ist viel Text zum Einfügen. Hängen Sie ihn stattdessen als Datei über die Büroklammer an (.txt, .csv, .xlsx oder .docx), dann lese ich das Ganze." },
-  Spanish: { label:"Adjuntar un documento", trunc:"Solo se compartió la primera parte (archivo grande).", failed:"No pude leer ese documento a tiempo. Puede ser largo. Pruebe con una sección más corta o pegue la parte clave en el chat.", pasteTooBig:"Es mucho texto para pegar. Adjúntelo como archivo con el clip (.txt, .csv, .xlsx o .docx) y lo leeré completo." },
-  Italian: { label:"Allega un documento", trunc:"È stata condivisa solo la prima parte (file grande).", failed:"Non sono riuscito a leggere il documento in tempo. Potrebbe essere lungo. Prova una sezione più breve o incolla la parte chiave nella chat.", pasteTooBig:"È molto testo da incollare. Allegalo invece come file con la graffetta (.txt, .csv, .xlsx o .docx) e lo leggerò tutto." },
-  Arabic:  { label:"إرفاق مستند", trunc:"تمت مشاركة الجزء الأول فقط (ملف كبير).", failed:"لم أتمكن من قراءة هذا المستند في الوقت المناسب. قد يكون طويلاً. جرّب قسمًا أقصر، أو الصق الجزء الأساسي في المحادثة.", pasteTooBig:"هذا نص كبير للصقه. أرفقه كملف باستخدام المشبك بدلاً من ذلك (‎.txt أو ‎.csv أو ‎.xlsx أو ‎.docx) وسأقرؤه بالكامل." },
+  English: { label:"Attach a document", trunc:"Only the first part was shared (large file).", failed:"That didn't go through — something timed out on our end, not a problem with your document. Give it a moment and try again, or send a smaller section.", pasteTooBig:"That's a lot of text to paste. Attach it as a file with the paperclip instead (.txt, .csv, .xlsx or .docx) and I'll read the whole thing." },
+  French:  { label:"Joindre un document", trunc:"Seule la première partie a été partagée (fichier volumineux).", failed:"L'envoi n'a pas abouti — un délai a été dépassé de notre côté, ce n'est pas un problème avec votre document. Patientez un instant et réessayez, ou envoyez une section plus courte.", pasteTooBig:"Cela fait beaucoup de texte à coller. Joignez-le plutôt sous forme de fichier avec le trombone (.txt, .csv, .xlsx ou .docx) et je lirai l'ensemble." },
+  German:  { label:"Dokument anhängen", trunc:"Nur der erste Teil wurde geteilt (große Datei).", failed:"Das hat nicht geklappt — bei uns ist eine Zeitüberschreitung aufgetreten, es liegt nicht an Ihrem Dokument. Warten Sie einen Moment und versuchen Sie es erneut, oder senden Sie einen kürzeren Abschnitt.", pasteTooBig:"Das ist viel Text zum Einfügen. Hängen Sie ihn stattdessen als Datei über die Büroklammer an (.txt, .csv, .xlsx oder .docx), dann lese ich das Ganze." },
+  Spanish: { label:"Adjuntar un documento", trunc:"Solo se compartió la primera parte (archivo grande).", failed:"No se pudo enviar — se agotó el tiempo de espera por nuestra parte, no es un problema con su documento. Espere un momento y vuelva a intentarlo, o envíe una sección más corta.", pasteTooBig:"Es mucho texto para pegar. Adjúntelo como archivo con el clip (.txt, .csv, .xlsx o .docx) y lo leeré completo." },
+  Italian: { label:"Allega un documento", trunc:"È stata condivisa solo la prima parte (file grande).", failed:"Invio non riuscito — si è verificato un timeout dalla nostra parte, non è un problema del tuo documento. Attendi un momento e riprova, oppure invia una sezione più breve.", pasteTooBig:"È molto testo da incollare. Allegalo invece come file con la graffetta (.txt, .csv, .xlsx o .docx) e lo leggerò tutto." },
+  Arabic:  { label:"إرفاق مستند", trunc:"تمت مشاركة الجزء الأول فقط (ملف كبير).", failed:"لم يتم الإرسال — حدث تجاوز للمهلة من جانبنا، وليست مشكلة في مستندك. انتظر لحظة ثم أعد المحاولة، أو أرسل قسمًا أقصر.", pasteTooBig:"هذا نص كبير للصقه. أرفقه كملف باستخدام المشبك بدلاً من ذلك (‎.txt أو ‎.csv أو ‎.xlsx أو ‎.docx) وسأقرؤه بالكامل." },
 };
 function AT(key, lang) { const d = AT18N[lang] || AT18N.English; return (d[key] != null ? d[key] : AT18N.English[key]) || ""; }
 
@@ -2742,6 +2746,11 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // the recent window can still blow the cap, which 413s every send and wedges the
   // session. So after the turn window we also drop oldest messages until it fits.
   const MAX_REQ_BODY = 350_000;
+  // Background-job polling. Generation runs on a background function (no 26s wall),
+  // so we poll for the result. POLL_MAX_MS is a generous client-side ceiling — far
+  // above the 20-30s the slowest replies take, so it only ever fires on a genuinely
+  // stuck job, at which point we re-roll a fresh one.
+  const POLL_MS = 1500, POLL_MAX_MS = 180_000;
 
   const callAPI = useCallback(async (hist, sysExtra="") => {
     // seedId lets the server inject confidential consultant notes; maxTokens matches
@@ -2758,41 +2767,72 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     apiCountRef.current += 1;
     // The system prompt lives server-side in the chat function; the client only
     // flags whether the OVERSTATE correction pass is needed.
-    const reqInit = { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(mkBody(trimmed)) };
-    // Transparent transient-failure retry. The heavy FIRST call of a cold session can
-    // be killed by the function timeout (Netlify then returns 502/504); a redeploy or a
-    // brief infra wobble looks the same, and the abuse guard can 429 momentarily. Any of
-    // these used to surface "we couldn't reach the assistant" and force the client to
-    // click Try again by hand (real clients reported clicking 3x). Retry automatically
-    // with short backoff so they just see the spinner a moment longer. chat.js is a
-    // STATELESS proxy (it persists nothing), so re-sending the identical request is safe.
-    // Non-transient 4xx (bad request/config) are NOT retried — a retry can't fix them.
-    let res = null;
+    const bodyStr = JSON.stringify(mkBody(trimmed));
+
+    // The reply is generated by a BACKGROUND function (chat-background.js), not a
+    // synchronous request. The synchronous path is capped at ~26s, but real replies
+    // were measured at 20-30s (document attaches, topic-heavy turns) and were being
+    // KILLED mid-generation — the timeouts clients reported. A background function
+    // runs up to 15 min, so the same call just finishes. Contract: the POST kicks
+    // off the job (opaque rid in the query, so the server never double-reads the
+    // body) and returns 202; we then poll chat-status until the result is persisted.
+    // The retry loop wraps the WHOLE kickoff+poll, so a transient failure re-rolls a
+    // fresh job with a new rid. Return value + usage accounting are unchanged from
+    // the old synchronous version, so callAPILive / sendToAPI and their malformed /
+    // overstate retries all keep working exactly as before.
+    let result = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
-      try { res = await fetchWithTimeout(CHAT_ENDPOINT, reqInit, 60000); }
-      catch (e) { if (attempt === 3) throw e; res = null; }          // network/abort: retry unless out of tries
-      if (res) {
-        if (res.ok) break;                                            // success
-        const transient = res.status === 429 || res.status >= 500;   // cold-start kill / infra / rate blip
-        if (!transient || attempt === 3) throw new Error(`api_${res.status}`);
-        if (res.status === 429) {                                     // honor a short Retry-After when present
-          const ra = parseInt(res.headers.get("Retry-After") || "0", 10);
-          if (Number.isFinite(ra) && ra > 0) { await sleep(Math.min(ra, 6) * 1000); continue; }
-        }
+      // Fresh id per attempt so a retry can never pick up a stale/partial result.
+      const rid = "r_" + ((typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now().toString(36));
+
+      // 1) Kick off the background job. A background function returns 202 (accepted);
+      //    anything else means the kickoff itself failed (not the model) — retry.
+      let kicked = null;
+      try {
+        kicked = await fetchWithTimeout(`${CHAT_BG_ENDPOINT}?rid=${encodeURIComponent(rid)}`,
+          { method:"POST", headers:{"Content-Type":"application/json"}, body: bodyStr }, 15000);
+      } catch (e) { if (attempt === 3) throw e; await sleep(Math.min(1000*attempt,4000)); continue; }
+      if (!kicked || (kicked.status !== 202 && kicked.status !== 200)) {
+        if (attempt === 3) throw new Error(`kickoff_${kicked ? kicked.status : "net"}`);
+        await sleep(Math.min(1000*attempt,4000)); continue;
       }
-      await sleep(Math.min(1000 * attempt, 4000));                    // backoff between tries: 1s, 2s
+
+      // 2) Poll for the persisted result until it lands or we pass the deadline.
+      //    Transient poll errors are swallowed — keep polling; only a blank deadline
+      //    (or a terminal error status) ends the wait.
+      const deadline = Date.now() + POLL_MAX_MS;
+      let polled = null;
+      while (Date.now() < deadline) {
+        await sleep(POLL_MS);
+        let pr = null;
+        try { pr = await fetchWithTimeout(`${CHAT_STATUS_ENDPOINT}?id=${encodeURIComponent(rid)}`, {}, 12000); }
+        catch { continue; }
+        if (!pr || !pr.ok) continue;
+        const pd = await pr.json().catch(() => null);
+        if (pd && pd.state === "done") { polled = pd; break; }
+        // pd.state === "pending" -> keep waiting
+      }
+      if (!polled) { if (attempt === 3) throw new Error("api_timeout"); continue; } // stuck job: re-roll
+
+      // 3) Terminal result. 200 -> use it. 429/5xx -> transient, retry with backoff.
+      //    Other 4xx -> a retry can't fix it, so surface immediately.
+      if (polled.status === 200) { result = polled.body; break; }
+      const transient = polled.status === 429 || polled.status >= 500;
+      if (!transient || attempt === 3) throw new Error(`api_${polled.status}`);
+      await sleep(Math.min(1000*attempt,4000));
     }
-    if (!res || !res.ok) throw new Error("api_unreachable");
-    const d = await res.json();
-    if (d.error) throw new Error("api_error");
-    if (d.usage) {
+    if (!result) throw new Error("api_unreachable");
+    if (result.error) throw new Error("api_error");
+    if (result.usage) {
       const u = usageRef.current;
-      u.input     += d.usage.input_tokens || 0;
-      u.output    += d.usage.output_tokens || 0;
-      u.cacheRead += d.usage.cache_read_input_tokens || 0;
-      u.cacheWrite+= d.usage.cache_creation_input_tokens || 0;
+      u.input     += result.usage.input_tokens || 0;
+      u.output    += result.usage.output_tokens || 0;
+      u.cacheRead += result.usage.cache_read_input_tokens || 0;
+      u.cacheWrite+= result.usage.cache_creation_input_tokens || 0;
     }
-    return (d.content||[]).map(b=>b.text||"").join("");
+    return (result.content||[]).map(b=>b.text||"").join("");
   }, []);
 
   const OVERSTATE_FIX = "\n\nCORRECTION — REWRITE REQUIRED: Your previous reply implied the setup is already live, running, or delivering results. It is NOT — nothing is active until the consultant activates it at the review call. Rewrite your reply keeping all %% markers identical, but change the visible prose to use only future or conditional framing (\"once your consultant activates this, you'll…\", \"this will be set up to…\"). Do not use \"is now set up\", \"you're now getting\", \"will now get\", \"delivered on a schedule\", \"up and running\", or \"you're all set\".";
