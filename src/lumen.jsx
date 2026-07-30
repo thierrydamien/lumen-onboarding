@@ -3188,7 +3188,9 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     histRef.current = [ini];
     setInitErr(null);
     try {
-      const raw = await callAPILive([ini]);
+      const onPartial = STREAM_ON ? (t => setStreamText(t)) : null;
+      const raw = await callAPILive([ini], onPartial);
+      setStreamText("");
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
@@ -3201,6 +3203,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       setInitErr("start");
     } finally {
       setLoading(false);
+      setStreamText("");
     }
   }, [callAPI, init, resetSession, seed, uiLang]);
 
@@ -3221,7 +3224,9 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // "[RESUMING SESSION]" markers onto the same array reference.
     histRef.current = [...(saved.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
     try {
-      const raw = await callAPILive(histRef.current);
+      const onPartial = STREAM_ON ? (t => setStreamText(t)) : null;
+      const raw = await callAPILive(histRef.current, onPartial);
+      setStreamText("");
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
@@ -3235,6 +3240,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       setInitErr("resume");
     } finally {
       setLoading(false);
+      setStreamText("");
     }
   }, [saved, callAPI, init, pop]);
 
