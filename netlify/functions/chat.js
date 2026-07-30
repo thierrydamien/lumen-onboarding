@@ -14,7 +14,7 @@
 
 import { getStore } from "@netlify/blobs";
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = "claude-sonnet-4-6";
 // Ceiling sized to the serverless window, not to "generous". The call is
 // NON-STREAMING, so generation time ≈ output tokens / ~60-90 tok/s. The old 4000
 // ceiling allowed ~45-65s of generation — no synchronous Netlify function
@@ -175,7 +175,7 @@ async function briefFor(seedId) {
   return brief;
 }
 function briefSystemBlock(brief) {
-  return "SALES BRIEF for this seeded session: the client's own team supplied these facts up front, so you ALREADY know them. Unlike the confidential consultant notes, you MAY reference these openly with the client. Do NOT ask for them cold as if you knew nothing. OPEN by warmly confirming the company, then weave the brief's key facts into two or three SHORT, easy-to-read beats (not one dense clause) so the client can tell you did your homework — for example: \"Welcome, Jane! Great to have Acme Corp on board. I can see your team's been tracking Nike and Adidas, focused on competitive intelligence across the US and UK, and moving over from Brandwatch.\" Then ask exactly ONE question to close the opener (the goal question at STEP 1.5) — never stack a second question (e.g. a confirmation ask) in the same turn. If a value looks off or is missing, ask about just that one thing later, not in the opener. Treat every value as a starting point to verify with the client, not as settled fact, and keep applying your normal quality standard. Brief: " + brief;
+  return "SALES BRIEF for this seeded session: the client's own team supplied these facts up front, so you ALREADY know them. Unlike the confidential consultant notes, you MAY reference these openly with the client. Do NOT ask for them cold as if you knew nothing. OPEN by warmly confirming the company, then weave the brief's key facts into two or three SHORT, easy-to-read beats (not one dense clause) so the client can tell you did your homework — for example: \"Welcome, Jane! Great to have Acme Corp on board. I can see your team's been tracking Nike and Adidas, focused on competitive intelligence across the US and UK, and moving over from Brandwatch.\" Do NOT ask the client to confirm or verify these facts in the opener (no \"is that right?\", \"does that sound right?\", or similar) — that will be handled later, one fact at a time, when each becomes relevant. Instead go straight from the facts into exactly ONE question to close the opener: the goal question at STEP 1.5. Never stack a second question in the same turn. Treat every value as a starting point to verify with the client later, not as settled fact, and keep applying your normal quality standard. Brief: " + brief;
 }
 
 // Seeded CLIENT FACTS (company / contact / email / industry) that Sales pre-filled.
