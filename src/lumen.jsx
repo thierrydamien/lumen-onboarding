@@ -17,12 +17,6 @@ const CHAT_ENDPOINT = "/.netlify/functions/chat"; // synchronous fallback (see c
 const CHAT_BG_ENDPOINT = "/.netlify/functions/chat-background";
 const CHAT_STATUS_ENDPOINT = "/.netlify/functions/chat-status";
 const SESSION_ENDPOINT = "/.netlify/functions/session";
-// Opt-in streaming A/B: ON only when the page URL carries ?stream=1. Off by default,
-// so every real client stays on the unchanged non-streaming path. Read once at load.
-const STREAM_ON = (() => {
-  try { return new URLSearchParams(window.location.search).get("stream") === "1"; }
-  catch { return false; }
-})();
 const SEED_ENDPOINT = "/.netlify/functions/seed";
 const SHEET_ENDPOINT = "/.netlify/functions/sheet";
 // Demo-only controls (preview / simulate / rewind) are hidden on the live site.
@@ -1758,8 +1752,14 @@ function TypingIndicator({ lang }) {
   useEffect(() => { const t = setTimeout(() => setV(true), 300); return () => clearTimeout(t); }, []);
   useEffect(() => {
     if (REDUCE_MOTION) return undefined;
-    const iv = setInterval(() => setStep(s => (s % 3) + 1), 2600);
-    return () => clearInterval(iv);
+    // Generation is a black box (non-streaming): we can't know how long is left, so
+    // we PACE the status to a ~12s assumed reply and ADVANCE ONCE, holding the final
+    // line until the reply lands. The old code looped (s%3)+1, which flipped back to
+    // "Reading your answer…" at ~10s — right as most replies finish — and read as
+    // "stuck/restarted". Monotonic + hold reads as steady progress instead.
+    const marks = [3000, 7000, 9500]; // when to switch to step 1, 2, 3
+    const timers = marks.map((ms, i) => setTimeout(() => setStep(i + 1), ms));
+    return () => timers.forEach(clearTimeout);
   }, []);
   const label = L(["thinking","think1","think2","think3"][step] || "thinking", lang);
   return <div style={{display:"flex",alignItems:"center",gap:12,minHeight:28}}>{v && <>
@@ -2507,10 +2507,6 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const [messages,setMessages] = useState([]);
   const [input,setInput]       = useState("");
   const [loading,setLoading]   = useState(false);
-  // Live streamed prose for the opt-in ?stream=1 path. Empty except while a
-  // streaming turn is in flight; rendered in the loading bubble and cleared the
-  // moment the final parsed message is appended.
-  const [streamText,setStreamText] = useState("");
   const [progress,setProgress] = useState({percent:0,collected:{}});
   const [started,setStarted]   = useState(false);
   const [wState,setWState]     = useState({});
@@ -2762,7 +2758,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // stuck job, at which point we re-roll a fresh one.
   const POLL_MS = 500, POLL_MAX_MS = 180_000;
 
-  const callAPI = useCallback(async (hist, sysExtra="", onPartial=null) => {
+  const callAPI = useCallback(async (hist, sysExtra="") => {
     // seedId lets the server inject confidential consultant notes; maxTokens matches
     // the server ceiling (server clamps anyway); see chat.js for the timeout math.
     const mkBody = msgs => ({ messages: msgs, maxTokens: 2000, overstateFix: !!sysExtra, seedId: seedIdRef.current || undefined });
@@ -2811,12 +2807,8 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // 1) Kick off the background job. A background function returns 202 (accepted);
       //    anything else means the kickoff itself failed (not the model) — retry.
       let kicked = null;
-      // Opt-in streaming: append stream=1 so the background function forwards partial
-      // prose as it generates. Only when the page is in ?stream=1 mode; otherwise the
-      // request is byte-for-byte the current one.
-      const kickoffUrl = `${CHAT_BG_ENDPOINT}?rid=${encodeURIComponent(rid)}${(STREAM_ON && onPartial) ? "&stream=1" : ""}`;
       try {
-        kicked = await fetchWithTimeout(kickoffUrl,
+        kicked = await fetchWithTimeout(`${CHAT_BG_ENDPOINT}?rid=${encodeURIComponent(rid)}`,
           { method:"POST", headers:{"Content-Type":"application/json"}, body: bodyStr }, 15000);
       } catch (e) { if (attempt === MAX_ATTEMPTS) throw e; await sleep(backoffMs(attempt)); continue; }
       if (!kicked || (kicked.status !== 202 && kicked.status !== 200)) {
@@ -2841,9 +2833,6 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         // time) so a slow-turn diagnosis doesn't require digging through Netlify's
         // function-log UI.
         if (pd && pd.state === "done") { console.log(`chat turn: server genMs=${pd.genMs}`); polled = pd; break; }
-        // Streaming partial: render the visible prose so far, then keep polling. The
-        // authoritative parse still happens only on "done", so this is purely visual.
-        if (pd && pd.state === "partial") { console.log(`stream partial: onPartial=${!!onPartial} len=${(pd.text||"").length}`); if (onPartial) onPartial(pd.text || ""); continue; }
         // pd.state === "pending" -> keep waiting
       }
       if (!polled) { if (attempt === MAX_ATTEMPTS) throw new Error("api_timeout"); continue; } // stuck job: re-roll
@@ -2870,8 +2859,8 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
 
   const OVERSTATE_FIX = "\n\nCORRECTION — REWRITE REQUIRED: Your previous reply implied the setup is already live, running, or delivering results. It is NOT — nothing is active until the consultant activates it at the review call. Rewrite your reply keeping all %% markers identical, but change the visible prose to use only future or conditional framing (\"once your consultant activates this, you'll…\", \"this will be set up to…\"). Do not use \"is now set up\", \"you're now getting\", \"will now get\", \"delivered on a schedule\", \"up and running\", or \"you're all set\".";
 
-  const callAPILive = useCallback(async (hist, onPartial=null) => {
-    let raw = await callAPI(hist, "", onPartial);
+  const callAPILive = useCallback(async hist => {
+    let raw = await callAPI(hist);
     // Fail-safe: every assistant turn must carry a PROGRESS marker, and no marker
     // should be left unterminated. A missing PROGRESS marker or a truncated
     // (dangling) marker is the strongest signal of a malformed or cut-off
@@ -2879,7 +2868,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // reply or dropping the data that was mid-emit when it truncated.
     if (!raw.includes("%%PROGRESS%%") || hasDanglingMarker(raw) || hasUnparseableMarker(raw)) {
       console.warn("malformed reply (missing PROGRESS, truncated, or unparseable marker) — retrying once");
-      raw = await callAPI(hist, "", onPartial);
+      raw = await callAPI(hist);
     }
     // Expectation guard: never show the client language implying the setup is
     // already live. Unlike a blind retry, this re-runs WITH an explicit corrective
@@ -2930,10 +2919,8 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // only after the second failure do we pop it and show the banner.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const onPartial = STREAM_ON ? (t => setStreamText(t)) : null;
-        const t0 = Date.now(), raw = await callAPILive(histRef.current, onPartial), el = Date.now()-t0;
+        const t0 = Date.now(), raw = await callAPILive(histRef.current), el = Date.now()-t0;
         if (el < MIN_MS) await sleep(MIN_MS-el);
-        setStreamText(""); // final parsed message replaces the live stream bubble
         const pr = parseReply(raw);
         const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = pr;
         // Dead-reply guard: after callAPILive's retries a reply can still come back
@@ -2952,8 +2939,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         setLoading(false);
         return true;
       } catch(e) {
-        if (attempt === 0) { setStreamText(""); await sleep(600); continue; } // silent retry once, spinner stays up
-        setStreamText("");
+        if (attempt === 0) { await sleep(600); continue; } // silent retry once, spinner stays up
         if (histRef.current[histRef.current.length-1]?.role==="user") histRef.current.pop();
         // A caller that supplies a failMessage (e.g. an attached document) shows its
         // own clear one-off message instead of the generic resend banner — re-sending
@@ -2964,7 +2950,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         return false;
       }
     }
-    } finally { busyRef.current = false; setStreamText(""); }
+    } finally { busyRef.current = false; }
   }, [callAPI, pop, inferPct, applyCdata]);
 
   const handleSend = useCallback(async (merged, users, meta) => {
@@ -3188,9 +3174,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     histRef.current = [ini];
     setInitErr(null);
     try {
-      const onPartial = STREAM_ON ? (t => setStreamText(t)) : null;
-      const raw = await callAPILive([ini], onPartial);
-      setStreamText("");
+      const raw = await callAPILive([ini]);
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
@@ -3203,7 +3187,6 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       setInitErr("start");
     } finally {
       setLoading(false);
-      setStreamText("");
     }
   }, [callAPI, init, resetSession, seed, uiLang]);
 
@@ -3224,9 +3207,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // "[RESUMING SESSION]" markers onto the same array reference.
     histRef.current = [...(saved.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
     try {
-      const onPartial = STREAM_ON ? (t => setStreamText(t)) : null;
-      const raw = await callAPILive(histRef.current, onPartial);
-      setStreamText("");
+      const raw = await callAPILive(histRef.current);
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
@@ -3240,7 +3221,6 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       setInitErr("resume");
     } finally {
       setLoading(false);
-      setStreamText("");
     }
   }, [saved, callAPI, init, pop]);
 
@@ -3659,11 +3639,7 @@ input,textarea,select,button{font-family:inherit}
         {loading && <div role="status" aria-live="polite" aria-label={L("thinking",uiLang)} style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
           <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:dark?C.card:"#F5F3FB",border:`1px solid ${dark?C.border:"#E5E0F3"}`,borderRadius:14,padding:"14px 18px",maxWidth:"88%",boxShadow:"0 1px 3px rgba(1,43,58,0.06)"}}>
-            {/* Opt-in streaming: show prose as it arrives; fall back to the typing dots
-                until the first partial lands (or on the non-streaming path). */}
-            {streamText
-              ? <span style={{fontSize:15,lineHeight:1.55,color:C.text,whiteSpace:"pre-wrap"}}>{streamText}</span>
-              : <TypingIndicator lang={uiLang}/>}
+            <TypingIndicator lang={uiLang}/>
           </div>
         </div>}
 

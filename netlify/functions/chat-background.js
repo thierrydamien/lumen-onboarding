@@ -15,7 +15,7 @@
 // plumbing (persist the result, never fail back to Netlify).
 
 import { getStore } from "@netlify/blobs";
-import { generateReply, streamReply } from "./chat.js";
+import { generateReply } from "./chat.js";
 
 export const config = { path: "/.netlify/functions/chat-background", background: true };
 
@@ -49,56 +49,20 @@ export default async (req) => {
   // continuation, so it can't answer "how long did generation really take". This
   // makes that number visible directly in the persisted/polled result instead of
   // requiring a dig through Netlify's function-specific log view.
-  // Opt-in streaming path: only when the client explicitly asks (stream=1 in the
-  // query, gated behind a ?stream=1 page param). Real clients never send it, so they
-  // stay on the untouched generateReply path below. On this path we persist partial
-  // visible prose as it is generated (state "partial", NOT deleted on read) and then
-  // overwrite it with the identical final result (deleted on read, exactly as today).
-  const wantStream = new URL(req.url).searchParams.get("stream") === "1";
-  console.log("chat-background: wantStream=" + wantStream + " rid=" + rid);
-
   const genStart = Date.now();
   let result;
-  if (wantStream) {
-    // Throttle partial writes so a fast stream can't hammer the blob store: at most
-    // one write per PARTIAL_MS, plus the latest text always wins the final race.
-    const PARTIAL_MS = 400;
-    let lastWrite = 0, latest = "", visibleCount = 0;
-    const flush = async (text) => {
-      visibleCount++;
-      latest = text;
-      const now = Date.now();
-      if (now - lastWrite < PARTIAL_MS) { console.log("chat-background: partial throttled (call " + visibleCount + ")"); return; }
-      lastWrite = now;
-      console.log("chat-background: writing partial #" + visibleCount + " len=" + text.length);
-      try { await store.setJSON(rid, { state: "partial", text: latest, savedAt: new Date().toISOString() }); }
-      catch (err) { console.error("chat-background: partial write failed", err && err.message); }
-    };
-    try {
-      const r = await streamReply(req, { abortMs: BG_ABORT_MS, onVisible: (t) => { flush(t); } });
-      console.log("chat-background: streamReply done, visibleCount=" + visibleCount);
-      result = { status: r.status, body: r.body };
-    } catch (err) {
-      console.error("chat-background: streamReply threw", err && err.message);
-      result = { status: 502, body: { error: "background_failed" } };
-    }
-  } else {
-    try {
-      const resp = await generateReply(req, { abortMs: BG_ABORT_MS });
-      const body = await resp.json().catch(() => ({ error: "bad_upstream_json" }));
-      result = { status: resp.status, body };
-    } catch (err) {
-      console.error("chat-background: generateReply threw", err && err.message);
-      result = { status: 502, body: { error: "background_failed" } };
-    }
+  try {
+    const resp = await generateReply(req, { abortMs: BG_ABORT_MS });
+    const body = await resp.json().catch(() => ({ error: "bad_upstream_json" }));
+    result = { status: resp.status, body };
+  } catch (err) {
+    console.error("chat-background: generateReply threw", err && err.message);
+    result = { status: 502, body: { error: "background_failed" } };
   }
   const genMs = Date.now() - genStart;
   console.log("chat-background: generation took", genMs, "ms for", rid);
 
   try {
-    // Final write overwrites any "partial" record under this rid. It has {status,
-    // body, genMs} and NO state:"partial" flag, which is how chat-status tells a
-    // finished job from an in-progress one.
     await store.setJSON(rid, { ...result, genMs, savedAt: new Date().toISOString() });
   } catch (err) {
     // If we can't persist, the client will poll to its deadline and re-roll a fresh

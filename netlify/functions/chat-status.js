@@ -43,11 +43,6 @@ export default async (req) => {
 
   if (!rec) return json(200, { state: "pending" });
 
-  // In-progress partial (streaming path only): return the visible prose so far and
-  // do NOT delete — the job is still running and will overwrite this record with the
-  // terminal result. The client renders `text` as a live bubble and keeps polling.
-  if (rec.state === "partial") return json(200, { state: "partial", text: rec.text || "" });
-
   // Terminal result found. Delete it so the store doesn't grow without bound
   // (best effort — a failed delete just leaves a blob for a later sweep to reap).
   store.delete(rid).catch(() => {});
