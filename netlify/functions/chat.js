@@ -466,3 +466,185 @@ export default (req) => generateReply(req);
 function json(status, obj) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 }
+
+// ── STREAMING PATH (opt-in, additive) ────────────────────────────────────────
+// A SECOND generation path used ONLY when the client asks for it (stream=1 in the
+// query, gated behind a ?stream=1 page param). generateReply above is deliberately
+// left untouched so the live, non-streaming behaviour is byte-identical and a full
+// revert is just deleting this block plus the client flag. The perceived-latency
+// win is that visible prose is forwarded as it is generated instead of after the
+// whole reply lands; the FINAL result is the same shape generateReply returns, so
+// every downstream parser / retry on the client is unchanged.
+//
+// SAFETY (confidential consultant notes): the final reply runs the SAME leak guard
+// as generateReply. Partials get two extra protections: (1) a trailing margin is
+// withheld from the visible text so a half-formed verbatim span can never reach the
+// screen before the leak check has seen it complete; (2) the moment leaksNotes()
+// trips on the full running buffer we stop emitting partials entirely and let the
+// clean final result (regenerated if needed) replace whatever was shown.
+const STREAM_MARGIN = 160; // chars withheld from the tail of every partial (> an 8-word shingle)
+
+// Cosmetic-only: strip structured output (markers, <thought>, widget/suggestion
+// tags, TOPIC_SUGGESTION lines) so a partial shows prose, not raw JSON. Also cuts
+// at any INCOMPLETE structure at the tail. This is best-effort presentation for the
+// opt-in tester; correctness still comes from the final done-state parse.
+function streamVisible(raw) {
+  let s = raw;
+  // Complete structures first.
+  s = s.replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/g, "");
+  s = s.replace(/%%[A-Z_]+%%[\s\S]*?%%END%%/g, "");
+  s = s.replace(/\[(WIDGET|SUGGESTIONS):[\s\S]*?\]/g, "");
+  s = s.replace(/\[OFFER_SEND\]/g, "");
+  s = s.replace(/^\s*TOPIC_SUGGESTION\{[\s\S]*?\}\s*$/gm, "");
+  // Then cut everything from the first INCOMPLETE structure onward, so a marker or
+  // tag mid-emit never flashes as raw text.
+  const cut = s.search(/<(thought|thoughts|thinking|think)>|%%[A-Z_]+%%|%%|\[(WIDGET|SUGGESTIONS|OFFER_SEND)|TOPIC_SUGGESTION\{/);
+  if (cut !== -1) s = s.slice(0, cut);
+  return s.trim();
+}
+
+// Prepared, validated request context shared by streamReply's setup. Mirrors the
+// first half of generateReply EXACTLY (same order, same checks) but is only ever
+// reached on the opt-in path, so a bug here can never affect a real client. Returns
+// either { error: Response } or { ctx: {...} } ready for the upstream call.
+async function prepareStreamCall(req, abortMs) {
+  if (req.method !== "POST") return { error: json(405, { error: "method_not_allowed" }) };
+  const origin = req.headers.get("origin");
+  const siteURL = process.env.URL;
+  if (siteURL) {
+    let ok = false;
+    try { ok = !!origin && new URL(origin).host === new URL(siteURL).host; } catch { ok = false; }
+    if (!ok) return { error: json(403, { error: "forbidden_origin" }) };
+  }
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return { error: json(500, { error: "server_not_configured" }) };
+  const rawBody = await req.text();
+  if (rawBody.length > MAX_BODY_BYTES) return { error: json(413, { error: "payload_too_large" }) };
+  let body;
+  try { body = JSON.parse(rawBody); } catch { return { error: json(400, { error: "bad_json" }) }; }
+  if (body && "system" in body) return { error: json(400, { error: "system_not_accepted" }) };
+  const { messages, maxTokens, overstateFix, seedId } = body || {};
+  if (!Array.isArray(messages) || messages.length === 0) return { error: json(400, { error: "missing_messages" }) };
+  if (messages.length > MAX_MESSAGES) return { error: json(400, { error: "too_many_messages" }) };
+  if (!messages.every(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length > 0)) {
+    return { error: json(400, { error: "bad_message_shape" }) };
+  }
+  const seeded = typeof seedId === "string" && RL_SEED_RE.test(seedId);
+  const rl = await rateLimit(clientIp(req), seeded);
+  if (!rl.ok) return { error: new Response(JSON.stringify({ error: "rate_limited", retryAfter: rl.retryAfter }),
+    { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rl.retryAfter) } }) };
+  const requested = Number(maxTokens) || MAX_TOKENS_CEILING;
+  const max_tokens = Math.min(Math.max(requested, 1), MAX_TOKENS_CEILING);
+  const [notes, packageBlock, brief, facts] = seedId != null
+    ? await Promise.all([consultantNotesFor(seedId), packageBlockFor(seedId), briefFor(seedId), seededFactsFor(seedId)])
+    : ["", "", "", ""];
+  const system = [
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    ...(facts ? [{ type: "text", text: facts }] : []),
+    ...(notes ? [{ type: "text", text: notesSystemBlock(notes) }] : []),
+    ...(packageBlock ? [{ type: "text", text: packageBlock }] : []),
+    ...(brief ? [{ type: "text", text: briefSystemBlock(brief) }] : []),
+    ...(overstateFix ? [{ type: "text", text: OVERSTATE_FIX }] : []),
+  ];
+  const cachedMessages = messages.map((m, i) =>
+    i === messages.length - 1
+      ? { role: m.role, content: [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }] }
+      : m
+  );
+  return { ctx: { key, notes, system, cachedMessages, max_tokens, abortMs } };
+}
+
+// The opt-in streaming generator. onVisible(text) is called (throttled by the
+// caller) with the safe, marker-stripped, margin-withheld prose so far. Returns the
+// same { status, body } the background function persists for a non-streaming turn.
+export async function streamReply(req, { abortMs = 9 * 60 * 1000, onVisible } = {}) {
+  const prep = await prepareStreamCall(req, abortMs);
+  if (prep.error) { const b = await prep.error.json().catch(() => ({ error: "bad_request" })); return { status: prep.error.status, body: b }; }
+  const { key, notes, system, cachedMessages, max_tokens } = prep.ctx;
+
+  const ac = new AbortController();
+  const abortT = setTimeout(() => ac.abort(), abortMs);
+  try {
+    const callUpstream = (sys, stream) => fetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
+      body: JSON.stringify({ model: MODEL, max_tokens, system: sys, messages: cachedMessages, stream: !!stream }),
+      signal: ac.signal,
+    });
+
+    const res = await callUpstream(system, true);
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => null);
+      console.error("Anthropic stream error", res.status, JSON.stringify(data && data.error));
+      return { status: res.status === 200 ? 502 : res.status, body: { error: "upstream_error", status: res.status } };
+    }
+
+    // Parse the SSE stream: accumulate text_delta content, capture usage, and (until
+    // a leak is seen) hand safe visible prose to onVisible as it grows.
+    let full = "", usage = null, stopReason = null, leaked = false;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        let evt; try { evt = JSON.parse(payload); } catch { continue; }
+        if (evt.type === "message_start" && evt.message && evt.message.usage) {
+          usage = { ...(usage || {}), input_tokens: evt.message.usage.input_tokens || 0, cache_read_input_tokens: evt.message.usage.cache_read_input_tokens || 0, cache_creation_input_tokens: evt.message.usage.cache_creation_input_tokens || 0 };
+        } else if (evt.type === "content_block_delta" && evt.delta && evt.delta.type === "text_delta") {
+          full += evt.delta.text || "";
+          if (!leaked && onVisible) {
+            // Safety gate: if the FULL running buffer ever reproduces the notes, stop
+            // emitting partials for good — the clean final result will replace them.
+            if (notes && leaksNotes(full, notes)) { leaked = true; }
+            else {
+              const safe = full.length > STREAM_MARGIN ? full.slice(0, full.length - STREAM_MARGIN) : "";
+              const vis = streamVisible(safe);
+              if (vis) onVisible(vis);
+            }
+          }
+        } else if (evt.type === "message_delta") {
+          if (evt.usage) usage = { ...(usage || {}), output_tokens: evt.usage.output_tokens || 0 };
+          if (evt.delta && evt.delta.stop_reason) stopReason = evt.delta.stop_reason;
+        }
+      }
+    }
+
+    // Final leak guard — IDENTICAL policy to generateReply. If the completed reply
+    // reproduces the notes, regenerate ONCE (non-streaming) with the corrective;
+    // if it still leaks, fall back to the placeholder the client re-rolls.
+    let finalText = full;
+    if (notes && leaksNotes(finalText, notes)) {
+      console.error("SECURITY: consultant notes appeared verbatim in the STREAMED reply — regenerating with a corrective");
+      try {
+        const res2 = await callUpstream([...system, { type: "text", text: NOTES_LEAK_FIX }], false);
+        const data2 = await res2.json().catch(() => null);
+        if (res2.ok && data2 && !data2.error && !leaksNotes(textOf(data2), notes)) {
+          finalText = textOf(data2);
+          if (data2.usage) usage = data2.usage;
+        } else {
+          finalText = NOTES_LEAK_PLACEHOLDER;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") throw e;
+        finalText = NOTES_LEAK_PLACEHOLDER;
+      }
+    }
+    if (stopReason === "max_tokens") console.warn("Streamed reply truncated at max_tokens ceiling", max_tokens);
+    return { status: 200, body: { content: [{ type: "text", text: finalText }], usage } };
+  } catch (err) {
+    if (err && err.name === "AbortError") { console.error("Streamed upstream call exceeded the abort budget"); return { status: 504, body: { error: "upstream_timeout" } }; }
+    console.error("Stream fetch failed", err);
+    return { status: 502, body: { error: "upstream_unreachable" } };
+  } finally {
+    clearTimeout(abortT);
+  }
+}
