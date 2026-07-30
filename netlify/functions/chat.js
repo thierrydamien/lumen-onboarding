@@ -14,7 +14,7 @@
 
 import { getStore } from "@netlify/blobs";
 
-const MODEL = "claude-sonnet-5";
+const MODEL = "claude-sonnet-4-6";
 // Ceiling sized to the serverless window, not to "generous". The call is
 // NON-STREAMING, so generation time ≈ output tokens / ~60-90 tok/s. The old 4000
 // ceiling allowed ~45-65s of generation — no synchronous Netlify function
