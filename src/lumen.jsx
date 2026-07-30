@@ -2750,7 +2750,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // so we poll for the result. POLL_MAX_MS is a generous client-side ceiling — far
   // above the 20-30s the slowest replies take, so it only ever fires on a genuinely
   // stuck job, at which point we re-roll a fresh one.
-  const POLL_MS = 1500, POLL_MAX_MS = 180_000;
+  const POLL_MS = 500, POLL_MAX_MS = 180_000;
 
   const callAPI = useCallback(async (hist, sysExtra="") => {
     // seedId lets the server inject confidential consultant notes; maxTokens matches
