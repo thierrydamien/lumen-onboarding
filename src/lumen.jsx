@@ -2843,7 +2843,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         if (pd && pd.state === "done") { console.log(`chat turn: server genMs=${pd.genMs}`); polled = pd; break; }
         // Streaming partial: render the visible prose so far, then keep polling. The
         // authoritative parse still happens only on "done", so this is purely visual.
-        if (pd && pd.state === "partial" && onPartial) { onPartial(pd.text || ""); continue; }
+        if (pd && pd.state === "partial") { console.log(`stream partial: onPartial=${!!onPartial} len=${(pd.text||"").length}`); if (onPartial) onPartial(pd.text || ""); continue; }
         // pd.state === "pending" -> keep waiting
       }
       if (!polled) { if (attempt === MAX_ATTEMPTS) throw new Error("api_timeout"); continue; } // stuck job: re-roll
