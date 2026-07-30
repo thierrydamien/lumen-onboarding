@@ -55,6 +55,7 @@ export default async (req) => {
   // visible prose as it is generated (state "partial", NOT deleted on read) and then
   // overwrite it with the identical final result (deleted on read, exactly as today).
   const wantStream = new URL(req.url).searchParams.get("stream") === "1";
+  console.log("chat-background: wantStream=" + wantStream + " rid=" + rid);
 
   const genStart = Date.now();
   let result;
@@ -62,17 +63,20 @@ export default async (req) => {
     // Throttle partial writes so a fast stream can't hammer the blob store: at most
     // one write per PARTIAL_MS, plus the latest text always wins the final race.
     const PARTIAL_MS = 400;
-    let lastWrite = 0, latest = "";
+    let lastWrite = 0, latest = "", visibleCount = 0;
     const flush = async (text) => {
+      visibleCount++;
       latest = text;
       const now = Date.now();
-      if (now - lastWrite < PARTIAL_MS) return;
+      if (now - lastWrite < PARTIAL_MS) { console.log("chat-background: partial throttled (call " + visibleCount + ")"); return; }
       lastWrite = now;
+      console.log("chat-background: writing partial #" + visibleCount + " len=" + text.length);
       try { await store.setJSON(rid, { state: "partial", text: latest, savedAt: new Date().toISOString() }); }
-      catch (err) { /* a dropped partial just means the client shows the previous one a beat longer */ }
+      catch (err) { console.error("chat-background: partial write failed", err && err.message); }
     };
     try {
       const r = await streamReply(req, { abortMs: BG_ABORT_MS, onVisible: (t) => { flush(t); } });
+      console.log("chat-background: streamReply done, visibleCount=" + visibleCount);
       result = { status: r.status, body: r.body };
     } catch (err) {
       console.error("chat-background: streamReply threw", err && err.message);
