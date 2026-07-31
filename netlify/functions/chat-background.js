@@ -60,7 +60,11 @@ export default async (req) => {
     result = { status: 502, body: { error: "background_failed" } };
   }
   const genMs = Date.now() - genStart;
-  console.log("chat-background: generation took", genMs, "ms for", rid);
+  // Log output tokens next to the duration so tokens/sec — and the share taken by
+  // the hidden <thought> block — can be tracked from the function log alone when
+  // tuning prompt-driven latency (genMs is output-bound on this workload).
+  const outTok = result.body && result.body.usage && result.body.usage.output_tokens;
+  console.log("chat-background: generation took", genMs, "ms,", outTok || "?", "output tokens, for", rid);
 
   try {
     await store.setJSON(rid, { ...result, genMs, savedAt: new Date().toISOString() });
