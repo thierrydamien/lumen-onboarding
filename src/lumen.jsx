@@ -185,6 +185,9 @@ const I18N = {
     think1:         "Reading your answer\u2026",
     think2:         "Updating your setup brief\u2026",
     think3:         "Preparing the next step\u2026",
+    docThink1:      "Reading your document\u2026",
+    docThink2:      "Pulling out the useful details\u2026",
+    docThink3:      "This can take a bit longer for bigger files\u2026",
     privacyNote:    "Your answers are shared only with your Lumen onboarding team.",
     panelTitle: "Captured so far",
     panelEmpty: "Your answers will appear here as we go.",
@@ -371,6 +374,9 @@ const I18N = {
     think1:         "Je lis votre réponse…",
     think2:         "Je mets à jour votre brief…",
     think3:         "Je prépare la suite…",
+    docThink1:      "Je lis votre document…",
+    docThink2:      "J'en extrais les informations utiles…",
+    docThink3:      "Cela peut prendre un peu plus de temps pour les fichiers volumineux…",
     privacyNote:    "Vos réponses ne sont partagées qu'avec votre équipe d'onboarding Lumen.",
     panelTitle: "Saisi jusqu'ici",
     panelEmpty: "Vos réponses apparaîtront ici au fur et à mesure.",
@@ -557,6 +563,9 @@ const I18N = {
     think1:         "Ich lese Ihre Antwort…",
     think2:         "Ich aktualisiere Ihr Briefing…",
     think3:         "Ich bereite den nächsten Schritt vor…",
+    docThink1:      "Ich lese Ihr Dokument…",
+    docThink2:      "Ich extrahiere die relevanten Details…",
+    docThink3:      "Das kann bei größeren Dateien etwas länger dauern…",
     privacyNote:    "Ihre Antworten werden nur mit Ihrem Lumen-Onboarding-Team geteilt.",
     panelTitle: "Bisher erfasst",
     panelEmpty: "Ihre Antworten erscheinen hier nach und nach.",
@@ -743,6 +752,9 @@ const I18N = {
     think1:         "Leyendo su respuesta…",
     think2:         "Actualizando su resumen…",
     think3:         "Preparando el siguiente paso…",
+    docThink1:      "Leyendo su documento…",
+    docThink2:      "Extrayendo los detalles útiles…",
+    docThink3:      "Esto puede tardar un poco más con archivos grandes…",
     privacyNote:    "Sus respuestas solo se comparten con su equipo de onboarding de Lumen.",
     panelTitle: "Capturado hasta ahora",
     panelEmpty: "Sus respuestas aparecerán aquí a medida que avancemos.",
@@ -929,6 +941,9 @@ const I18N = {
     think1:         "Sto leggendo la tua risposta…",
     think2:         "Sto aggiornando il tuo brief…",
     think3:         "Sto preparando il passo successivo…",
+    docThink1:      "Sto leggendo il tuo documento…",
+    docThink2:      "Sto estraendo i dettagli utili…",
+    docThink3:      "Per i file più grandi può volerci un po' più di tempo…",
     privacyNote:    "Le tue risposte sono condivise solo con il tuo team di onboarding Lumen.",
     panelTitle: "Raccolto finora",
     panelEmpty: "Le tue risposte appariranno qui man mano.",
@@ -1115,6 +1130,9 @@ const I18N = {
     think1:         "أقرأ إجابتك…",
     think2:         "أُحدّث ملخص الإعداد…",
     think3:         "أُجهّز الخطوة التالية…",
+    docThink1:      "أقرأ مستندك…",
+    docThink2:      "أستخرج التفاصيل المفيدة…",
+    docThink3:      "قد يستغرق هذا وقتًا أطول قليلاً مع الملفات الكبيرة…",
     privacyNote:    "لا تتم مشاركة إجاباتك إلا مع فريق إعداد Lumen الخاص بك.",
     panelTitle: "ما تم جمعه حتى الآن",
     panelEmpty: "ستظهر إجاباتك هنا أثناء تقدمنا.",
@@ -1743,7 +1761,7 @@ const IC = {
   globe:  "M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z M3.5 9h17 M3.5 15h17 M12 3c2.6 2.6 2.6 15.4 0 18 M12 3c-2.6 2.6-2.6 15.4 0 18",
   clip:   "M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.49",
 };
-function TypingIndicator({ lang }) {
+function TypingIndicator({ lang, doc=false }) {
   const [v,setV] = useState(false);
   // The thinking state is the most-watched moment in the app. After a short beat
   // rotate through contextual status lines (C1) so a multi-second wait doesn't sit
@@ -1753,15 +1771,23 @@ function TypingIndicator({ lang }) {
   useEffect(() => {
     if (REDUCE_MOTION) return undefined;
     // Generation is a black box (non-streaming): we can't know how long is left, so
-    // we PACE the status to a ~12s assumed reply and ADVANCE ONCE, holding the final
-    // line until the reply lands. The old code looped (s%3)+1, which flipped back to
-    // "Reading your answer…" at ~10s — right as most replies finish — and read as
-    // "stuck/restarted". Monotonic + hold reads as steady progress instead.
-    const marks = [3000, 7000, 9500]; // when to switch to step 1, 2, 3
+    // we PACE the status to an ASSUMED duration and ADVANCE ONCE, holding the final
+    // line until the reply lands. Looping back to an earlier line reads as
+    // "stuck/restarted" (an old version did this at ~10s, right as most replies
+    // finished), so this only ever moves forward.
+    // Two very different populations to pace for: a normal typed turn now runs
+    // 3-4s on the sync-first path (see chat.js/lumen.jsx sync-first change), so the
+    // default schedule advances fast and holds early rather than sitting on
+    // "thinking…" for a reply that's already arriving. A document attach forces
+    // the slower background path (heavy-turn routing) and legitimately takes
+    // 15-40s+ depending on file size — an unpredictable wait the client can't
+    // shrink, so the copy says so explicitly instead of implying a fixed budget.
+    const marks = doc ? [1500, 6000, 14000] : [1200, 2600, 3800];
     const timers = marks.map((ms, i) => setTimeout(() => setStep(i + 1), ms));
     return () => timers.forEach(clearTimeout);
-  }, []);
-  const label = L(["thinking","think1","think2","think3"][step] || "thinking", lang);
+  }, [doc]);
+  const keys = doc ? ["thinking","docThink1","docThink2","docThink3"] : ["thinking","think1","think2","think3"];
+  const label = L(keys[step] || "thinking", lang);
   return <div style={{display:"flex",alignItems:"center",gap:12,minHeight:28}}>{v && <>
     <div style={{display:"flex",gap:4}}>{[0,1,2].map(d => <div key={d} style={{width:6,height:6,borderRadius:"50%",background:P,animation:"bounce 1.4s infinite ease-in-out both",animationDelay:`${d*0.16}s`}}/>)}</div>
     <span key={step} style={{fontSize:13,color:"#64748b",animation:REDUCE_MOTION?"none":"slideUpFade .3s ease-out"}}>{label}</span>
@@ -2799,6 +2825,18 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     const backoffMs = attempt => Math.min(1000 * 2 ** (attempt - 1), 15000);
     let result = null;
 
+    // HEAVY-TURN ROUTING: a document attach (up to ATTACH_MAX_CHARS ≈ 48k chars)
+    // or a huge paste triggers the longest replies in the app — the harvest turn
+    // emits confirmation prose plus several %% markers at once and can exceed the
+    // sync path's 24s server-side abort. Attempting sync first on such a turn
+    // would burn the full 24s on a doomed request and THEN run the background
+    // path from scratch (~50s total — worse than background-only). The client
+    // knows the size before sending, so big turns skip sync and go straight to
+    // the background path (9-min budget). Typed messages are a few hundred chars;
+    // 8k cleanly separates the two populations.
+    const lastMsgLen = (trimmed[trimmed.length - 1]?.content || "").length;
+    const heavyTurn = lastMsgLen > 8000;
+
     // SYNC-FIRST: try the plain synchronous proxy before the background flow.
     // Since the <thought> compression, typical generation is 4-8s — comfortably
     // inside the sync window — and the background path was measured adding a
@@ -2808,7 +2846,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // ANY failure (504 on a rare heavy turn, network error, non-JSON) falls
     // through silently to the background+poll path below, which remains the
     // reliability backstop — so the worst case is the old behaviour, not an error.
-    try {
+    if (!heavyTurn) try {
       const r = await fetchWithTimeout(CHAT_ENDPOINT,
         { method:"POST", headers:{"Content-Type":"application/json"}, body: bodyStr }, 26000);
       if (r && r.ok) {
@@ -3659,7 +3697,10 @@ input,textarea,select,button{font-family:inherit}
         {loading && <div role="status" aria-live="polite" aria-label={L("thinking",uiLang)} style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
           <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:dark?C.card:"#F5F3FB",border:`1px solid ${dark?C.border:"#E5E0F3"}`,borderRadius:14,padding:"14px 18px",maxWidth:"88%",boxShadow:"0 1px 3px rgba(1,43,58,0.06)"}}>
-            <TypingIndicator lang={uiLang}/>
+            {/* `attaching` stays true for the WHOLE document turn (set before file
+                extraction, cleared only after sendToAPI resolves), so it doubles
+                cleanly as "this loading turn is a doc turn" without new state. */}
+            <TypingIndicator lang={uiLang} doc={attaching}/>
           </div>
         </div>}
 
