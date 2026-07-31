@@ -2798,7 +2798,27 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     const MAX_ATTEMPTS = 6;
     const backoffMs = attempt => Math.min(1000 * 2 ** (attempt - 1), 15000);
     let result = null;
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+
+    // SYNC-FIRST: try the plain synchronous proxy before the background flow.
+    // Since the <thought> compression, typical generation is 4-8s — comfortably
+    // inside the sync window — and the background path was measured adding a
+    // consistent ~4-6s of structural overhead per turn (job dispatch + the 500ms
+    // polling cadence) even on warm containers. One request/response removes all
+    // of it. The server self-aborts at 24s; 26s here covers that plus transport.
+    // ANY failure (504 on a rare heavy turn, network error, non-JSON) falls
+    // through silently to the background+poll path below, which remains the
+    // reliability backstop — so the worst case is the old behaviour, not an error.
+    try {
+      const r = await fetchWithTimeout(CHAT_ENDPOINT,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: bodyStr }, 26000);
+      if (r && r.ok) {
+        const d = await r.json().catch(() => null);
+        if (d && !d.error && Array.isArray(d.content)) { result = d; console.log("chat turn: sync path"); }
+      }
+      if (!result) console.warn("sync chat path unavailable — falling back to background flow");
+    } catch { console.warn("sync chat path failed/timed out — falling back to background flow"); }
+
+    if (!result) for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       // Fresh id per attempt so a retry can never pick up a stale/partial result.
       const rid = "r_" + ((typeof crypto !== "undefined" && crypto.randomUUID)
         ? crypto.randomUUID()
