@@ -49,6 +49,17 @@ export default async (req) => {
   return json(200, { state: "done", status: rec.status, body: rec.body, genMs: rec.genMs });
 };
 
+// Explicit no-store on every poll response: this endpoint is polled every 500ms
+// for a result that changes turn to turn, so a CDN/edge layer serving even a
+// briefly-stale cached "pending" would silently add real seconds to perceived
+// latency between generation finishing and the client seeing "done" — a gap
+// observed in production logs (~5-6s unaccounted for beyond genMs). Belt and
+// suspenders: both the generic and the Netlify-specific CDN header, since only
+// one may be honored depending on which cache layer is in front of this response.
 function json(status, obj) {
-  return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(obj), { status, headers: {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, must-revalidate",
+    "Netlify-CDN-Cache-Control": "no-store",
+  } });
 }
