@@ -23,9 +23,26 @@ const JOB_STORE = "lumen-chat-jobs";
 // Matches the client's rid format (see callAPI). An opaque, unguessable id — not
 // personal or sensitive data, so it is fine in the query string.
 const RID_RE = /^r_[A-Za-z0-9_-]{6,64}$/;
-// Inside the 15-min background ceiling with wide margin; far above the 20-30s the
-// slowest legitimate replies take, so a real reply never hits it.
-const BG_ABORT_MS = 9 * 60 * 1000;
+// MUST STAY BELOW the client's POLL_MAX_MS (180_000 in src/lumen.jsx callAPI).
+//
+// This was 9 minutes, i.e. three times the client's own deadline, and the asymmetry
+// was the bug: the client gave up at 180s while this kept generating to 540s. The
+// abandoned job then finished, billed a full generation, and persisted a result
+// nobody would ever poll for — and the client, seeing nothing, re-rolled a BRAND NEW
+// job (see the `stuck job: re-roll` branch in callAPI). One slow turn, two paid
+// generations, and a failure shown to the client while their answer was still being
+// written. It hit hardest on document attaches, which are both the slowest turns and
+// the ones the client cared most about.
+//
+// Inverting it makes the server give up FIRST, so the outcome is always reported
+// rather than inferred: at 150s this persists a clean 504, the client reads it on its
+// next 500ms poll (~30s inside its own deadline), and takes its normal transient-retry
+// path with no orphaned generation running in the background.
+//
+// 150s is ~5x the slowest legitimate reply measured to date (20-30s). If a real turn
+// ever needs longer, raise BOTH numbers together and keep this one lower — the
+// invariant, not either value, is what matters. tests/timeouts.test.js enforces it.
+const BG_ABORT_MS = 150_000;
 
 export default async (req) => {
   const rid = new URL(req.url).searchParams.get("rid") || "";

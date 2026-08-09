@@ -20,9 +20,22 @@
 // brief is client-facing (no confidential-notes field), so it all becomes the
 // surfaceable brief the chat confirms; company and industry also pre-fill the form.
 
+// ACCESS MODEL: this is an INTERNAL tool, called only by the Sales page. It is gated
+// the same way seed.js writes are — a present, same-origin Origin header, plus the
+// SEED_WRITE_TOKEN the Sales page already caches when that variable is configured —
+// with a per-IP limiter and a raw-body cap on top. Before that gate existed this was
+// the only function in the repo with NO access control of any kind, which let an
+// anonymous caller feed arbitrary bytes to the xlsx parser (pinned at a version
+// carrying unpatched advisories) and make the server fetch Google on demand.
+
 import * as XLSX from "xlsx";
+import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const MAX_BYTES = 2 * 1024 * 1024;
+// Raw request cap. MAX_BYTES bounds the DECODED workbook, but without this the whole
+// body is pulled into memory first. 2MB of binary is ~2.7MB of base64, so 4MB leaves
+// room for that plus the surrounding JSON.
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const FETCH_MS = 6000;
 const SIGNATURE_RE = /media brief form/;
 
@@ -224,8 +237,31 @@ function readWorkbook(buf) {
 export default async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
+  // Same-origin friction (layered, not a strong control on its own — Origin is
+  // spoofable outside a browser), matching seed.js and preview-brief.js.
+  const origin = req.headers.get("origin");
+  const siteURL = process.env.URL;
+  if (siteURL) {
+    let ok = false;
+    try { ok = !!origin && new URL(origin).host === new URL(siteURL).host; } catch { ok = false; }
+    if (!ok) return json(403, { error: "forbidden_origin" });
+  } else {
+    console.warn("URL env not set — cannot validate Origin on parse-brief");
+  }
+  // Same write-token posture as seed.js / preview-brief.js: enforced only when the
+  // variable is configured, so nothing breaks until you opt in.
+  const writeToken = process.env.SEED_WRITE_TOKEN;
+  if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
+    return json(401, { error: "unauthorized" });
+  }
+  const rl = await rateLimit(req, "parse", { perMin: 60, perHour: 500 });
+  if (!rl.ok) return tooMany(rl.retryAfter);
+
+  // Cap the RAW body before parsing anything.
+  const rawBody = await req.text();
+  if (rawBody.length > MAX_BODY_BYTES) return json(413, { error: "too_large" });
   let body;
-  try { body = await req.json(); } catch { return json(400, { error: "bad_request" }); }
+  try { body = JSON.parse(rawBody); } catch { return json(400, { error: "bad_request" }); }
 
   let buf;
   if (typeof body.sheetUrl === "string" && body.sheetUrl.trim()) {

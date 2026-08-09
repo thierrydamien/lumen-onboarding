@@ -317,12 +317,23 @@
       return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
     });
   }
-  // Only allow http(s) links to render as clickable. The session record is POSTed
-  // by the client, so a tampered sheetUrl (e.g. a "javascript:" URI) must never
-  // become a live href. esc() alone doesn't stop the scheme.
+  // Only allow links to Google's own document hosts to render as clickable. The
+  // session record is POSTed by the client, so a tampered sheetUrl must never become
+  // a live href, and esc() alone doesn't stop that.
+  //
+  // A scheme check on its own was not enough. It correctly blocked "javascript:" and
+  // "data:", but any https URL still rendered as an anchor labelled "Open the client's
+  // brief in Google Sheets" — a phishing link aimed at consultants, planted through
+  // the unauthenticated session write and wearing a trusted label. The host allowlist
+  // is the actual control; the scheme check is now just the first gate.
+  var SHEET_HOSTS = ["docs.google.com", "drive.google.com", "sheets.google.com"];
   function safeUrl(u) {
     u = String(u == null ? "" : u).trim();
-    return /^https?:\/\//i.test(u) ? u : "";
+    if (!/^https:\/\//i.test(u)) return "";
+    try {
+      var h = new URL(u).hostname.toLowerCase();
+      return SHEET_HOSTS.indexOf(h) !== -1 ? u : "";
+    } catch (e) { return ""; }
   }
   // The client onboarding link for a seed, same shape the sales page generates.
   function clientLink(seedId) { return location.origin + "/chat?s=" + encodeURIComponent(seedId); }

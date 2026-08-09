@@ -7,9 +7,31 @@
 // with no siteID/token wiring. Only dependency: @netlify/blobs.
 
 import { getStore } from "@netlify/blobs";
+import crypto from "node:crypto"; // explicit import: globalThis.crypto only exists on Node >= 19
+import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const STORE = "lumen-sessions";
 const MAX_BODY_BYTES = 400_000;
+// Shape guard for the client-supplied record key. The client mints its own id with
+// crypto.randomUUID and must keep using it so autosaves UPDATE one record instead of
+// creating a new one per save, so the key stays client-supplied by design. This does
+// not make the id secret (it is already unguessable); it stops an arbitrary, huge, or
+// path-like string becoming a blob key. Permissive enough to accept both a UUID and
+// this file's own "s_"-prefixed genId form, so no stored record is orphaned.
+const SESSION_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// Deliberately far above any legitimate traffic. The autosave is debounced at 600ms
+// and keyed to settled state changes, so one client averages ~4 writes/min. The only
+// realistic way to approach a ceiling is many clients sharing one office NAT address
+// (a group onboarding, an enterprise rolling out several teams at once), and at
+// 300/min that would take ~75 concurrent sessions on a single IP.
+//
+// Sized this way on purpose: a false positive here is worse than a slow abuser. A
+// 429 on an autosave is harmless (the next one succeeds), but a 429 on the FINAL
+// save means the completed brief never reaches the dashboard — and the client is
+// still shown "Brief sent" (see handleSend in src/lumen.jsx, which calls setSent(true)
+// regardless of saveOk). A script doing real damage runs at thousands/min, so this
+// still catches what it needs to.
+const RL_WRITE = { perMin: 300, perHour: 3000 };
 const DEFAULT_CHANNEL = "C097154H39N"; // matches stalled-check.js and the Apps Script completion alert
 export const config = { path: "/.netlify/functions/session" };
 
@@ -65,8 +87,18 @@ export default async (req) => {
       console.warn("URL env not set — cannot validate Origin on session write");
     }
 
+    // Per-IP write limiter. The Origin check above is spoofable outside a browser, so
+    // without this an anonymous caller can fabricate unlimited session records in the
+    // store the internal dashboard renders, and fire the completion Slack alert below
+    // once per record. Fails open on any storage error (see ../lib/ratelimit.js).
+    const rl = await rateLimit(req, "session", RL_WRITE);
+    if (!rl.ok) return tooMany(rl.retryAfter);
+
     const session = body && body.session;
     if (!session || typeof session !== "object" || Array.isArray(session)) return json(400, { error: "missing_session" });
+    if (session.id != null && (typeof session.id !== "string" || !SESSION_ID_RE.test(session.id))) {
+      return json(400, { error: "bad_session_id" });
+    }
 
     // Structural sanity + caps. The 400KB body cap bounds total size; this keeps
     // individual collections from ballooning and rejects an obviously malformed
@@ -193,8 +225,12 @@ function summarize(r) {
   };
 }
 
+// crypto.randomUUID, not Math.random. This id is the only thing protecting a stored
+// session record (there is no per-record auth), so it is a capability and has to be
+// unguessable. The previous form was a predictable timestamp prefix plus ~30 bits
+// from Math.random, which is not a CSPRNG.
 function genId() {
-  return "s_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  return "s_" + crypto.randomUUID();
 }
 
 // Fallback completion alert (see the notifyFallback branch above). Concise by

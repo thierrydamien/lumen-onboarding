@@ -29,9 +29,48 @@
 // executed here (no credentials / Google runtime). Smoke-test on a real deploy.
 
 import crypto from "node:crypto";
+import { getStore } from "@netlify/blobs";
+import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const MAX_BODY_BYTES = 3_000_000; // base64 XLSX, generous
+// One accepted call creates a Drive file and can send mail FROM the organisation's
+// Google account, so in reputational terms this is the most expensive endpoint here.
+// A real client hits it once per completed brief; a rep testing might hit it a few
+// times in a row. These ceilings sit far above either.
+const RL_WRITE = { perMin: 30, perHour: 200 };
 export const config = { path: "/.netlify/functions/sheet" };
+
+// The Sheet is SHARED with this address and Google emails a notification FROM the
+// organisation's account, so it must not be taken on trust from the request body:
+// the Origin check is spoofable outside a browser, so an anonymous caller could
+// otherwise use your Google identity to mail an arbitrary recipient (mail that
+// passes SPF/DKIM for your domain) and drop files in your Drive.
+//
+// The client always POSTs its completed session record BEFORE calling this endpoint
+// (see handleSend in src/lumen.jsx), and both values come from the same `merged`
+// object, so a legitimate request always matches. When there is no record to check
+// against — the session POST failed, or an older client — create the Sheet but do
+// NOT share it, rather than failing the call: the client still gets their link and
+// the dashboard still gets the URL, so nothing user-visible breaks.
+async function verifiedClientEmail(sessionId, requested) {
+  const want = String(requested || "").trim().toLowerCase();
+  if (!want) return "";
+  if (typeof sessionId !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(sessionId)) {
+    console.warn("sheet: no usable sessionId to verify clientEmail against — not sharing by email");
+    return "";
+  }
+  try {
+    const rec = await getStore("lumen-sessions").get(sessionId, { type: "json" });
+    const known = String((rec && rec.merged && rec.merged.company && rec.merged.company.email) || "")
+      .trim().toLowerCase();
+    if (known && known === want) return String(requested).trim();
+    console.warn("sheet: clientEmail does not match the stored session record — not sharing by email");
+    return "";
+  } catch (err) {
+    console.error("sheet: could not verify clientEmail against the session store — not sharing", err);
+    return "";
+  }
+}
 
 const b64url = (buf) =>
   Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -100,6 +139,9 @@ export default async (req) => {
     console.warn("URL env not set — cannot validate Origin on sheet proxy");
   }
 
+  const rl = await rateLimit(req, "sheet", RL_WRITE);
+  if (!rl.ok) return tooMany(rl.retryAfter);
+
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
   if (!sheetsConfigured()) {
     // Not configured — let the client degrade gracefully (brief still sends).
@@ -114,6 +156,8 @@ export default async (req) => {
 
   const { xlsxBase64, brief, filename, clientEmail, company, contactName, topicsCount, usersCount, sessionId } = body || {};
   const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
+  // Never pass the body's clientEmail downstream unchecked — see verifiedClientEmail.
+  const shareEmail = await verifiedClientEmail(sessionId, clientEmail);
 
   // Path D (preferred when set): hand off to an Apps Script Web App that runs as a
   // real Google account. It COPIES the master requirements template and fills in
@@ -138,7 +182,7 @@ export default async (req) => {
         // then never receives the URL). Passing our own origin removes the dependence
         // on a hand-set DASHBOARD_URL script property that, if unset/stale, silently
         // dropped the link on long runs.
-        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: clientEmail || "", company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: shareEmail, company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
         signal: ac.signal,
       });
       const d = await r.json().catch(() => ({}));
@@ -192,11 +236,11 @@ export default async (req) => {
 
     // Share with the client (as editor) if we have their email. sendNotificationEmail
     // makes Google email them the link — this is the "you'll get an email" path.
-    if (clientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    if (shareEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shareEmail)) {
       await fetch(
         `https://www.googleapis.com/drive/v3/files/${file.id}/permissions?sendNotificationEmail=true&supportsAllDrives=true`,
         { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "writer", type: "user", emailAddress: clientEmail }) }
+          body: JSON.stringify({ role: "writer", type: "user", emailAddress: shareEmail }) }
       ).catch((e) => console.error("Share failed (non-fatal)", e));
     }
 

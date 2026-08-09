@@ -25,8 +25,14 @@
 // holder. Confirm retention and access with the ISO 42001 owner before enabling.
 
 import { getStore } from "@netlify/blobs";
+import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const STORE = "lumen-drafts";
+// Matches the session store's ceiling: the two autosave on the same debounced
+// cadence (~4 writes/min per client). Set far above legitimate traffic on purpose —
+// see the sizing note in session.js. Present to stop a script overwriting or
+// clearing drafts in bulk, not to meter a real client.
+const RL_WRITE = { perMin: 300, perHour: 3000 };
 // A snapshot carries the rendered messages plus the model history, so it is far
 // larger than a session summary. ~1MB leaves generous headroom over a realistic
 // worst case (a long session is a few hundred KB) while still bounding abuse.
@@ -71,6 +77,12 @@ export default async (req) => {
     } else {
       console.warn("URL env not set — cannot validate Origin on draft write");
     }
+
+    // Per-IP write limiter. The Origin check above is spoofable outside a browser, so
+    // without this anyone who learns a link's seed id can overwrite or repeatedly
+    // clear that client's in-progress draft. Fails open (see ../lib/ratelimit.js).
+    const rl = await rateLimit(req, "draft", RL_WRITE);
+    if (!rl.ok) return tooMany(rl.retryAfter);
 
     const rawBody = await req.text();
     if (rawBody.length > MAX_BODY_BYTES) return json(413, { error: "payload_too_large" });

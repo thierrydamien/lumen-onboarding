@@ -571,7 +571,8 @@
     bad_url: "That's not a Google Sheet link. Paste the sheet's URL, or upload the .xlsx instead.",
     not_accessible: "Couldn't open that sheet. It must be shared \"anyone with the link can view\", or just download it and upload the .xlsx.",
     fetch_timeout: "That sheet took too long to load. Try again, or download and upload it.",
-    fetch_failed: "Couldn't reach that sheet. Try again, or download and upload it."
+    fetch_failed: "Couldn't reach that sheet. Try again, or download and upload it.",
+    rate_limited: "Too many briefs read in a short time. Wait a minute and try again."
   };
   function applyBriefData(data, sourceLabel) {
     if (data.form) {
@@ -588,12 +589,26 @@
     ["err_company", "err_contactName", "err_email"].forEach(function (id) { if ($(id)) $(id).textContent = ""; });
     checkValid();
   }
+  // parse-brief is now gated exactly like the seed write, so it needs the same token
+  // when SEED_WRITE_TOKEN is configured on the site. Unset => the header is simply
+  // absent and the server does not ask for it, so nothing changes for existing sites.
+  function postBrief(payload) {
+    var headers = { "Content-Type": "application/json" };
+    var tok = writeToken(); if (tok) headers["x-app-write-token"] = tok;
+    return fetch("/.netlify/functions/parse-brief", {
+      method: "POST", headers: headers, body: JSON.stringify(payload)
+    });
+  }
   async function loadBrief(payload, readingMsg, sourceLabel) {
     briefMsg(readingMsg, "");
     try {
-      var res = await fetch("/.netlify/functions/parse-brief", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-      });
+      var res = await postBrief(payload);
+      // Ask once (same styled card as Generate), cache for the tab, retry.
+      if (res.status === 401) {
+        sessionStorage.removeItem("sales_write_token");
+        if (await askWriteToken("A write token is required to read a brief. Enter the Sales write token:")) res = await postBrief(payload);
+      }
+      if (res.status === 401) { briefMsg("A write token is required to read a brief. Ask your admin for the Sales write token.", "err"); return; }
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok || !data.ok) { briefMsg(BRIEF_ERRORS[data && data.error] || "Couldn't read that brief. Check it's the Lumen template.", "err"); return; }
       applyBriefData(data, sourceLabel);

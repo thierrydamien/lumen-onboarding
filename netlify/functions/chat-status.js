@@ -14,6 +14,24 @@ export const config = { path: "/.netlify/functions/chat-status" };
 
 const JOB_STORE = "lumen-chat-jobs";
 const RID_RE = /^r_[A-Za-z0-9_-]{6,64}$/;
+// How long a terminal result survives after it is first read, so a repeat poll is
+// idempotent (see the handler). Comfortably longer than the client's 500ms polling
+// cadence and its 12s per-poll timeout, and far shorter than a session, so nothing
+// lingers meaningfully. TRADE-OFF: a client that reads successfully and stops polling
+// leaves the blob behind, because nothing arrives to trigger the cleanup branch. That
+// is deliberate — losing a paid reply is worse than leaving a few KB — but it means
+// the jobs store still wants the TTL sweep it has never had.
+const CONSUMED_GRACE_MS = 60_000;
+
+// What to do with a terminal result on this read. Pure so the retention rule can be
+// tested without a store: "stamp" on first sight (keep it, record when it was read),
+// "keep" while still inside the grace window (a repeat poll must be idempotent), and
+// "delete" only once the window has passed.
+export function consumeAction(rec, now, graceMs = CONSUMED_GRACE_MS) {
+  const consumedAt = rec && typeof rec.consumedAt === "number" ? rec.consumedAt : null;
+  if (consumedAt == null) return "stamp";
+  return now - consumedAt > graceMs ? "delete" : "keep";
+}
 
 export default async (req) => {
   if (req.method !== "GET") return json(405, { error: "method_not_allowed" });
@@ -43,9 +61,27 @@ export default async (req) => {
 
   if (!rec) return json(200, { state: "pending" });
 
-  // Terminal result found. Delete it so the store doesn't grow without bound
-  // (best effort — a failed delete just leaves a blob for a later sweep to reap).
-  store.delete(rid).catch(() => {});
+  // Terminal result found. Do NOT delete it on sight.
+  //
+  // Deleting on first read destroyed the only copy of a finished reply. If that poll
+  // response was lost in flight, the tab reloaded, or two polls overlapped, the next
+  // poll saw nothing, the client waited out its deadline and re-rolled a brand new
+  // job: a second paid generation, a second wait, and possibly a DIFFERENT answer to
+  // the same question. The reply was already written and paid for; throwing it away
+  // on an unacknowledged read was the wrong trade.
+  //
+  // Instead, keep it for a grace window so a repeated poll is idempotent, and clean up
+  // on the first poll that arrives after the window. rids are minted fresh per attempt
+  // (see callAPI), so a stale result can never be served to a later turn.
+  const now = Date.now();
+  const action = consumeAction(rec, now);
+  if (action === "stamp") {
+    // First read: stamp it, keep the blob. Best effort — if the stamp fails the next
+    // read simply treats it as a first read too, which errs toward keeping the reply.
+    store.setJSON(rid, { ...rec, consumedAt: now }).catch(() => {});
+  } else if (action === "delete") {
+    store.delete(rid).catch(() => {});
+  }
   return json(200, { state: "done", status: rec.status, body: rec.body, genMs: rec.genMs });
 };
 

@@ -77,6 +77,11 @@ async function fetchSeedFromURL() {
 // Maps the UI language to a BCP-47 locale so a date separator reads naturally
 // ("lundi 3 mars" rather than "Monday, 3 March") for the language they chose.
 const LOCALE_OF = { English:"en-GB", French:"fr-FR", German:"de-DE", Spanish:"es-ES", Italian:"it-IT", Arabic:"ar" };
+// Right-to-left scripts among the supported UI languages. Drives the `dir` attribute
+// set by the effect in OnboardingApp, which in turn activates the [dir="rtl"] font
+// rule further down and flips every marginInline*/paddingInline* logical property the
+// layout already uses. Without a `dir` setter that whole RTL layer is inert.
+const RTL_LANGS = new Set(["Arabic"]);
 const MIN_MS = 1500;
 const P = "#012B3A";
 const A = "#7E48EC";   // Lumen purple (sampled from official wordmark)
@@ -1327,7 +1332,12 @@ const QN18N = {
 };
 function QN(key, lang, vars) {
   const dict = QN18N[lang] || QN18N.English;
-  let s = (dict[key] != null ? dict[key] : QN18N.English[key]) || "";
+  // Fall through to the attach table for keys that only exist there (staleVersion).
+  // Without this the QUERIES widget would render an empty note for those, which reads
+  // as nothing happening at all.
+  let s = dict[key] != null ? dict[key] : QN18N.English[key];
+  if (s == null) { const a = AT18N[lang] || AT18N.English; s = a[key] != null ? a[key] : AT18N.English[key]; }
+  s = s || "";
   if (vars) for (const k in vars) s = s.split("{"+k+"}").join(vars[k]);
   return s;
 }
@@ -1348,14 +1358,27 @@ function FN(key, lang) { const d = FN18N[lang] || FN18N.English; return (d[key] 
 
 // Composer attach (upload a supporting document at any point) strings, by language.
 const AT18N = {
-  English: { label:"Attach a document", trunc:"Only the first part was shared (large file).", failed:"That didn't go through — something timed out on our end, not a problem with your document. Give it a moment and try again, or send a smaller section.", pasteTooBig:"That's a lot of text to paste. Attach it as a file with the paperclip instead (.txt, .csv, .xlsx or .docx) and I'll read the whole thing." },
-  French:  { label:"Joindre un document", trunc:"Seule la première partie a été partagée (fichier volumineux).", failed:"L'envoi n'a pas abouti — un délai a été dépassé de notre côté, ce n'est pas un problème avec votre document. Patientez un instant et réessayez, ou envoyez une section plus courte.", pasteTooBig:"Cela fait beaucoup de texte à coller. Joignez-le plutôt sous forme de fichier avec le trombone (.txt, .csv, .xlsx ou .docx) et je lirai l'ensemble." },
-  German:  { label:"Dokument anhängen", trunc:"Nur der erste Teil wurde geteilt (große Datei).", failed:"Das hat nicht geklappt — bei uns ist eine Zeitüberschreitung aufgetreten, es liegt nicht an Ihrem Dokument. Warten Sie einen Moment und versuchen Sie es erneut, oder senden Sie einen kürzeren Abschnitt.", pasteTooBig:"Das ist viel Text zum Einfügen. Hängen Sie ihn stattdessen als Datei über die Büroklammer an (.txt, .csv, .xlsx oder .docx), dann lese ich das Ganze." },
-  Spanish: { label:"Adjuntar un documento", trunc:"Solo se compartió la primera parte (archivo grande).", failed:"No se pudo enviar — se agotó el tiempo de espera por nuestra parte, no es un problema con su documento. Espere un momento y vuelva a intentarlo, o envíe una sección más corta.", pasteTooBig:"Es mucho texto para pegar. Adjúntelo como archivo con el clip (.txt, .csv, .xlsx o .docx) y lo leeré completo." },
-  Italian: { label:"Allega un documento", trunc:"È stata condivisa solo la prima parte (file grande).", failed:"Invio non riuscito — si è verificato un timeout dalla nostra parte, non è un problema del tuo documento. Attendi un momento e riprova, oppure invia una sezione più breve.", pasteTooBig:"È molto testo da incollare. Allegalo invece come file con la graffetta (.txt, .csv, .xlsx o .docx) e lo leggerò tutto." },
-  Arabic:  { label:"إرفاق مستند", trunc:"تمت مشاركة الجزء الأول فقط (ملف كبير).", failed:"لم يتم الإرسال — حدث تجاوز للمهلة من جانبنا، وليست مشكلة في مستندك. انتظر لحظة ثم أعد المحاولة، أو أرسل قسمًا أقصر.", pasteTooBig:"هذا نص كبير للصقه. أرفقه كملف باستخدام المشبك بدلاً من ذلك (‎.txt أو ‎.csv أو ‎.xlsx أو ‎.docx) وسأقرؤه بالكامل." },
+  English: { label:"Attach a document", trunc:"Only the first part was shared (large file).", failed:"That didn't go through — something timed out on our end, not a problem with your document. Give it a moment and try again, or send a smaller section.", pasteTooBig:"That's a lot of text to paste. Attach it as a file with the paperclip instead (.txt, .csv, .xlsx or .docx) and I'll read the whole thing.", tooLarge:"That document is {mb} MB, which is too large to read here. Attach a shorter section, or save it as .txt and attach that.", unsupported:"I can read .txt, .csv, .xlsx and .docx files. If yours is a PDF or another format, copy the text and paste it into the message box instead.", readError:"I couldn't read that document. Copy the text and paste it into the message box instead and I'll pick out what's useful.", staleVersion:"This page needs a refresh before it can read spreadsheets. Reload it and attach the file again, your conversation is saved." },
+  French:  { label:"Joindre un document", trunc:"Seule la première partie a été partagée (fichier volumineux).", failed:"L'envoi n'a pas abouti — un délai a été dépassé de notre côté, ce n'est pas un problème avec votre document. Patientez un instant et réessayez, ou envoyez une section plus courte.", pasteTooBig:"Cela fait beaucoup de texte à coller. Joignez-le plutôt sous forme de fichier avec le trombone (.txt, .csv, .xlsx ou .docx) et je lirai l'ensemble.", tooLarge:"Ce document fait {mb} Mo, c'est trop volumineux pour être lu ici. Joignez une section plus courte, ou enregistrez-le en .txt et joignez ce fichier.", unsupported:"Je peux lire les fichiers .txt, .csv, .xlsx et .docx. Si le vôtre est un PDF ou un autre format, copiez le texte et collez-le dans la zone de message.", readError:"Je n'ai pas réussi à lire ce document. Copiez le texte et collez-le dans la zone de message, j'en extrairai ce qui est utile.", staleVersion:"Cette page doit être actualisée avant de pouvoir lire des feuilles de calcul. Rechargez-la et joignez le fichier à nouveau, votre conversation est enregistrée." },
+  German:  { label:"Dokument anhängen", trunc:"Nur der erste Teil wurde geteilt (große Datei).", failed:"Das hat nicht geklappt — bei uns ist eine Zeitüberschreitung aufgetreten, es liegt nicht an Ihrem Dokument. Warten Sie einen Moment und versuchen Sie es erneut, oder senden Sie einen kürzeren Abschnitt.", pasteTooBig:"Das ist viel Text zum Einfügen. Hängen Sie ihn stattdessen als Datei über die Büroklammer an (.txt, .csv, .xlsx oder .docx), dann lese ich das Ganze.", tooLarge:"Dieses Dokument ist {mb} MB groß und damit zu groß, um es hier zu lesen. Hängen Sie einen kürzeren Abschnitt an, oder speichern Sie es als .txt und hängen Sie diese Datei an.", unsupported:"Ich kann .txt-, .csv-, .xlsx- und .docx-Dateien lesen. Wenn Ihre Datei ein PDF oder ein anderes Format ist, kopieren Sie den Text und fügen Sie ihn in das Nachrichtenfeld ein.", readError:"Ich konnte dieses Dokument nicht lesen. Kopieren Sie den Text und fügen Sie ihn in das Nachrichtenfeld ein, dann suche ich das Passende heraus.", staleVersion:"Diese Seite muss neu geladen werden, bevor sie Tabellen lesen kann. Laden Sie sie neu und hängen Sie die Datei erneut an, Ihre Unterhaltung ist gespeichert." },
+  Spanish: { label:"Adjuntar un documento", trunc:"Solo se compartió la primera parte (archivo grande).", failed:"No se pudo enviar — se agotó el tiempo de espera por nuestra parte, no es un problema con su documento. Espere un momento y vuelva a intentarlo, o envíe una sección más corta.", pasteTooBig:"Es mucho texto para pegar. Adjúntelo como archivo con el clip (.txt, .csv, .xlsx o .docx) y lo leeré completo.", tooLarge:"Ese documento ocupa {mb} MB, demasiado para leerlo aquí. Adjunte una sección más corta, o guárdelo como .txt y adjunte ese archivo.", unsupported:"Puedo leer archivos .txt, .csv, .xlsx y .docx. Si el suyo es un PDF u otro formato, copie el texto y péguelo en el cuadro de mensaje.", readError:"No he podido leer ese documento. Copie el texto y péguelo en el cuadro de mensaje y yo seleccionaré lo relevante.", staleVersion:"Esta página necesita actualizarse antes de poder leer hojas de cálculo. Recárguela y adjunte el archivo de nuevo, su conversación está guardada." },
+  Italian: { label:"Allega un documento", trunc:"È stata condivisa solo la prima parte (file grande).", failed:"Invio non riuscito — si è verificato un timeout dalla nostra parte, non è un problema del tuo documento. Attendi un momento e riprova, oppure invia una sezione più breve.", pasteTooBig:"È molto testo da incollare. Allegalo invece come file con la graffetta (.txt, .csv, .xlsx o .docx) e lo leggerò tutto.", tooLarge:"Questo documento è di {mb} MB, troppo grande da leggere qui. Allega una sezione più breve, oppure salvalo come .txt e allega quel file.", unsupported:"Posso leggere file .txt, .csv, .xlsx e .docx. Se il tuo è un PDF o un altro formato, copia il testo e incollalo nella casella del messaggio.", readError:"Non sono riuscito a leggere questo documento. Copia il testo e incollalo nella casella del messaggio, selezionerò ciò che serve.", staleVersion:"Questa pagina va ricaricata prima di poter leggere i fogli di calcolo. Ricaricala e allega di nuovo il file, la tua conversazione è salvata." },
+  Arabic:  { label:"إرفاق مستند", trunc:"تمت مشاركة الجزء الأول فقط (ملف كبير).", failed:"لم يتم الإرسال — حدث تجاوز للمهلة من جانبنا، وليست مشكلة في مستندك. انتظر لحظة ثم أعد المحاولة، أو أرسل قسمًا أقصر.", pasteTooBig:"هذا نص كبير للصقه. أرفقه كملف باستخدام المشبك بدلاً من ذلك (‎.txt أو ‎.csv أو ‎.xlsx أو ‎.docx) وسأقرؤه بالكامل.", tooLarge:"حجم هذا المستند {mb} ميغابايت، وهو أكبر من أن يُقرأ هنا. أرفق قسمًا أقصر، أو احفظه بصيغة ‎.txt وأرفق ذلك الملف.", unsupported:"يمكنني قراءة ملفات ‎.txt و‎.csv و‎.xlsx و‎.docx. إذا كان ملفك بصيغة PDF أو صيغة أخرى، انسخ النص والصقه في مربع الرسالة.", readError:"تعذّرت عليّ قراءة هذا المستند. انسخ النص والصقه في مربع الرسالة وسأختار منه ما يفيد.", staleVersion:"تحتاج هذه الصفحة إلى إعادة تحميل قبل أن تتمكن من قراءة جداول البيانات. أعد تحميلها وأرفق الملف مرة أخرى، محادثتك محفوظة." },
 };
 function AT(key, lang) { const d = AT18N[lang] || AT18N.English; return (d[key] != null ? d[key] : AT18N.English[key]) || ""; }
+// Error text for the composer-attach path. Tries the ATTACH table first, so a client
+// who attached a requirements document is no longer told to "export just the queries"
+// (the queries wording is correct in the QUERIES widget and wrong here). Falls back to
+// the queries table for the messages that read correctly in both contexts — noText,
+// docxUnavailable — rather than duplicating them into six languages for no gain.
+export function ATERR(key, lang, vars) {
+  const d = AT18N[lang] || AT18N.English;
+  const s = d[key] != null ? d[key] : AT18N.English[key];
+  if (s == null) return QN(key, lang, vars);
+  let out = s;
+  if (vars) for (const k in vars) out = out.split("{"+k+"}").join(vars[k]);
+  return out;
+}
 
 
 const gts   = () => new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
@@ -1416,9 +1439,22 @@ const DRAFT_ENDPOINT = "/.netlify/functions/draft";
 // MAX_HIST_TURNS (20) entries, so keeping ~4x that is far more than a resume needs
 // while stopping a very long session from bloating the stored snapshot.
 const DRAFT_HIST_KEEP = 80;
-function draftPayload(snap) {
+export function draftPayload(snap) {
   const hist = Array.isArray(snap.history) ? snap.history.slice(-DRAFT_HIST_KEEP) : [];
-  return { ...snap, history: hist };
+  // Belt and braces on `raw` (the unstripped model output, including the hidden
+  // <thought> block). Messages no longer carry it at all, but this is the one payload
+  // that LEAVES the browser and is retrievable by any holder of the client link, so
+  // strip it here too: a future change that re-adds raw to a message object then
+  // cannot silently start persisting it server-side.
+  //
+  // It was also the largest growth term in the draft — unlike `history`, `messages` is
+  // never trimmed, and a marker-heavy turn's raw runs several times its visible text.
+  // Overflowing the 1MB cap in draft.js fails SILENTLY (srvSaveDraft's result is
+  // ignored by its caller), so cross-device resume would just quietly stop updating.
+  const messages = Array.isArray(snap.messages)
+    ? snap.messages.map(({ raw, ...rest }) => rest)
+    : snap.messages;
+  return { ...snap, messages, history: hist };
 }
 async function srvSaveDraft(seedId, snap, opts) {
   if (!seedId) return false;
@@ -1558,7 +1594,10 @@ const stripThoughtForHistory = t => String(t == null ? "" : t)
   .replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/g, "")
   .replace(/<(thought|thoughts|thinking|think)>[\s\S]*$/, "")
   .trim();
-function stripAll(t) {
+// Exported for tests/. These are pure and are the highest-risk untested path in the
+// app: everything the client sees is what survives stripAll, and a marker the parser
+// mishandles silently drops captured brief data.
+export function stripAll(t) {
   let s = t
     .replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "")
     .replace(/\[WIDGET:[A-Z_]+\]/g, "")
@@ -1584,7 +1623,7 @@ function stripAll(t) {
 }
 // True when a reply contains an opening %%MARKER%% with no matching %%END%% — the
 // signature of a response that was cut off mid-emit.
-function hasDanglingMarker(t) {
+export function hasDanglingMarker(t) {
   return /%%[A-Z]+%%/.test(t.replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, ""));
 }
 // True when a COMPLETE marker (has %%END%%) carries a body that isn't valid JSON —
@@ -1593,7 +1632,7 @@ function hasDanglingMarker(t) {
 // is silently dropped with no other signal: worst case the rich HANDOFF vanishes on
 // the very summary turn it matters. Treated like a dangling marker so callAPILive
 // retries once — a regeneration almost always fixes a transient JSON glitch.
-function hasUnparseableMarker(t) {
+export function hasUnparseableMarker(t) {
   const re = /%%[A-Z]+%%([\s\S]*?)%%END%%/g;
   let m;
   while ((m = re.exec(t))) {
@@ -1831,8 +1870,41 @@ function Stepper({ progress, dark, compact, lang }) {
   })}</div>;
 }
 
+// The skip sentinel is a MARKER, not data. onWSkip records data:"__skip__" so the
+// collapsed row can render "Skipped". If that string is ever handed back to a widget
+// as initialData the render throws — UserForm does users.map(), ChipSelector does
+// sel.filter(), and a string has neither — and because the throw happens during
+// render, the error boundary in chat-main.jsx replaces the WHOLE app with the failure
+// screen. Normalising it to undefined makes every widget fall through to its own
+// fresh-state default, which is the correct meaning of "they skipped this".
+export const SKIP = "__skip__";
+export function widgetInitialData(ws) {
+  const d = ws && typeof ws === "object" ? ws.data : undefined;
+  return d === SKIP ? undefined : d;
+}
+
+// An @-prefixed single word in a quick-reply chip is an ACTION token (open the file
+// picker), not an answer to send. The prompt tells the model to emit the literal
+// @ATTACH and never translate it, but that is model obedience, not a guarantee — and
+// it can only fail in a NON-ENGLISH session, which is exactly where nobody is looking.
+// A French turn emitting @JOINDRE would otherwise render a nonsense text chip while
+// the prose tells the client to use an attach button that never appeared, at STEP 2 of
+// every guided flow. Quick replies are natural-language answers, so a lone @-word is
+// never a legitimate option. \p{L} so non-Latin scripts match too.
+export function isAttachToken(qr) {
+  return /^@[\p{L}_]+$/u.test(String(qr == null ? "" : qr).trim());
+}
+
+// Document language + text direction for a conversation language. Pure so it can be
+// tested without a DOM; the effect in OnboardingApp applies it to documentElement.
+export function docLangDir(uiLang) {
+  return { lang: LOCALE_OF[uiLang] || "en", dir: RTL_LANGS.has(uiLang) ? "rtl" : "ltr" };
+}
+
 function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, hint, initialData=[], lang }) {
-  const [sel,setSel] = useState(initialData);
+  // Defence in depth for the above: never seed state with a non-array, whatever the
+  // caller passes. sel.filter/sel.includes are load-bearing in this render.
+  const [sel,setSel] = useState(Array.isArray(initialData) ? initialData : []);
   const [custom,setCustom] = useState("");
   const atLim = sel.length >= max;
   const toggle = o => { if (sel.includes(o)) setSel(s=>s.filter(x=>x!==o)); else if (!atLim) setSel(s=>[...s,o]); };
@@ -1894,7 +1966,10 @@ function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initialData, l
 
 function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
   const empty = () => ({ firstName:"", lastName:"", email:"", role:"", access:"Full Tool" });
-  const [users,setUsers] = useState(initialData.length>0?initialData:[empty()]);
+  // Array guard, not just a length check: a non-array with a truthy .length (a
+  // string) would seed state and then throw on users.map() below. See widgetInitialData.
+  const seedRows = Array.isArray(initialData) ? initialData : [];
+  const [users,setUsers] = useState(seedRows.length>0?seedRows:[empty()]);
   const [errors,setErrors] = useState({});
   const upd = (i,k,v) => setUsers(u=>u.map((x,j)=>j===i?{...x,[k]:v}:x));
   const vEmail = (i,v) => setErrors(e=>({...e,[`${i}-email`]:v&&!EMAIL_RE.test(v)?WL("invalidEmail",lang):""}));
@@ -1987,6 +2062,17 @@ function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
 // queries are the client's verbatim reference for the consultant, so keep them
 // generously; the 80k server cap is the real backstop.
 const Q_MAX_LINES = 1000, Q_MAX_CHARS = 60000, Q_MAX_FILE_BYTES = 2 * 1024 * 1024;
+// Spreadsheet read bounds. See the clamp in extractFileText: these cap the range
+// sheet_to_json is allowed to walk, so a workbook whose declared used range has been
+// stretched past its real data cannot materialise millions of cells on the main
+// thread (XLSX.read is synchronous — an unbounded walk hard-freezes the tab).
+//
+// Sized from measurement, not taste. sheet_to_json fills every cell in range because
+// of defval:"", so cost is rows x cols: 20000x200 (4M cells) still cost ~1.5s, while
+// 5000x100 (500k cells) is ~0.2s. Both are far above what survives downstream —
+// capQueryText keeps 1000 lines and the attach path 48k chars — so the smaller bound
+// costs no real content and keeps the worst case imperceptible.
+const XLSX_MAX_ROWS = 5000, XLSX_MAX_COLS = 100;
 function capQueryText(t) {
   let lines = t.split("\n").map(l=>l.trim()).filter(Boolean);
   let truncated = false;
@@ -2077,11 +2163,39 @@ async function extractFileText(file) {
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext === "xlsx" || ext === "xls") {
       const buf = await file.arrayBuffer();
-      const XLSX = await loadXLSX();
+      let XLSX;
+      try { XLSX = await loadXLSX(); }
+      catch (e) {
+        // The xlsx parser is a lazily-imported, content-hashed chunk. A client whose
+        // tab predates a redeploy requests a filename that no longer exists, so this
+        // rejects for a reason that has nothing to do with their file. Report it as
+        // its own case ("reload the page") instead of the generic read error, which
+        // would send them off retrying different documents and never refreshing.
+        console.error("xlsx chunk failed to load (stale deploy?):", e);
+        return { error: "staleVersion" };
+      }
       const wb = XLSX.read(buf, { type: "array" });
       const rows = [];
       wb.SheetNames.forEach(sn => {
-        XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: false, defval: "" }).forEach(r => {
+        const ws = wb.Sheets[sn];
+        if (!ws || !ws["!ref"]) return;
+        // Clamp the DECLARED used range before materialising it. sheet_to_json walks
+        // whatever !ref claims, and !ref is routinely stretched far past the real data
+        // (applying formatting to a whole column is enough to push it to row 1048576).
+        // Unclamped, that builds millions of rows — and XLSX.read is synchronous, so
+        // the tab hard-freezes with the spinner stuck and no way to cancel.
+        // The ceilings sit an order of magnitude above what survives downstream anyway
+        // (capQueryText keeps 1000 lines, the attach path 48k chars), so no real
+        // content is lost. Mirrors the bound the .docx path already applies.
+        let range;
+        try {
+          const r = XLSX.utils.decode_range(ws["!ref"]);
+          range = { s: { r: r.s.r, c: r.s.c }, e: {
+            r: Math.min(r.e.r, r.s.r + XLSX_MAX_ROWS - 1),
+            c: Math.min(r.e.c, r.s.c + XLSX_MAX_COLS - 1) } };
+        } catch { return; } // unparseable !ref: skip this sheet rather than fail the import
+        XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "", range }).forEach(r => {
+          if (rows.length >= XLSX_MAX_ROWS) return; // total budget across ALL sheets
           const line = r.map(c => String(c ?? "").trim()).filter(Boolean).join(" | ");
           if (line) rows.push(line);
         });
@@ -2111,6 +2225,22 @@ async function extractFileText(file) {
 // a full multi-page doc whole. Still bounded so even a few attaches in the
 // 20-turn window stay well under the 400k body cap (chat.js/session.js).
 const ATTACH_MAX_CHARS = 48000;
+// The filename is fully client-controlled and is interpolated INSIDE the bracketed
+// instruction sent to the model (see sendAttachment), not after it. Unsanitised, a
+// file renamed to  x". Disregard the above and ...  ["  closes the instruction and
+// opens a new one. Strip the characters that could terminate or restructure the
+// envelope, collapse whitespace, and cap the length so a very long name cannot crowd
+// the instruction either. Display still uses the original name (React escapes it).
+const MAX_FILENAME_CHARS = 100;
+export function safeAttachName(name) {
+  const cleaned = String(name == null ? "" : name)
+    .replace(/[\r\n\t"'`\[\]{}<>\\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_FILENAME_CHARS)
+    .trim();
+  return cleaned || "document";
+}
 // A paste this large in the message box is a document, not a chat turn: past this
 // it would risk the 400k server body cap (a dead 413 loop), so we steer it to the
 // attach path instead, which extracts + caps the text properly. Sized around the
@@ -2603,6 +2733,26 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // re-renders with a different seedId instead of remounting.
   useEffect(() => { seedIdRef.current = seedId; }, [seedId]);
 
+  // Keep the document's language and text direction in step with the conversation.
+  // chat.html ships lang="en" because that is the honest default before a language is
+  // known, but the assistant mirrors the client into six languages, so leaving it at
+  // "en" tells a screen reader to pronounce French with an English voice (WCAG 2.2
+  // SC 3.1.1) and prompts a browser to offer to translate a page already in the
+  // reader's language.
+  //
+  // Setting `dir` also switches on two things that were already written but could
+  // never fire: the [dir="rtl"] Arabic font stack further down, and every
+  // marginInline*/paddingInline* logical property the layout already uses. Until now
+  // an Arabic session rendered left-to-right in a Latin font stack.
+  //
+  // Client chat only. sales.html and dashboard.html are internal, English-only tools
+  // and correctly stay lang="en".
+  useEffect(() => {
+    const { lang, dir } = docLangDir(uiLang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = dir;
+  }, [uiLang]);
+
   const { init, pop, chime } = useAudio();
   const dark = theme === "dark";
   const C = useMemo(() => dark
@@ -2782,6 +2932,11 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // so we poll for the result. POLL_MAX_MS is a generous client-side ceiling — far
   // above the 20-30s the slowest replies take, so it only ever fires on a genuinely
   // stuck job, at which point we re-roll a fresh one.
+  // POLL_MAX_MS MUST STAY ABOVE BG_ABORT_MS in netlify/functions/chat-background.js
+  // (150s). The server has to give up first, so a slow turn ends with a reported 504
+  // the client can act on, rather than the client abandoning a job that then keeps
+  // generating and billing in the background. See the note there; a cross-file test
+  // (tests/timeouts.test.js) fails the build if the two ever drift back.
   const POLL_MS = 500, POLL_MAX_MS = 180_000;
 
   const callAPI = useCallback(async (hist, sysExtra="") => {
@@ -2993,7 +3148,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
         if (sndRef.current) pop();
         const dv = maybeDivider(prog, uiLang);
-        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
+        setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat()}]);
         setLoading(false);
         return true;
       } catch(e) {
@@ -3002,7 +3157,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         // A caller that supplies a failMessage (e.g. an attached document) shows its
         // own clear one-off message instead of the generic resend banner — re-sending
         // the same large doc would just fail again.
-        if (opts.failMessage) setMessages(p=>[...p,{role:"assistant",content:opts.failMessage,timestamp:gts(),at:gat(),raw:""}]);
+        if (opts.failMessage) setMessages(p=>[...p,{role:"assistant",content:opts.failMessage,timestamp:gts(),at:gat()}]);
         else setRetryMsg(txt);
         setLoading(false);
         return false;
@@ -3237,7 +3392,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       if (prog) setProgress(prog);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       prevSecRef.current = prog?.section || "company";
-      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
+      setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat()}]);
     } catch (e) {
       // Without this, a failed first turn left a permanent "Assistant is thinking…"
       // spinner with no way out. Clear it and offer a retry instead.
@@ -3271,7 +3426,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       if (sndRef.current) pop();
       const dv = maybeDivider(prog, uiLang);
-      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat(),raw}]);
+      setMessages(p=>[...p,...(dv?[dv]:[]),{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat()}]);
       setSaved(null); // only clear the resume draft once we've actually continued
     } catch (e) {
       // Keep `saved` so the retry can re-resume; clear the spinner and surface a retry.
@@ -3292,7 +3447,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     if (txt.length > COMPOSER_MAX_CHARS) { setAttachNote(AT("pasteTooBig", uiLang)); return; }
     setAttachNote(null);
     setInput(""); if (taRef.current) taRef.current.style.height = "auto";
-    setMessages(p=>[...p,{role:"user",content:txt,timestamp:gts(),at:gat(),raw:txt,isChip:!!chip,chipLabel:chip}]);
+    setMessages(p=>[...p,{role:"user",content:txt,timestamp:gts(),at:gat(),isChip:!!chip,chipLabel:chip}]);
     await sendToAPI(txt);
   }, [input, loading, attaching, sendToAPI, init, uiLang]);
 
@@ -3312,17 +3467,17 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     setAttaching(true);
     try {
       const r = await extractFileText(file);
-      if (r.error) { setAttachNote(QN(r.error, uiLang, { name: file.name, mb: r.mb })); return; }
+      if (r.error) { setAttachNote(ATERR(r.error, uiLang, { name: file.name, mb: r.mb })); return; }
       const raw = (r.text || "").trim();
-      if (!raw) { setAttachNote(QN("noText", uiLang, { name: file.name })); return; }
+      if (!raw) { setAttachNote(ATERR("noText", uiLang, { name: file.name })); return; }
       const truncated = raw.length > ATTACH_MAX_CHARS;
       const excerpt = truncated ? raw.slice(0, ATTACH_MAX_CHARS) : raw;
       init();
       // Visible: a clean attachment chip (NOT the raw text).
-      setMessages(p=>[...p,{role:"user",content:file.name,isAttachment:true,attachTrunc:truncated,timestamp:gts(),at:gat(),raw:file.name}]);
+      setMessages(p=>[...p,{role:"user",content:file.name,isAttachment:true,attachTrunc:truncated,timestamp:gts(),at:gat()}]);
       // Model-facing: framed context (English instruction is fine — the model still
       // replies in the client's language). Bounded so it can't derail or time out.
-      const framed = `[The client attached a supporting document named "${file.name}". Use the content below to PRE-FILL anything relevant to the CURRENT step of onboarding and CONFIRM those details with the client in your reply. Do NOT read the document back verbatim and do NOT paste a long summary — weave what's useful into the guided flow, then continue.${truncated ? " NOTE: only the first part of the document is included." : ""}]\n\n${excerpt}`;
+      const framed = `[The client attached a supporting document named "${safeAttachName(file.name)}". Use the content below to PRE-FILL anything relevant to the CURRENT step of onboarding and CONFIRM those details with the client in your reply. Do NOT read the document back verbatim and do NOT paste a long summary — weave what's useful into the guided flow, then continue.${truncated ? " NOTE: only the first part of the document is included." : ""}]\n\n${excerpt}`;
       await sendToAPI(framed, false, { failMessage: AT("failed", uiLang) });
     } finally {
       attachingRef.current = false;
@@ -3369,9 +3524,15 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     const ws = wState[key], sub = ws===true||ws?.submitted===true;
     if (sub) return <div style={{padding:"12px 16px",background:C.hi,borderRadius:10,border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <div style={{fontSize:13,color:C.text,fontWeight:600}}>{WL(ws?.data==="__skip__"?"skippedLbl":"submittedLbl",uiLang)}</div>
-      <button onClick={()=>setWState(p=>({...p,[key]:{...p[key],submitted:false}}))} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:6,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{WL("editBtn",uiLang)}</button>
+      {/* Reopening a SKIPPED widget must also drop the skip sentinel. Leaving it in
+          place would hand "__skip__" back to the widget as initialData on the next
+          render (crash), and — because wState is autosaved into the draft — would
+          persist that state so a reload reproduced it. Clear it here as well as in
+          widgetInitialData, so neither the caller nor the widget is a single point
+          of failure. */}
+      <button onClick={()=>setWState(p=>({...p,[key]:{...p[key],submitted:false,data:p[key]?.data===SKIP?undefined:p[key]?.data}}))} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:6,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{WL("editBtn",uiLang)}</button>
     </div>;
-    const pd = ws?.data, os = d=>onWSubmit(mi,type,d), sk = ()=>onWSkip(mi,type);
+    const pd = widgetInitialData(ws), os = d=>onWSubmit(mi,type,d), sk = ()=>onWSkip(mi,type);
     const userPrefill = pd || (cdata.company?.email ? [{
       firstName:(cdata.company.contact||"").split(" ")[0]||"",
       lastName:(cdata.company.contact||"").split(" ").slice(1).join(" "),
@@ -3441,7 +3602,13 @@ a{transition:color var(--dur-base) var(--ease-out),opacity var(--dur-base) var(-
 ::selection{background:rgba(126,72,236,.20)}
 ::-moz-selection{background:rgba(126,72,236,.20)}
 .lm-theme{transition:background-color var(--dur-base) var(--ease-out),color var(--dur-base) var(--ease-out)}
-[dir="rtl"]{font-family:'Inter','Geeza Pro','Noto Sans Arabic',Tahoma,Arial,sans-serif}
+/* Arabic face. !important because the element that carries dir="rtl" also carries an
+   inline font-family, and a normal stylesheet rule loses to an inline style — which is
+   why this rule silently never applied and Arabic fell back to Arial. An author
+   !important DOES win over a normal inline declaration, so this is the one place it
+   is load-bearing rather than lazy. Inter has no Arabic glyphs; Geeza Pro (macOS) and
+   Noto Sans Arabic (Android/Linux, and Windows via Noto) do. */
+[dir="rtl"]{font-family:'Inter','Geeza Pro','Noto Sans Arabic',Tahoma,Arial,sans-serif !important}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #6D28D9 !important;outline-offset:2px !important}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 /* Form controls don't inherit font-family by default — textareas fall back to the
@@ -3688,9 +3855,9 @@ input,textarea,select,button{font-family:inherit}
 
         {showQR && !loading && <div ref={qrRef} role="group" aria-label={L("focusRepliesGroup",uiLang)} tabIndex={-1} style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:-8,marginBottom:18,marginInlineStart:38,marginInlineEnd:0,outline:"none"}}>
           {last.quickReplies.map((qr,idx) => {
-            // Action chip: the literal token @ATTACH (emitted by the model, never
-            // translated) opens the composer's file picker instead of sending text.
-            const isAttach = String(qr).trim().toUpperCase()==="@ATTACH";
+            // Action chip: opens the composer's file picker instead of sending text.
+            // Tolerant of the model translating the token — see isAttachToken.
+            const isAttach = isAttachToken(qr);
             return <button key={idx} onClick={isAttach?(()=>attachRef.current?.click()):(()=>sendMsg(qr,qr))} disabled={isAttach&&(loading||attaching)} style={{background:"transparent",border:`1px solid ${LINK}`,color:LINK,borderRadius:16,padding:"6px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>{isAttach?<span style={{display:"inline-flex",alignItems:"center",gap:6}}><Ic d={IC.clip} size={13}/>{AT("label",uiLang)}</span>:qr}</button>;
           })}
         </div>}
