@@ -1,0 +1,44 @@
+name: CI
+
+# Minimal but real gate. Before this existed nothing verified anything: the repo had
+# a single "build" script, no tests, and `main` auto-deploys to Netlify, so an
+# unverified push went straight to clients.
+#
+# Deliberately NOT included yet: a linter. Adding one to a 4,200-line file that has
+# never been linted produces a wall of pre-existing findings that would either block
+# every PR or be permanently ignored. Introduce it separately, scoped to changed
+# files, once the codebase is split up.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build the client bundle
+        run: npm run build
+
+      - name: Bundle-check the Netlify functions
+        # `vite build` only compiles src/. The functions are bundled by Netlify at
+        # deploy time, so without this a broken import under netlify/functions or
+        # netlify/lib ships and 500s at runtime instead of failing the build.
+        run: >
+          npx esbuild netlify/functions/*.js
+          --bundle --platform=node --format=esm --target=node20
+          --outdir="$RUNNER_TEMP/fncheck"
