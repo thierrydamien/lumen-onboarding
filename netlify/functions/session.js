@@ -116,6 +116,18 @@ export default async (req) => {
     const id = (typeof session.id === "string" && session.id) || genId();
     const record = { ...session, id, savedAt: new Date().toISOString() };
     try {
+      // One read serves both branches below AND the archive-preservation rule.
+      const prev = await store.get(id, { type: "json" }).catch(() => null);
+
+      // ARCHIVE IS OPERATOR METADATA, NOT CLIENT DATA — carry it across every write.
+      // Without this, archiving a row whose browser tab is still open would be undone
+      // by that tab's next autosave (autosave POSTs the whole record and would simply
+      // omit archivedAt), and the row would silently reappear in the dashboard minutes
+      // later. That reads as "archiving randomly doesn't work" and is miserable to
+      // diagnose. Restore clears the flag explicitly via session-admin.js, which is
+      // the only thing that should ever remove it.
+      if (prev && prev.archivedAt && !record.archivedAt) record.archivedAt = prev.archivedAt;
+
       // Status lock: in-progress autosaves and the final completed record share an
       // id (last-write-wins in Blobs). A delayed in-progress write must never
       // downgrade a completed brief and lose its sheetUrl/handoff/full data, so
@@ -123,7 +135,6 @@ export default async (req) => {
       // (Read-before-write isn't atomic — Blobs has no CAS — but it closes the
       // realistic reorder window.)
       if (record.status !== "completed") {
-        const prev = await store.get(id, { type: "json" }).catch(() => null);
         if (prev && prev.status === "completed") return json(200, { id, skipped: "completed_locked" });
       } else {
         // Completed record. Reconcile with the Apps Script's server-side sheetUrl
@@ -131,7 +142,6 @@ export default async (req) => {
         // a completed record with no sheetUrl and notifyFallback set, but the Sheet
         // may already exist and its link already be stored. Never null out a known
         // Sheet link, and don't fire the fallback when a Sheet is on record.
-        const prev = await store.get(id, { type: "json" }).catch(() => null);
         if (prev && prev.sheetUrl && !record.sheetUrl) record.sheetUrl = prev.sheetUrl;
         if (record.sheetUrl) record.notifyFallback = false;
         // Fallback completion alert: only when there is genuinely no Sheet, exactly
@@ -177,8 +187,14 @@ export default async (req) => {
       const records = await Promise.all(
         blobs.map((b) => store.get(b.key, { type: "json" }).catch(() => null))
       );
+      // Archived rows are hidden from the default view and returned ONLY when the
+      // dashboard explicitly asks for them (?archived=1), which is what backs its
+      // "Show archived" toggle. Archiving is a visibility decision, never a data one:
+      // the record is untouched and restore is a flag flip (see session-admin.js).
+      const wantArchived = url.searchParams.get("archived") === "1";
       const sessions = records
         .filter(Boolean)
+        .filter((r) => (wantArchived ? !!r.archivedAt : !r.archivedAt))
         .map(summarize)
         .sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
       return json(200, { sessions });
@@ -222,6 +238,10 @@ function summarize(r) {
     lastActiveAt: r.lastActiveAt || r.sentAt || r.savedAt || null,
     sentAt: r.sentAt || null,
     savedAt: r.savedAt || null,
+    // Drives the dashboard's archived view and gates permanent deletion: only an
+    // already-archived record can be deleted (enforced server-side in session-admin.js,
+    // not just in the UI).
+    archivedAt: r.archivedAt || null,
   };
 }
 

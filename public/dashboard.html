@@ -83,6 +83,19 @@
   .filters input[type="date"] { font-family:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:9px; background:#fff; color:var(--ink); cursor:pointer; outline:none; }
   .filters input[type="date"]:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
   .fexport { background:var(--purple-soft); color:var(--purple); border:none; border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  /* Archive / delete controls. The selection column is narrow and centred so it reads
+     as a gutter rather than a data column. */
+  .farch { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  .selcol { width:34px; text-align:center; padding-left:10px; padding-right:0; }
+  .selcol input { cursor:pointer; }
+  .bulkbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; padding:9px 13px;
+             background:var(--purple-soft); border:1px solid var(--border); border-radius:10px; font-size:12px; font-weight:600; color:var(--purple); }
+  .bulkbtn { background:#fff; color:var(--purple); border:1px solid var(--border); border-radius:8px; padding:6px 12px;
+             font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  /* Permanent deletion is the one irreversible action here, so it is the only control
+     in the dashboard that reads as destructive. */
+  .bulkbtn.danger { color:#b42318; border-color:#fecaca; background:#fff5f5; }
+  .bulkbtn.ghost { color:var(--muted); font-weight:600; }
   /* Status is a multi-select: toggle pills rather than a dropdown, so picking two
      (e.g. stalled + link sent) is two clicks and the active set is always visible. */
   .fstatus { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
@@ -259,6 +272,7 @@
 <script>
   var SESSION_ENDPOINT = "/.netlify/functions/session";
   var SEED_ENDPOINT = "/.netlify/functions/seed";
+  var ADMIN_ENDPOINT = "/.netlify/functions/session-admin";
   var $ = function (id) { return document.getElementById(id); };
 
   // ---- Access token gate ----
@@ -426,7 +440,7 @@
     $("body").innerHTML = '<div class="empty">Loading…</div>';
     LINKSENT = [];
     try {
-      var r = await authedFetch(SESSION_ENDPOINT);
+      var r = await authedFetch(SESSION_ENDPOINT + (SHOW_ARCHIVED ? "?archived=1" : ""));
       if (!r.ok) throw new Error("HTTP " + r.status);
       var data = await r.json();
       render(data.sessions || []);
@@ -450,7 +464,9 @@
   // as "Link sent" rows — the top of the funnel. Best-effort: any failure just
   // omits them and leaves the session rows untouched.
   function loadLinkSent() {
-    authedFetch(SEED_ENDPOINT)
+    // Archived view shows archived seeds too, so a link generated for a test and never
+    // opened is archivable and deletable alongside everything else.
+    authedFetch(SEED_ENDPOINT + (SHOW_ARCHIVED ? "?archived=1" : ""))
       .then(function (r) { return r.ok ? r.json() : { seeds: [] }; })
       .then(function (d) {
         var seeds = (d && d.seeds) || [];
@@ -718,7 +734,8 @@
       '<label>From <input id="fFrom" type="date" value="' + esc(FILTER.dateFrom) + '"/></label>' +
       '<label>To <input id="fTo" type="date" value="' + esc(FILTER.dateTo) + '"/></label>' +
       '<button type="button" id="fClear" class="fclear">Clear</button>' +
-      '<button type="button" id="fExport" class="fexport">Export CSV</button>';
+      '<button type="button" id="fExport" class="fexport">Export CSV</button>' +
+      '<label class="farch"><input type="checkbox" id="fArchived"' + (SHOW_ARCHIVED ? " checked" : "") + '/> Show archived</label>';
     box.hidden = false;
     // #filters is a separate container from #body, so re-rendering the table on
     // each keystroke does not steal focus from this input.
@@ -741,6 +758,14 @@
     $("fClear").addEventListener("click", function () { FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" }; renderFilters(); renderTable(); });
     // Feature 3: export exactly the current filtered view.
     $("fExport").addEventListener("click", exportCsv);
+    var arch = document.getElementById("fArchived");
+    if (arch) arch.addEventListener("change", function () {
+      // Switching views changes which records are on screen, so a selection made in
+      // the other view would be invisible but still act on. Drop it.
+      SHOW_ARCHIVED = arch.checked;
+      clearSel();
+      load();
+    });
   }
 
   function rowHtml(s) {
@@ -765,7 +790,16 @@
       rep = (rep === dash) ? cbtn : rep + ' ' + cbtn;
     }
     var tok = totalTokens(s.tokens);
-    return '<tr class="row"' + (s._linkSent ? ' data-noopen="1"' : '') + ' data-id="' + esc(s.id) + '">' +
+    // Selection checkbox. data-link marks it as "handles its own click", which is the
+    // existing convention the row-open handler already respects, so ticking a box
+    // never opens the session detail. A link-sent pseudo-row is a SEED, not a session,
+    // and the two live in different stores — carry the kind so the server addresses
+    // the right one rather than guessing from the id.
+    var selKind = s._linkSent ? "seed" : "session";
+    var selKey = selKind + ":" + s.id;
+    var selCell = '<td class="selcol"><input type="checkbox" data-link="1" data-sel="' + esc(selKey) +
+      '" aria-label="Select ' + esc(s.company || "session") + '"' + (SELECTED[selKey] ? " checked" : "") + '/></td>';
+    return '<tr class="row"' + (s._linkSent ? ' data-noopen="1"' : '') + ' data-id="' + esc(s.id) + '">' + selCell +
       '<td><strong>' + esc(s.company) + '</strong>' + (s.seeded && !s._linkSent ? '<span class="chip">seeded</span>' : "") +
         '<div class="muted">' + esc(s.contact || s.email || "") + '</div></td>' +
       '<td><span class="pill ' + meta.c + '">' + esc(meta.l) + '</span></td>' +
@@ -779,7 +813,150 @@
     '</tr>';
   }
 
+  // ---- Archive / delete -----------------------------------------------------
+  // Two-stage by design: archiving only hides a row and is reversible; permanent
+  // deletion is refused by the server unless the record is already archived. The
+  // second password is a SEPARATE secret from the dashboard token, so read access
+  // alone can never destroy anything.
+  var SELECTED = {};          // "kind:id" -> true, for the current view
+  var SHOW_ARCHIVED = false;
+  // Held in memory ONLY, never sessionStorage. The dashboard token is cached for the
+  // tab because it is needed on every request; this one guards destructive actions, so
+  // it should die on refresh and leave a walked-away laptop unable to delete anything.
+  var ADMIN_TOKEN = "";
+
+  function selCount() { return Object.keys(SELECTED).length; }
+  function clearSel() { SELECTED = {}; }
+
+  // The rows currently on screen, so selection changes can be repainted without
+  // re-running the whole table (and with it the KPI cards and the insight charts).
+  var LAST_LIST = [];
+
+  // Repaint ONLY what a selection change affects: the bulk bar and the select-all box.
+  // Ticking a checkbox used to call renderTable(), which also recomputes renderKpis()
+  // and renderInsights() — so clearing twenty test rows meant twenty full table
+  // rebuilds and twenty chart recomputations. Nothing about the rows themselves
+  // changes when you tick one, so none of that work is needed.
+  function paintSelection() {
+    var slot = document.getElementById("bulkSlot");
+    if (slot) {
+      slot.innerHTML = bulkBarHtml();
+      var bClear = document.getElementById("bulkClear");
+      if (bClear) bClear.addEventListener("click", function () { clearSel(); syncBoxes(); paintSelection(); });
+      var bArch = document.getElementById("bulkArchive");
+      if (bArch) bArch.addEventListener("click", function () { adminAction("archive"); });
+      var bRest = document.getElementById("bulkRestore");
+      if (bRest) bRest.addEventListener("click", function () { adminAction("restore"); });
+      var bDel = document.getElementById("bulkDelete");
+      if (bDel) bDel.addEventListener("click", function () { adminAction("delete"); });
+    }
+    var selAll = document.getElementById("selAll");
+    if (selAll) {
+      var shown = LAST_LIST.map(selKeyOf);
+      selAll.checked = shown.length > 0 && shown.every(function (k) { return SELECTED[k]; });
+    }
+  }
+  // Push SELECTED back onto the rendered checkboxes (used by Clear and select-all,
+  // where the boxes did not change themselves).
+  function syncBoxes() {
+    Array.prototype.forEach.call(document.querySelectorAll("input[data-sel]"), function (cb) {
+      cb.checked = !!SELECTED[cb.getAttribute("data-sel")];
+    });
+  }
+  function selKeyOf(s) { return (s._linkSent ? "seed" : "session") + ":" + s.id; }
+
+  function bulkBarHtml() {
+    var n = selCount();
+    if (!n) return "";
+    var verb = SHOW_ARCHIVED
+      ? '<button type="button" class="bulkbtn" id="bulkRestore">Restore ' + n + '</button>' +
+        '<button type="button" class="bulkbtn danger" id="bulkDelete">Delete permanently…</button>'
+      : '<button type="button" class="bulkbtn" id="bulkArchive">Archive ' + n + '</button>';
+    return '<div class="bulkbar"><span>' + n + ' selected</span>' + verb +
+      '<button type="button" class="bulkbtn ghost" id="bulkClear">Clear</button></div>';
+  }
+
+  // Prompts once per page load, then reuses the value for the rest of the session.
+  // Returns "" if the operator cancels, which callers treat as "do nothing".
+  async function adminToken() {
+    if (ADMIN_TOKEN) return ADMIN_TOKEN;
+    var t = window.prompt("Admin password (separate from the dashboard password):");
+    ADMIN_TOKEN = (t || "").trim();
+    return ADMIN_TOKEN;
+  }
+
+  function selectedItems() {
+    return Object.keys(SELECTED).map(function (k) {
+      var i = k.indexOf(":");
+      return { kind: k.slice(0, i), id: k.slice(i + 1) };
+    });
+  }
+  // Names for the confirm dialog. Showing what is about to happen is the real guard
+  // against a mis-set filter: the count alone would not reveal a wrong selection.
+  function selectedNames() {
+    var byKey = {};
+    SESSIONS.concat(LINKSENT).forEach(function (s) {
+      byKey[(s._linkSent ? "seed" : "session") + ":" + s.id] = s.company || "(unnamed)";
+    });
+    return Object.keys(SELECTED).map(function (k) { return byKey[k] || k; });
+  }
+
+  async function adminAction(action) {
+    var items = selectedItems();
+    if (!items.length) return;
+    var names = selectedNames();
+    var preview = names.slice(0, 12).join(", ") + (names.length > 12 ? ", and " + (names.length - 12) + " more" : "");
+
+    if (action === "delete") {
+      // Deliberately heavier than the archive confirm: this is the irreversible one,
+      // and it reaches beyond the dashboard into stores the operator cannot see.
+      if (!window.confirm(
+        "Permanently delete " + items.length + " archived record(s)?\n\n" + preview +
+        "\n\nThis cannot be undone. It also removes the client link, its saved progress, " +
+        "and any resume draft.\n\nIt does NOT remove the Google Sheet or any Slack messages " +
+        "already sent — delete those separately if you need to.")) return;
+      if (window.prompt('Type DELETE to confirm.') !== "DELETE") return;
+    } else if (action === "archive") {
+      if (!window.confirm("Archive " + items.length + " record(s)?\n\n" + preview +
+        "\n\nThey are hidden from this view but nothing is deleted, and the client link keeps working. " +
+        "You can restore them from “Show archived”.")) return;
+    }
+
+    var tok = await adminToken();
+    if (!tok) return;
+
+    var res;
+    try {
+      res = await fetch(ADMIN_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-dashboard-token": getToken(), "x-admin-token": tok },
+        body: JSON.stringify({ action: action, items: items }),
+      });
+    } catch (e) { window.alert("Could not reach the server. Nothing was changed."); return; }
+
+    if (res.status === 401) {
+      ADMIN_TOKEN = ""; // wrong password: forget it so the next attempt re-prompts
+      window.alert("That admin password was not accepted. Nothing was changed.");
+      return;
+    }
+    if (res.status === 503) { window.alert("Archiving is not configured on this site (DASHBOARD_ADMIN_TOKEN is unset). Nothing was changed."); return; }
+    if (res.status === 429) { window.alert("Too many admin actions in a short time. Wait a moment and try again."); return; }
+    var d = await res.json().catch(function () { return {}; });
+    if (!res.ok) { window.alert("That did not go through. Nothing was changed."); return; }
+
+    // Report partial success honestly rather than implying everything worked. The
+    // commonest reason is delete-before-archive, which the server refuses by design.
+    if (d.applied !== d.requested) {
+      var notArchived = (d.results || []).filter(function (r) { return r.error === "not_archived"; }).length;
+      window.alert("Applied to " + d.applied + " of " + d.requested + "." +
+        (notArchived ? "\n\n" + notArchived + " were skipped because they must be archived before they can be deleted." : ""));
+    }
+    clearSel();
+    load();
+  }
+
   var COLS = [
+    { label: "", key: null, cls: "selcol", sel: true },
     { label: "Client", key: "company" }, { label: "Status", key: "status" },
     { label: "Progress", key: "percent" }, { label: "Captured", key: null },
     { label: "Time", key: "time" }, { label: "Tokens / cost", key: "tokens", cls: "num" },
@@ -893,8 +1070,13 @@
     renderInsights(list);
     renderActiveFilters();
     sortList(list);
+    LAST_LIST = list; // what select-all and the bulk bar act on
     var arrow = FILTER.sortDir === "asc" ? " ▲" : " ▼";
     var head = '<table><thead><tr>' + COLS.map(function (c) {
+      // Select-all applies to the CURRENT FILTERED VIEW, not the whole store. That is
+      // the safe reading: you tick what you can see, and what you can see is what the
+      // confirm dialog will list back to you.
+      if (c.sel) return '<th class="selcol"><input type="checkbox" id="selAll" aria-label="Select all shown"/></th>';
       if (!c.key) return '<th' + (c.cls ? ' class="' + c.cls + '"' : "") + '>' + esc(c.label) + '</th>';
       var active = FILTER.sortKey === c.key;
       // A resting sortable header must LOOK sortable: show a faint ⇅ until it is
@@ -903,10 +1085,32 @@
       return '<th class="sortable' + (c.cls ? " " + c.cls : "") + '" data-sort="' + c.key + '">' + esc(c.label) + (active ? arrow : ' <span class="sorthint" aria-hidden="true">⇅</span>') + '</th>';
     }).join("") + '</tr></thead><tbody>';
     var bodyRows = list.length ? list.map(rowHtml).join("")
-      : '<tr><td colspan="9" class="empty" style="padding:24px">No sessions match.</td></tr>';
+      : '<tr><td colspan="' + COLS.length + '" class="empty" style="padding:24px">No sessions match.</td></tr>';
     $("body").innerHTML =
+      '<div id="bulkSlot"></div>' +
       '<div class="tscroll">' + head + bodyRows + '</tbody></table></div>' +
       '<div class="note">Showing ' + list.length + ' of ' + (SESSIONS.length + LINKSENT.length) + '. A session is stored from the client\'s first real answer (marked in progress) and updated as they go; the completed record replaces it on send. "Stalled" = in progress with no activity for 48h. AI cost is an estimate at $' + RATES.input + '/$' + RATES.output + ' per MTok in/out (plus cache rates).</div>';
+    // Selection + bulk actions. Rebound on every render because the table is
+    // re-created wholesale; SELECTED survives in module state so ticks persist across
+    // a sort or filter change.
+    Array.prototype.forEach.call(document.querySelectorAll("input[data-sel]"), function (cb) {
+      cb.addEventListener("change", function () {
+        var k = cb.getAttribute("data-sel");
+        if (cb.checked) SELECTED[k] = true; else delete SELECTED[k];
+        paintSelection(); // not renderTable: the rows themselves have not changed
+      });
+    });
+    var selAll = document.getElementById("selAll");
+    if (selAll) selAll.addEventListener("change", function () {
+      // Scoped to the rows currently shown, so it never reaches past the filter.
+      LAST_LIST.map(selKeyOf).forEach(function (k) {
+        if (selAll.checked) SELECTED[k] = true; else delete SELECTED[k];
+      });
+      syncBoxes();
+      paintSelection();
+    });
+    paintSelection();
+
     Array.prototype.forEach.call(document.querySelectorAll("th.sortable"), function (th) {
       th.addEventListener("click", function () {
         var k = th.getAttribute("data-sort");

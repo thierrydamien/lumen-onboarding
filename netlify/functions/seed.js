@@ -167,10 +167,20 @@ export default async (req) => {
     try {
       const { blobs } = await store.list();
       const recs = await Promise.all(blobs.map((b) => store.get(b.key, { type: "json" }).catch(() => null)));
+      // Archived seeds are hidden from the dashboard's "link sent" rows, and returned
+      // only when explicitly asked for (?archived=1), mirroring session.js.
+      //
+      // NOTE the deliberate asymmetry with the GET-by-id branch above: an archived
+      // seed still RESOLVES for the client chat page. Archiving is a dashboard tidying
+      // action, not a kill switch — if a real client's link were archived by mistake,
+      // breaking their in-flight onboarding would be a far worse outcome than one
+      // stray row. Only a permanent delete removes the seed and invalidates the link.
+      const wantArchived = url.searchParams.get("archived") === "1";
       const seeds = [];
       for (const r of recs) {
         if (!r) continue;
         if (isExpired(r)) { store.delete(r.id).catch(() => {}); continue; }
+        if (wantArchived ? !r.archivedAt : !!r.archivedAt) continue;
         const safe = { id: r.id, savedAt: r.savedAt || null };
         for (const k of CLIENT_SAFE) if (r[k] != null) safe[k] = r[k];
         if (r.preparedBy != null) safe.preparedBy = r.preparedBy; // owner (dashboard only)
