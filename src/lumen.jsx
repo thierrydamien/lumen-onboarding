@@ -3721,7 +3721,11 @@ input,textarea,select,button{font-family:inherit}
 
         {!started && !saved && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"24px 24px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-            <svg aria-hidden="true" viewBox="0 0 900 240" preserveAspectRatio="none" style={{position:"absolute",top:0,left:0,width:"100%",height:220,pointerEvents:"none"}}>
+            {/* Masked and shortened (was 220px tall, unmasked): the 2px stroke used to run
+                straight through the h1 glyphs and read as a line struck through the title,
+                worst on mobile where it wraps to two lines and sits deeper into the band.
+                The band now fades out above the heading and reads as a backdrop to the mark. */}
+            <svg aria-hidden="true" viewBox="0 0 900 240" preserveAspectRatio="none" style={{position:"absolute",top:0,left:0,width:"100%",height:120,pointerEvents:"none",WebkitMaskImage:"linear-gradient(to bottom, #000 40%, transparent 100%)",maskImage:"linear-gradient(to bottom, #000 40%, transparent 100%)"}}>
               <defs><linearGradient id="lw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#7C3AED" stopOpacity="0"/><stop offset="0.5" stopColor="#7C3AED" stopOpacity="0.16"/><stop offset="1" stopColor="#7C3AED" stopOpacity="0"/></linearGradient></defs>
               <path d="M0,150 C180,60 320,220 480,130 C640,40 760,180 900,90 L900,0 L0,0 Z" fill="url(#lw)"/>
               <path d="M0,190 C220,110 380,240 560,150 C720,70 820,200 900,140" fill="none" stroke="#7C3AED" strokeOpacity="0.18" strokeWidth="2"/>
