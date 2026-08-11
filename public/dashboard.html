@@ -20,7 +20,10 @@
        styles). Design tokens match the T object in lumen.jsx. */
     --purple:#7C3AED; --purple-soft:#EDE7FB;
     --teal:#012B3A; --ink:#0f172a; --cherry:#e11d48; --mint:#DFFFDE;
-    --border:#e6e8ee; --muted:#64748b; --bg:#f6f5fb;
+    /* --muted was #64748b, which measures 4.39:1 on --bg — just under the 4.5:1
+       WCAG AA floor, and it carries the footnote and every filter label. Darkened
+       to clear the bar on both surfaces (4.72:1 on --bg, 5.11:1 on white). */
+    --border:#e6e8ee; --muted:#5f6f86; --bg:#f6f5fb;
     --radius-sm:6px; --radius-md:10px; --radius-lg:16px;
     --shadow-raise:0 1px 3px rgba(15,23,42,.06); --shadow-float:0 8px 24px rgba(0,0,0,.12); --shadow-modal:0 16px 48px rgba(0,0,0,.2);
   }
@@ -88,6 +91,14 @@
   .farch { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
   .selcol { width:34px; text-align:center; padding-left:10px; padding-right:0; }
   .selcol input { cursor:pointer; }
+  /* Sticky, because clearing test rows means scrolling down and ticking a run of them.
+     Rendered in flow above the table, the bar was ~1300px off-screen by the time you
+     reached the rows you wanted, so ticking a box produced no visible feedback and the
+     Archive button was nowhere on screen. The slot (not the bar) is the sticky element:
+     its parent #body spans the whole table, whereas the bar's own box does not, and a
+     sticky element cannot travel outside its parent. */
+  #bulkSlot { position:sticky; top:0; z-index:5; }
+  #bulkSlot:not(:empty) { background:var(--bg); padding-top:4px; }
   .bulkbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; padding:9px 13px;
              background:var(--purple-soft); border:1px solid var(--border); border-radius:10px; font-size:12px; font-weight:600; color:var(--purple); }
   .bulkbtn { background:#fff; color:var(--purple); border:1px solid var(--border); border-radius:8px; padding:6px 12px;
@@ -104,10 +115,33 @@
   .spill:hover { border-color:var(--purple); color:var(--purple); }
   .spill.on { background:var(--purple); border-color:var(--purple); color:#fff; font-weight:700; }
   .spill:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
-  th.sortable { cursor:pointer; user-select:none; white-space:nowrap; }
-  th.sortable:hover { color:var(--purple); }
+  /* Sorting is a real button inside the th, not a click handler on the th itself.
+     A bare <th onclick> is unreachable by keyboard and invisible to assistive tech;
+     the th keeps aria-sort so the current sort is announced. */
+  th.sortable { user-select:none; white-space:nowrap; padding:0; }
+  .sortbtn { background:none; border:none; cursor:pointer; font:inherit; color:inherit;
+             text-transform:inherit; letter-spacing:inherit; width:100%; text-align:inherit;
+             padding:12px 14px; }
+  .sortbtn:hover { color:var(--purple); }
+  .sortbtn:focus-visible { outline:2px solid var(--purple); outline-offset:-2px; }
   th.sortable .sorthint { opacity:.5; font-size:10px; }
+  /* The client name is the row's primary action as a real button, so the session
+     detail is reachable by keyboard. The whole row stays clickable for the mouse. */
+  .rowopen { background:none; border:none; padding:0; font-family:inherit; font-size:13px;
+             font-weight:700; color:var(--ink); cursor:pointer; text-align:left; }
+  .rowopen:hover { color:var(--purple); text-decoration:underline; }
+  .rowopen:focus-visible { outline:2px solid var(--purple); outline-offset:2px; border-radius:3px; }
   .fclear { background:#fff; border:1px solid #c3ccd6; border-radius:9px; padding:7px 15px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); }
+  /* Progressive disclosure for the six less-used filters. Search and status stay in the
+     bar because they carry nearly all the traffic; package, language, progress and the
+     date range were together making the filter row taller than the first table rows.
+     Nothing is hidden dangerously: the active-filter chips below still name every
+     filter in force, and the toggle carries a count when any of these are set. */
+  .fmore { background:#fff; border:1px solid var(--border); border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); }
+  .fmore:hover { border-color:var(--purple); color:var(--purple); }
+  .fmore.on { background:var(--purple-soft); border-color:var(--purple); color:var(--purple); }
+  .morefilters { flex-basis:100%; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .morefilters.closed { display:none; }
   /* Active-filter chips: a visible, individually-removable summary of what's filtering. */
   #activeFilters { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 2px 16px; }
   #activeFilters:empty { display:none; }
@@ -210,7 +244,10 @@
   .barrow-click:focus-visible { box-shadow:0 0 0 2px rgba(124,58,237,.4); }
   .barrow.active { background:#efeafe; }
   .barrow.active .lbl { color:var(--purple); font-weight:700; }
-  .chint { font-weight:600; text-transform:none; letter-spacing:0; color:#a9b0bd; font-size:10px; margin-left:6px; }
+  /* Was #a9b0bd, which measures 2.18:1 on the white chart card — a real instruction
+     rendered at 10px and effectively unreadable. It stays subordinate to the heading
+     via size and sentence case, not by being too faint to read. */
+  .chint { font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted); font-size:10px; margin-left:6px; }
   /* Funnel */
   .fstage { margin-bottom:13px; }
   .fhead { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--muted); margin-bottom:4px; }
@@ -325,6 +362,27 @@
   function fmtDate(iso) {
     if (!iso) return "—";
     try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+  }
+  // "Last active" is the default sort and the column you scan straight down, where a
+  // wall of "11/08/2026, 08:27:30" is far slower to read than "3d ago". Relative here,
+  // exact on hover (title). Sorting and the CSV both work off the raw ISO value, so
+  // neither is affected by how this renders. Past a month, an absolute date beats
+  // "9w ago" — nobody counts weeks that far back.
+  function fmtRelative(iso) {
+    if (!iso) return "—";
+    var t = Date.parse(iso);
+    if (!isFinite(t)) return "—";
+    var s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return "just now";            // also covers small negative clock skew
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + " min ago";
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    var d = Math.floor(h / 24);
+    if (d < 7) return d + "d ago";
+    var w = Math.floor(d / 7);
+    if (w < 5) return w + "w ago";
+    try { return new Date(t).toLocaleDateString(); } catch (e) { return iso; }
   }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
@@ -503,6 +561,10 @@
   // status is a LIST so several can be active at once (e.g. stalled + link sent,
   // the two that need chasing). Empty means no status filter rather than a magic "all".
   var FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
+  // Whether the "More filters" panel is expanded. Module state, not derived from
+  // FILTER: renderFilters() runs on every status-pill click and chart cross-filter, so
+  // deriving it would snap the panel shut mid-interaction.
+  var MOREOPEN = false;
   // Package code -> friendly label (product line + support tier), for the filter
   // dropdown, the "by package" chart, and CSV. Codes come from the sales page.
   var PKG_PRODUCT = { core: "Core", analyze: "Analyze/Research", business: "Business/Premium" };
@@ -719,6 +781,7 @@
         '</select></label>';
     }
     var box = $("filters");
+    var moreN = secondaryFilterCount();
     box.innerHTML =
       '<input id="fSearch" type="search" placeholder="Search client, contact, email, prepared by…" value="' + esc(FILTER.q) + '"/>' +
       '<div class="fstatus"><span class="fslabel">Status</span>' +
@@ -727,16 +790,27 @@
           return '<button type="button" class="spill' + (on ? " on" : "") + '" data-status="' + esc(o[0]) +
             '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(o[1]) + '</button>';
         }).join("") + '</div>' +
-      sel("fPct", "Progress", pctOpts, FILTER.minPct) +
-      (ownerKeys.length ? sel("fOwner", "Prepared by", ownerOpts, FILTER.owner) : "") +
-      (pkgKeys.length ? sel("fPkg", "Package", pkgOpts, FILTER.pkg) : "") +
-      (langKeys.length ? sel("fLang", "Language", langOpts, FILTER.lang) : "") +
-      '<label>From <input id="fFrom" type="date" value="' + esc(FILTER.dateFrom) + '"/></label>' +
-      '<label>To <input id="fTo" type="date" value="' + esc(FILTER.dateTo) + '"/></label>' +
+      '<button type="button" id="fMore" class="fmore' + (moreN ? " on" : "") + '" aria-expanded="' +
+        (MOREOPEN ? "true" : "false") + '" aria-controls="moreBox">More filters' + (moreN ? " (" + moreN + ")" : "") + '</button>' +
       '<button type="button" id="fClear" class="fclear">Clear</button>' +
       '<button type="button" id="fExport" class="fexport">Export CSV</button>' +
-      '<label class="farch"><input type="checkbox" id="fArchived"' + (SHOW_ARCHIVED ? " checked" : "") + '/> Show archived</label>';
+      '<label class="farch"><input type="checkbox" id="fArchived"' + (SHOW_ARCHIVED ? " checked" : "") + '/> Show archived</label>' +
+      '<div class="morefilters' + (MOREOPEN ? "" : " closed") + '" id="moreBox">' +
+        sel("fPct", "Progress", pctOpts, FILTER.minPct) +
+        (ownerKeys.length ? sel("fOwner", "Prepared by", ownerOpts, FILTER.owner) : "") +
+        (pkgKeys.length ? sel("fPkg", "Package", pkgOpts, FILTER.pkg) : "") +
+        (langKeys.length ? sel("fLang", "Language", langOpts, FILTER.lang) : "") +
+        '<label>From <input id="fFrom" type="date" value="' + esc(FILTER.dateFrom) + '"/></label>' +
+        '<label>To <input id="fTo" type="date" value="' + esc(FILTER.dateTo) + '"/></label>' +
+      '</div>';
     box.hidden = false;
+    // Toggling only flips a class: no re-render, so the panel can't collapse under the
+    // user while they are working through it.
+    $("fMore").addEventListener("click", function () {
+      MOREOPEN = !MOREOPEN;
+      $("moreBox").classList.toggle("closed", !MOREOPEN);
+      this.setAttribute("aria-expanded", MOREOPEN ? "true" : "false");
+    });
     // #filters is a separate container from #body, so re-rendering the table on
     // each keystroke does not steal focus from this input.
     $("fSearch").addEventListener("input", function (e) { FILTER.q = e.target.value; renderTable(); });
@@ -799,15 +873,24 @@
     var selKey = selKind + ":" + s.id;
     var selCell = '<td class="selcol"><input type="checkbox" data-link="1" data-sel="' + esc(selKey) +
       '" aria-label="Select ' + esc(s.company || "session") + '"' + (SELECTED[selKey] ? " checked" : "") + '/></td>';
+    // The name is a button on rows that HAVE a session to open, and plain text on
+    // "link sent" rows (a link generated but never opened has no detail to show), so
+    // the keyboard affordance never promises something the click would not do.
+    // data-link marks it as handling its own click, the convention the row handler
+    // already respects, so it opens once rather than twice.
+    var nameCell = s._linkSent
+      ? '<strong>' + esc(s.company) + '</strong>'
+      : '<button type="button" class="rowopen" data-link="1" data-open="' + esc(s.id) + '">' + esc(s.company) + '</button>';
     return '<tr class="row"' + (s._linkSent ? ' data-noopen="1"' : '') + ' data-id="' + esc(s.id) + '">' + selCell +
-      '<td><strong>' + esc(s.company) + '</strong>' + (s.seeded && !s._linkSent ? '<span class="chip">seeded</span>' : "") +
+      '<td>' + nameCell + (s.seeded && !s._linkSent ? '<span class="chip">seeded</span>' : "") +
         '<div class="muted">' + esc(s.contact || s.email || "") + '</div></td>' +
       '<td><span class="pill ' + meta.c + '">' + esc(meta.l) + '</span></td>' +
       '<td><div class="pbar"><i style="width:' + pct + '%"></i></div><div class="sub2">' + pct + '%</div></td>' +
       '<td>' + num(s.topicCount) + ' topics · ' + num(s.channelCount) + ' channels · ' + num(s.userCount) + ' users</td>' +
       '<td>' + fmtDuration(s.durationMs) + '</td>' +
       '<td class="num">' + fmtTokens(tok) + '<div class="sub2">' + fmtCost(costOf(s.tokens)) + (typeof s.apiCalls === "number" ? ' · ' + s.apiCalls + ' calls' : "") + '</div></td>' +
-      '<td class="muted">' + esc(fmtDate(s.lastActiveAt || s.sentAt || s.savedAt)) + '</td>' +
+      '<td class="muted"><span title="' + esc(fmtDate(s.lastActiveAt || s.sentAt || s.savedAt)) + '">' +
+        esc(fmtRelative(s.lastActiveAt || s.sentAt || s.savedAt)) + '</span></td>' +
       '<td class="muted">' + (s.owner ? esc(s.owner) : '<span class="none">—</span>') + '</td>' +
       '<td class="rep">' + rep + '</td>' +
     '</tr>';
@@ -815,15 +898,11 @@
 
   // ---- Archive / delete -----------------------------------------------------
   // Two-stage by design: archiving only hides a row and is reversible; permanent
-  // deletion is refused by the server unless the record is already archived. The
-  // second password is a SEPARATE secret from the dashboard token, so read access
-  // alone can never destroy anything.
+  // deletion is refused by the server unless the record is already archived. There is
+  // no second password — the confirm dialogs (which name the affected clients) and the
+  // "type DELETE" step are the guard against a misclick.
   var SELECTED = {};          // "kind:id" -> true, for the current view
   var SHOW_ARCHIVED = false;
-  // Held in memory ONLY, never sessionStorage. The dashboard token is cached for the
-  // tab because it is needed on every request; this one guards destructive actions, so
-  // it should die on refresh and leave a walked-away laptop unable to delete anything.
-  var ADMIN_TOKEN = "";
 
   function selCount() { return Object.keys(SELECTED).length; }
   function clearSel() { SELECTED = {}; }
@@ -853,7 +932,11 @@
     var selAll = document.getElementById("selAll");
     if (selAll) {
       var shown = LAST_LIST.map(selKeyOf);
-      selAll.checked = shown.length > 0 && shown.every(function (k) { return SELECTED[k]; });
+      var picked = shown.filter(function (k) { return SELECTED[k]; }).length;
+      selAll.checked = shown.length > 0 && picked === shown.length;
+      // A partial selection must not look identical to an empty one. Without this, one
+      // row ticked out of thirty leaves the header box plainly unchecked.
+      selAll.indeterminate = picked > 0 && picked < shown.length;
     }
   }
   // Push SELECTED back onto the rendered checkboxes (used by Clear and select-all,
@@ -874,15 +957,6 @@
       : '<button type="button" class="bulkbtn" id="bulkArchive">Archive ' + n + '</button>';
     return '<div class="bulkbar"><span>' + n + ' selected</span>' + verb +
       '<button type="button" class="bulkbtn ghost" id="bulkClear">Clear</button></div>';
-  }
-
-  // Prompts once per page load, then reuses the value for the rest of the session.
-  // Returns "" if the operator cancels, which callers treat as "do nothing".
-  async function adminToken() {
-    if (ADMIN_TOKEN) return ADMIN_TOKEN;
-    var t = window.prompt("Admin password (separate from the dashboard password):");
-    ADMIN_TOKEN = (t || "").trim();
-    return ADMIN_TOKEN;
   }
 
   function selectedItems() {
@@ -922,24 +996,19 @@
         "You can restore them from “Show archived”.")) return;
     }
 
-    var tok = await adminToken();
-    if (!tok) return;
-
     var res;
     try {
       res = await fetch(ADMIN_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-dashboard-token": getToken(), "x-admin-token": tok },
+        headers: { "Content-Type": "application/json", "x-dashboard-token": getToken() },
         body: JSON.stringify({ action: action, items: items }),
       });
     } catch (e) { window.alert("Could not reach the server. Nothing was changed."); return; }
 
     if (res.status === 401) {
-      ADMIN_TOKEN = ""; // wrong password: forget it so the next attempt re-prompts
-      window.alert("That admin password was not accepted. Nothing was changed.");
+      window.alert("Not authorized. Try refreshing and re-entering the dashboard password.");
       return;
     }
-    if (res.status === 503) { window.alert("Archiving is not configured on this site (DASHBOARD_ADMIN_TOKEN is unset). Nothing was changed."); return; }
     if (res.status === 429) { window.alert("Too many admin actions in a short time. Wait a moment and try again."); return; }
     var d = await res.json().catch(function () { return {}; });
     if (!res.ok) { window.alert("That did not go through. Nothing was changed."); return; }
@@ -1030,22 +1099,56 @@
   // Active-filter chips: a labelled, individually-removable summary of everything
   // currently filtering, so removing one filter (e.g. a language set by clicking a
   // chart bar) is one obvious click rather than "re-click the highlighted bar".
+  // Which dimensions are currently narrowing the list, as clear-keys. ONE definition,
+  // read by the chips, the "More filters" badge and the empty state, so those three can
+  // never disagree about whether a filter is active.
+  function activeFilterDims() {
+    var d = [];
+    FILTER.status.forEach(function (st) { d.push("status:" + st); });
+    if (FILTER.minPct > 0) d.push("minPct");
+    if (FILTER.owner && FILTER.owner !== "all") d.push("owner");
+    if (FILTER.pkg && FILTER.pkg !== "all") d.push("pkg");
+    if (FILTER.lang && FILTER.lang !== "all") d.push("lang");
+    if (FILTER.q && FILTER.q.trim()) d.push("q");
+    if (FILTER.dateFrom) d.push("dateFrom");
+    if (FILTER.dateTo) d.push("dateTo");
+    return d;
+  }
+  function filterLabel(dim) {
+    if (dim.indexOf("status:") === 0) { var st = dim.slice(7); return "Status: " + ((STATUS_META[st] || {}).l || st); }
+    if (dim === "minPct") return "Progress: ≥" + FILTER.minPct + "%";
+    if (dim === "owner") return "Prepared by: " + FILTER.owner;
+    if (dim === "pkg") return "Package: " + pkgLabel(FILTER.pkg);
+    if (dim === "lang") return "Language: " + FILTER.lang;
+    if (dim === "q") return 'Search: "' + FILTER.q.trim() + '"';
+    if (dim === "dateFrom") return "From: " + FILTER.dateFrom;
+    if (dim === "dateTo") return "To: " + FILTER.dateTo;
+    return dim;
+  }
+  // The dimensions that live behind "More filters". Search and status stay in the bar.
+  var SECONDARY_DIMS = ["minPct", "owner", "pkg", "lang", "dateFrom", "dateTo"];
+  function secondaryFilterCount() {
+    return activeFilterDims().filter(function (d) { return SECONDARY_DIMS.indexOf(d) !== -1; }).length;
+  }
+
+  // The "More filters" badge reflects FILTER, but the controls inside the panel call
+  // only renderTable() on change (re-rendering the bar would destroy the <select> the
+  // user is mid-interaction with, and drop focus). So repaint just the badge in place,
+  // on every table render. Without this the count silently never appears.
+  function paintMoreBadge() {
+    var b = $("fMore"); if (!b) return;
+    var n = secondaryFilterCount();
+    b.textContent = "More filters" + (n ? " (" + n + ")" : "");
+    b.classList.toggle("on", n > 0);
+  }
+
   function renderActiveFilters() {
+    paintMoreBadge();
     var el = $("activeFilters"); if (!el) return;
-    var chips = [];
-    FILTER.status.forEach(function (st) {
-      chips.push(["status:" + st, "Status: " + ((STATUS_META[st] || {}).l || st)]);
-    });
-    if (FILTER.minPct > 0) chips.push(["minPct", "Progress: ≥" + FILTER.minPct + "%"]);
-    if (FILTER.owner && FILTER.owner !== "all") chips.push(["owner", "Prepared by: " + FILTER.owner]);
-    if (FILTER.pkg && FILTER.pkg !== "all") chips.push(["pkg", "Package: " + pkgLabel(FILTER.pkg)]);
-    if (FILTER.lang && FILTER.lang !== "all") chips.push(["lang", "Language: " + FILTER.lang]);
-    if (FILTER.q && FILTER.q.trim()) chips.push(["q", 'Search: "' + FILTER.q.trim() + '"']);
-    if (FILTER.dateFrom) chips.push(["dateFrom", "From: " + FILTER.dateFrom]);
-    if (FILTER.dateTo) chips.push(["dateTo", "To: " + FILTER.dateTo]);
-    if (!chips.length) { el.innerHTML = ""; return; }
+    var dims = activeFilterDims();
+    if (!dims.length) { el.innerHTML = ""; return; }
     el.innerHTML = '<span class="aflabel">Filtering:</span>' +
-      chips.map(function (c) { return '<button type="button" class="afchip" data-clear="' + esc(c[0]) + '">' + esc(c[1]) + ' <span aria-hidden="true">×</span></button>'; }).join("") +
+      dims.map(function (d) { return '<button type="button" class="afchip" data-clear="' + esc(d) + '">' + esc(filterLabel(d)) + ' <span aria-hidden="true">×</span></button>'; }).join("") +
       '<button type="button" class="afclear" data-clear="__all__">Clear all</button>';
   }
   // Reset a single filter (or all) to its default, then re-render.
@@ -1082,10 +1185,25 @@
       // A resting sortable header must LOOK sortable: show a faint ⇅ until it is
       // the active sort (then the real ▲/▼ takes over). Hover-only affordances are
       // invisible until stumbled upon, and don't exist at all on touch.
-      return '<th class="sortable' + (c.cls ? " " + c.cls : "") + '" data-sort="' + c.key + '">' + esc(c.label) + (active ? arrow : ' <span class="sorthint" aria-hidden="true">⇅</span>') + '</th>';
+      // aria-sort on the th announces the current sort; the button inside it is what
+      // makes sorting reachable at all without a mouse.
+      var aSort = active ? (FILTER.sortDir === "asc" ? "ascending" : "descending") : "none";
+      return '<th class="sortable' + (c.cls ? " " + c.cls : "") + '" aria-sort="' + aSort + '">' +
+        '<button type="button" class="sortbtn" data-sort="' + c.key + '">' +
+        esc(c.label) + (active ? arrow : ' <span class="sorthint" aria-hidden="true">⇅</span>') + '</button></th>';
     }).join("") + '</tr></thead><tbody>';
+    // Empty state names how many filters are responsible and offers the way out. "No
+    // sessions match." alone left the reader to work out that the cause was a filter
+    // and to go find the control that set it.
+    var nDims = activeFilterDims().length;
     var bodyRows = list.length ? list.map(rowHtml).join("")
-      : '<tr><td colspan="' + COLS.length + '" class="empty" style="padding:24px">No sessions match.</td></tr>';
+      : '<tr><td colspan="' + COLS.length + '" class="empty" style="padding:32px 24px">' +
+          '<div style="font-size:15px;font-weight:700;color:var(--teal);margin-bottom:4px">No sessions match</div>' +
+          '<div style="margin-bottom:14px">' + (nDims
+            ? (nDims === 1 ? "One filter is" : nDims + " filters are") + " narrowing the list."
+            : "Nothing to show here.") + '</div>' +
+          (nDims ? '<button type="button" class="fclear" id="emptyClear">Clear filters</button>' : "") +
+        '</td></tr>';
     $("body").innerHTML =
       '<div id="bulkSlot"></div>' +
       '<div class="tscroll">' + head + bodyRows + '</tbody></table></div>' +
@@ -1111,12 +1229,28 @@
     });
     paintSelection();
 
-    Array.prototype.forEach.call(document.querySelectorAll("th.sortable"), function (th) {
-      th.addEventListener("click", function () {
-        var k = th.getAttribute("data-sort");
+    Array.prototype.forEach.call(document.querySelectorAll(".sortbtn"), function (b) {
+      b.addEventListener("click", function () {
+        var k = b.getAttribute("data-sort");
         if (FILTER.sortKey === k) { FILTER.sortDir = FILTER.sortDir === "asc" ? "desc" : "asc"; }
         else { FILTER.sortKey = k; FILTER.sortDir = k === "company" ? "asc" : "desc"; }
         renderTable();
+        // The table is rebuilt wholesale, so focus would fall back to <body> and a
+        // keyboard user would lose their place mid-sort. Put it back on the same column.
+        var again = document.querySelector('.sortbtn[data-sort="' + k + '"]');
+        if (again) again.focus();
+      });
+    });
+    // Empty-state escape hatch. Defers to the real Clear button so there is one reset
+    // path rather than two that can drift.
+    var ec = $("emptyClear");
+    if (ec) ec.addEventListener("click", function () { var fc = $("fClear"); if (fc) fc.click(); });
+    // Opening a session from the keyboard: the row's name button. Mouse users can still
+    // click anywhere on the row (handler below); this is the same action, reachable.
+    Array.prototype.forEach.call(document.querySelectorAll(".rowopen"), function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        openSession(b.getAttribute("data-open"));
       });
     });
     Array.prototype.forEach.call(document.querySelectorAll("tr.row"), function (tr) {
@@ -1446,6 +1580,27 @@
 
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("modal").classList.contains("show")) closeModal(); });
+  // Keep Tab inside the dialog while it is open. aria-modal="true" tells assistive tech
+  // the rest of the page is inert, but it does NOT change the browser's tab order: the
+  // page behind is still fully focusable, so tabbing past the last control walked the
+  // keyboard silently out of the dialog and into a table the user could no longer see.
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Tab" || !$("modal").classList.contains("show")) return;
+    var sheet = $("sheet");
+    // Only elements actually rendered: the brief hides sections that have no content,
+    // and a zero-size control must not become an invisible tab stop.
+    var nodes = Array.prototype.filter.call(sheet.querySelectorAll(FOCUSABLE), function (n) {
+      return n.offsetWidth > 0 || n.offsetHeight > 0;
+    });
+    if (!nodes.length) { e.preventDefault(); sheet.focus(); return; }
+    var first = nodes[0], last = nodes[nodes.length - 1], here = document.activeElement;
+    // Focus sitting outside the sheet (or on the sheet itself) means we are entering:
+    // send it to whichever end the direction implies rather than letting it escape.
+    if (!sheet.contains(here) || here === sheet) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+    if (e.shiftKey && here === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && here === last) { e.preventDefault(); first.focus(); }
+  });
   $("refresh").addEventListener("click", load);
   $("insToggle").addEventListener("click", function () {
     var hidden = $("insights").classList.toggle("hidden");
