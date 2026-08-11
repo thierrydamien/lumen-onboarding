@@ -3,10 +3,11 @@
 // The rules that matter are the ones a UI can't be trusted to enforce, so they are
 // tested against the shipped source rather than a restatement of it:
 //   - permanent deletion is refused unless the record is ALREADY archived
-//   - the admin gate FAILS CLOSED when unconfigured (opposite of the Origin checks)
 //   - archiving a session also hides the "link sent" seed row beside it
 //   - archiving never deletes, and never breaks the client's link
 //   - a still-open client tab cannot resurrect an archived row via autosave
+//   - there is no second password: the dashboard token gates everything, and the
+//     archive-before-delete guard is what stands in for a confirmation step
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -36,22 +37,17 @@ describe("permanent delete is gated on archive, server-side", () => {
   });
 });
 
-describe("the admin gate", () => {
-  it("is a SEPARATE secret from the dashboard token", () => {
-    expect(admin).toContain("DASHBOARD_ADMIN_TOKEN");
-    expect(admin).toContain("x-admin-token");
-    // And the read token is still required, so read access alone is not enough.
+describe("auth", () => {
+  it("requires the dashboard token, and nothing else", () => {
+    // No second password: the archive-before-delete guard and the dashboard's own
+    // confirm dialogs are what stand in for one.
     expect(admin).toContain("DASHBOARD_TOKEN");
     expect(admin).toContain("x-dashboard-token");
+    expect(admin).not.toContain("DASHBOARD_ADMIN_TOKEN");
+    expect(admin).not.toContain("x-admin-token");
   });
 
-  it("fails CLOSED when unconfigured", () => {
-    // Deliberately unlike the Origin checks elsewhere, which warn and continue when
-    // URL is unset. An unconfigured gate must never mean "anyone may delete".
-    expect(admin).toMatch(/if \(!adminToken\)[\s\S]{0,200}503/);
-  });
-
-  it("compares tokens in constant time", () => {
+  it("compares the token in constant time", () => {
     expect(admin).toContain("timingSafeEqual");
   });
 

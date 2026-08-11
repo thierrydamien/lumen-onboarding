@@ -16,12 +16,10 @@
 // client's brief takes two deliberate actions separated by a visible state change,
 // rather than one misclick.
 //
-// AUTH: requires the dashboard read token AND a second, separate admin token. Holding
-// the dashboard password is not enough to destroy anything.
-//
-// SETUP: set DASHBOARD_ADMIN_TOKEN in the Netlify environment (a long random string,
-// different from DASHBOARD_TOKEN). Until it is set this endpoint is disabled and
-// returns 503 — see the fail-CLOSED note on the check itself.
+// AUTH: the dashboard read token, same as every other read/write here. There is no
+// second password — the two-stage archive-then-delete flow plus the dashboard's own
+// confirm dialogs (which name the affected clients and require typing "DELETE") are
+// the guard against a misclick, not a separate secret.
 
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
@@ -38,7 +36,7 @@ const MAX_BODY_BYTES = 100_000;
 const MAX_ITEMS = 200;
 // Deliberately tight. This is a destructive, human-driven action: nobody legitimately
 // issues more than a handful of these a minute, so a low ceiling costs nothing and
-// bounds the damage from a leaked admin token.
+// bounds the damage from a leaked dashboard token.
 const RL = { perMin: 10, perHour: 60 };
 
 // Same shapes the two stores actually mint (see genId in session.js, and "sd_"+uuid in
@@ -76,22 +74,6 @@ export default async (req) => {
   if (!readToken) return json(500, { error: "dashboard_token_not_configured" });
   if (!tokenMatches(req.headers.get("x-dashboard-token"), readToken)) {
     return json(401, { error: "unauthorized" });
-  }
-
-  // Gate 2: a SEPARATE admin token.
-  //
-  // FAILS CLOSED, unlike the Origin checks elsewhere in this codebase which warn and
-  // continue when URL is unset. That asymmetry is deliberate: an unconfigured
-  // permissive gate is an acceptable degradation for a same-origin sanity check and an
-  // unacceptable one for permanent deletion of client data. No token, no endpoint.
-  const adminToken = process.env.DASHBOARD_ADMIN_TOKEN;
-  if (!adminToken) {
-    console.error("DASHBOARD_ADMIN_TOKEN is not set — session-admin is disabled");
-    return json(503, { error: "admin_not_configured" });
-  }
-  if (!tokenMatches(req.headers.get("x-admin-token"), adminToken)) {
-    console.warn("session-admin: bad admin token from", clientIp(req));
-    return json(401, { error: "unauthorized_admin" });
   }
 
   const rl = await rateLimit(req, "session-admin", RL);
