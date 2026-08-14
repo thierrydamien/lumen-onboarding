@@ -4392,7 +4392,7 @@ input,textarea,select,button{font-family:inherit}
 
 // ================= DEMO SHELL =================
 
-function buildWorkbook(XL, merged, users) {
+export function buildWorkbook(XL, merged, users) {
   const co = merged.company || {}, topics = merged.topics || [], channels = merged.channels || [],
         rpts = merged.reports || [], alts = merged.alerts || [];
   const companyName = co.name || "Draft";
