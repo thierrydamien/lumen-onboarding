@@ -1952,7 +1952,11 @@ function Ic({ d, size=15 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}/></svg>;
 }
 const IC = {
-  panel:  "M4 5h16M4 12h16M4 19h10",
+  // A sidebar-panel glyph, not a hamburger: three lines read as "menu" and
+  // clients never guessed the captured-answers panel lived behind it. panelL
+  // mirrors the divider for RTL, where the panel docks on the left.
+  panel:  "M3 5h18v14H3Z M15 5v14",
+  panelL: "M3 5h18v14H3Z M9 5v14",
   sound:  "M11 5 6 9H3v6h3l5 4V5Z M15.5 8.5a5 5 0 0 1 0 7 M18.5 5.5a9 9 0 0 1 0 13",
   mute:   "M11 5 6 9H3v6h3l5 4V5Z M22 9l-6 6 M16 9l6 6",
   moon:   "M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z",
@@ -4024,6 +4028,8 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     [L("pnlAlerts",uiLang), cdata.alerts?.length?cdata.alerts.map(a=>a.name).filter(Boolean).join(", "):null],
     [L("pnlUsers",uiLang), usersList.length?usersList.map(u=>`${u.firstName} (${u.access})`).join(", "):null],
   ];
+  const capturedN = panelRows.filter(([,v]) => v).length;
+  const panelGlyph = uiLang==="Arabic" ? IC.panelL : IC.panel;
 
   return (
     <div className="lm-theme" dir={uiLang==="Arabic"?"rtl":"ltr"} style={{fontFamily:"'Inter', Arial, sans-serif",height:"100%",background:C.bg,display:"flex",flexDirection:"column",color:C.text,overflow:"hidden"}}>
@@ -4069,7 +4075,7 @@ input,textarea,select,button{font-family:inherit}
         {/* Header: a LABELLED "Hide" control, not a lone ✕. The faint ✕ read as
             decoration and clients did not realise the panel could be closed. */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:7}}><span style={{color:LINK,display:"inline-flex"}}><Ic d={IC.panel} size={14}/></span>{L("panelTitle",uiLang)}</div>
+          <div style={{fontWeight:700,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:7}}><span style={{color:LINK,display:"inline-flex"}}><Ic d={panelGlyph} size={14}/></span>{L("panelTitle",uiLang)}</div>
           <button onClick={()=>setShowPanel(false)} aria-label={L("panelHide",uiLang)} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.hi,border:`1px solid ${C.border}`,borderRadius:999,color:C.muted,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 11px"}}>
             {L("panelHide",uiLang)}<span aria-hidden="true" style={{fontSize:13,lineHeight:1}}>{uiLang==="Arabic"?"‹":"›"}</span>
           </button>
@@ -4139,7 +4145,17 @@ input,textarea,select,button{font-family:inherit}
           </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {started && <button onClick={()=>setShowPanel(s=>!s)} aria-label={showPanel?"Hide captured answers":"Show captured answers"} aria-pressed={showPanel} title="Show what's been captured so far" style={{background:showPanel?A:C.card,border:`1px solid ${showPanel?A:C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:showPanel?"white":C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={IC.panel}/></button>}
+          {/* Closed, this button is the ONLY way back to the captured-answers panel,
+              and it sits between two settings toggles — so it must not read as one.
+              The count badge is what says "content lives here, and it's growing";
+              it only shows while the panel is closed (open, the panel itself is the
+              signal) and the count is folded into the accessible name. Labels reuse
+              the translated panelTitle/panelHide strings — the old hardcoded English
+              aria-label was wrong in 5 of 6 languages. */}
+          {started && <button onClick={()=>setShowPanel(s=>!s)} aria-label={showPanel?L("panelHide",uiLang):`${L("panelTitle",uiLang)}${capturedN?` (${capturedN})`:""}`} aria-pressed={showPanel} title={showPanel?L("panelHide",uiLang):L("panelTitle",uiLang)} style={{position:"relative",background:showPanel?A:C.card,border:`1px solid ${showPanel?A:C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:showPanel?"white":C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+            <Ic d={panelGlyph}/>
+            {!showPanel && capturedN>0 && <span aria-hidden="true" style={{position:"absolute",top:-5,insetInlineEnd:-5,minWidth:17,height:17,padding:"0 4px",borderRadius:999,background:A,color:"white",fontSize:10,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,border:`2px solid ${C.card}`,boxSizing:"border-box"}}>{capturedN}</span>}
+          </button>}
           <button onClick={()=>{init();setSound(s=>!s);}} aria-label={sound?"Turn sound off":"Turn sound on"} title={sound?"Sound on":"Sound off"} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={sound?IC.sound:IC.mute}/></button>
           <button onClick={()=>setTheme(th=>th==="dark"?"light":"dark")} aria-label={dark?"Switch to light mode":"Switch to dark mode"} title={dark?"Light mode":"Dark mode"} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={dark?IC.sun:IC.moon}/></button>
         </div>
