@@ -11,7 +11,43 @@
 // written on every harness run so the number can be checked by reading.
 
 import { describe, it, expect } from "vitest";
-import { countQuestions, multiQuestion } from "../tools/quality-checks.mjs";
+import { countQuestions, multiQuestion, visibleOf } from "../tools/quality-checks.mjs";
+import { stripAll } from "../src/lumen.jsx";
+
+// The harness cannot import src/lumen.jsx (JSX, pulls in React), so it carries a
+// copy of the client's stripping. Vitest CAN import both, so pin them together
+// here — drift between them is what made a whole A/B run unreadable.
+describe("the harness sees what the client sees", () => {
+  const CASES = [
+    // The exact failure: the prompt asks for <thought>, the model often emits
+    // <thinking>. Production strips all four spellings; the harness stripped one,
+    // so an entire reasoning block was scored and judged as visible prose.
+    "<thinking>The client wants exclusions. I should fold these into keywords. Do they mean weather? Or the tech company?</thinking>\n\nI'll add those exclusions now.",
+    "<thought>terse plan</thought>\n\nWhat markets matter most?",
+    "<think>short</think>\n\nGot it.",
+    "<thoughts>plural spelling</thoughts>\n\nUnderstood.",
+    // Brace form is what the prompt specifies; the harness matched only a
+    // bracketed form that the model never emits.
+    'Here are your topics.\nTOPIC_SUGGESTION{"name":"Acme","keywords":"acme"}\nDoes that look right?',
+    '%%PROGRESS%%{"section":"intro","percent":0,"collected":{}}%%END%%\n\nWelcome!',
+    "Pick your markets.\n\n[WIDGET:MARKETS]",
+    "How experienced are you?\n\n[SUGGESTIONS: Just starting | Some experience]",
+    "We can send what we have.\n\n[OFFER_SEND]",
+    "Voilà.\n<thinking>truncated mid-block",
+  ];
+
+  for (const raw of CASES) {
+    it(`agrees with stripAll on: ${JSON.stringify(raw.slice(0, 44))}…`, () => {
+      expect(visibleOf(raw)).toBe(stripAll(raw));
+    });
+  }
+
+  it("does not count a leaked reasoning block as questions", () => {
+    const leaked = "<thinking>Should I ask about markets? Or objectives? Maybe both?</thinking>\n\nWhich markets matter most to you?";
+    expect(countQuestions(leaked)).toBeGreaterThan(1);          // raw text is full of them
+    expect(multiQuestion(visibleOf(leaked))).toBe(false);       // what the client sees is one question
+  });
+});
 
 describe("genuine violations are caught", () => {
   it("catches a question followed by a rephrasing of itself", () => {

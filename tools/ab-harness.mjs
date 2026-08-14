@@ -31,7 +31,7 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPromptConst } from "./extract-prompt.mjs";
-import { multiQuestion } from "./quality-checks.mjs";
+import { multiQuestion, visibleOf } from "./quality-checks.mjs";
 
 const KEY = process.env.ANTHROPIC_API_KEY;
 if (!KEY) { console.error("Set ANTHROPIC_API_KEY (e.g. ANTHROPIC_API_KEY=sk-... node tools/ab-harness.mjs)"); process.exit(1); }
@@ -110,8 +110,14 @@ async function call(model, system, messages, maxTokens) {
   return { text: (data.content || []).map((b) => b.text || "").join(""), usage: data.usage || {} };
 }
 
-const stripThought = (s) => s.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
-const visibleOf = (s) => stripThought(s).replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "").replace(/\[(WIDGET|SUGGESTIONS|TOPIC_SUGGESTION)[^\]]*\]/g, "").trim();
+// stripThought feeds the model HISTORY; visibleOf is what the client would see and
+// is now the shared, production-faithful one from tools/quality-checks.mjs. The
+// local copy stripped only <thought>, so a <thinking> block counted as visible
+// prose — see that file for what it cost.
+const stripThought = (s) => String(s == null ? "" : s)
+  .replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/gi, "")
+  .replace(/<(thought|thoughts|thinking|think)>[\s\S]*$/i, "")
+  .trim();
 const costOf = (u) => (u.input * RATES.input + u.output * RATES.output + u.cacheWrite * RATES.cacheWrite + u.cacheRead * RATES.cacheRead) / 1e6;
 
 

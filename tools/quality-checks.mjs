@@ -8,6 +8,38 @@
  * broken and unnoticed for 16 commits.
  */
 
+/**
+ * What the CLIENT would actually see, mirroring stripAll in src/lumen.jsx.
+ *
+ * The harness had its own weaker copy that stripped only <thought>. The prompt
+ * asks for <thought>, but models routinely emit <thinking> instead — production
+ * covers all four spellings, the harness covered one. So an entire reasoning
+ * block counted as visible prose: it inflated the multi-question count (planning
+ * is full of question marks), it was fed to the judge, and it was written into
+ * ab-transcripts.txt as though the client had been shown it. Measured on a real
+ * run, that alone turned 1 genuine violation into 9.
+ *
+ * It also missed TOPIC_SUGGESTION{...} — the brace form the prompt specifies —
+ * catching only a bracketed form that is not what the model emits.
+ *
+ * Deliberately NOT imported from src/lumen.jsx: that module is JSX and pulls in
+ * React, so a plain node harness cannot load it. Kept as a faithful copy with
+ * this note, and tests/quality-checks.test.js pins the two against each other.
+ */
+export function visibleOf(reply) {
+  return String(reply == null ? "" : reply)
+    .replace(/<(thought|thoughts|thinking|think)>[\s\S]*?<\/(thought|thoughts|thinking|think)>/gi, "")
+    .replace(/<(thought|thoughts|thinking|think)>[\s\S]*$/i, "")   // truncated mid-block
+    .replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "")
+    .replace(/\[WIDGET:[A-Z_]+\]/g, "")
+    .replace(/\[SUGGESTIONS:[\s\S]*?\]/g, "")
+    .replace(/\[OFFER_SEND\]/g, "")
+    .replace(/TOPIC_SUGGESTION\s*:?\s*\{[^{}]*\}/g, "")
+    .replace(/^TOPIC_SUGGESTION\|.*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 // One question per message is a CRITICAL rule in the live prompt. Counting raw
 // "?" over-reports: measured against 40 real turns from the deployed build, every
 // false positive was the same shape — one question followed by an illustrative
