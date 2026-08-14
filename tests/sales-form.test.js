@@ -101,3 +101,58 @@ describe("confidential consultant notes", () => {
     expect(sales).not.toMatch(/CHAT_BASE \+[^\n]*notes/);
   });
 });
+
+// Round two, after watching a first-time rep persona walk the page: the optional
+// brief import was the FIRST and LARGEST block on the page, so the required
+// five-field path hid below the machinery; the out card never said WHO a link
+// was for; and the write token lived in sessionStorage, greeting reps with a
+// password wall on every fresh tab.
+describe("the page leads with the required path", () => {
+  it("collapses the brief import behind a disclosure, closed by default", () => {
+    expect(sales).toMatch(/id="briefToggle"[^>]*aria-expanded="false"/);
+    expect(sales).toMatch(/<div id="briefBox" hidden/);
+  });
+
+  it("never lets brief text hide silently", () => {
+    // Fill-with-example writes into the box while it may be closed: it must open
+    // it. A manual close with text inside shows the "filled" marker instead.
+    // Bounded by the next function, not a guessed char count — the example data
+    // strings make this function long, and a fixed window already bit once.
+    const start = sales.indexOf("function fillExample()");
+    const fill = sales.slice(start, sales.indexOf("function bindCopy", start));
+    expect(fill).toContain("setBriefOpen(true)");
+    expect(sales).toMatch(/briefFilledMark/);
+    const mark = sales.slice(sales.indexOf("function updateBriefMark()"));
+    expect(mark.slice(0, 300)).toMatch(/closed && \$\("briefText"\)\.value\.trim\(\)/);
+  });
+
+  it("returns to the quiet default for the next client", () => {
+    const reset = sales.slice(sales.indexOf("function resetForNext()"));
+    expect(reset.slice(0, 900)).toContain("setBriefOpen(false)");
+  });
+});
+
+describe("the out card names its client", () => {
+  it("echoes contact, company, language and package from the SENT seed", () => {
+    // From the seed actually posted, not re-read from the form, which the rep may
+    // have edited while the request was in flight.
+    expect(sales).toMatch(/id="outFor"/);
+    const gen = sales.slice(sales.indexOf('$("outFor").innerHTML'));
+    const line = gen.slice(0, 400);
+    expect(line).toContain("seed.contactName || seed.company");
+    expect(line).toContain("seed.language");
+    // Rep-entered values land in innerHTML: every one must pass through esc().
+    expect(line.match(/esc\(/g).length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("the write token", () => {
+  it("is remembered on the device, not per tab", () => {
+    // sessionStorage meant the password wall greeted a rep on every new tab —
+    // the exact friction that makes an internal tool go unused.
+    expect(sales).not.toMatch(/sessionStorage\.[gs]etItem\("sales_write_token"/);
+    expect(sales).toMatch(/localStorage\.getItem\("sales_write_token"\)/);
+    // And a server-side 401 still clears the stored copy so rotation works.
+    expect(sales).toMatch(/localStorage\.removeItem\("sales_write_token"\)/);
+  });
+});

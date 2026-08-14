@@ -88,7 +88,63 @@ console.log("  link carries only an opaque id          :", /sd_demo123/.test(lin
 console.log("  link:", link);
 await page.screenshot({ path: `${SHOT}/sales-notes.png`, fullPage: true });
 
-console.log("\n--- 3. the happy path still works ---");
+console.log("\n--- 3. brief box collapsed by default; nothing hides silently ---");
+{
+  await load();
+  const st = await page.evaluate(() => ({
+    boxHidden: document.getElementById("briefBox").hidden,
+    toggleSays: document.getElementById("briefToggle").getAttribute("aria-expanded"),
+  }));
+  console.log("  collapsed on a fresh page              :", st.boxHidden && st.toggleSays === "false");
+  await page.evaluate(() => document.getElementById("briefToggle").click());
+  const open1 = await page.evaluate(() => !document.getElementById("briefBox").hidden);
+  console.log("  toggle opens it                        :", open1);
+  await page.evaluate(() => document.getElementById("briefToggle").click());
+  // Example fill writes into the brief box while it is closed -> must auto-open.
+  await page.evaluate(() => document.getElementById("example").click());
+  await page.waitForTimeout(200);
+  const st2 = await page.evaluate(() => ({
+    open: !document.getElementById("briefBox").hidden,
+    briefHasText: !!document.getElementById("briefText").value.trim(),
+  }));
+  console.log("  example fill auto-opens the box        :", st2.open && st2.briefHasText);
+  // Close it with text inside: the toggle must carry the filled marker.
+  await page.evaluate(() => document.getElementById("briefToggle").click());
+  const mark = await page.evaluate(() => !document.getElementById("briefFilledMark").hidden);
+  console.log("  closed-with-text shows a filled marker :", mark);
+}
+
+console.log("\n--- 4. out card says who the link is for ---");
+{
+  // Section 3 reloaded the page, so generate fresh state here: example data is
+  // already filled from its last step, only "Prepared by" is missing.
+  await page.evaluate(() => {
+    document.getElementById("preparedBy").value = "Alex Rep";
+    document.getElementById("preparedBy").dispatchEvent(new Event("input"));
+  });
+  await page.locator("#gen").click({ force: true });
+  await page.waitForTimeout(900);
+  const txt = await page.evaluate(() => document.getElementById("outFor") ? document.getElementById("outFor").textContent : "");
+  console.log("  echo line:", JSON.stringify(txt.trim()));
+  console.log("  names contact, company, language       :", /Steve Jobs/.test(txt) && /Apple/.test(txt) && /English/.test(txt));
+}
+
+console.log("\n--- 5. write token survives a new tab (localStorage) ---");
+{
+  const tok = await page.evaluate(() => { localStorage.setItem("sales_write_token", "tok-abc"); return true; });
+  const p2 = await ctx.newPage();
+  await p2.route("**/*", (route) => {
+    const u = route.request().url();
+    if (u.includes("sales")) return route.fulfill({ status: 200, contentType: "text/html", body: readFileSync(new URL("../../public/sales.html", import.meta.url), "utf8") });
+    return route.fulfill({ status: 200, body: "" });
+  });
+  await p2.goto("http://localhost:9102/sales.html", { waitUntil: "domcontentloaded" });
+  const seen = await p2.evaluate(() => localStorage.getItem("sales_write_token"));
+  console.log("  token visible in a brand-new tab       :", seen === "tok-abc", tok ? "" : "");
+  await p2.close();
+}
+
+console.log("\n--- 6. the happy path still works ---");
 console.log("  link shown                              :", await page.evaluate(() => document.getElementById("out").classList.contains("show")));
 console.log("  Generate re-enabled after the run       :", await page.evaluate(() => !document.getElementById("gen").disabled));
 

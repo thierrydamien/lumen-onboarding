@@ -56,6 +56,16 @@
   textarea { resize:vertical; }
   .row { display:flex; gap:12px; } .row > div { flex:1; }
 
+  /* Collapsed entry point for the brief import. A full-width bordered row (not a
+     bare link) so it still reads as "there is a real feature here", without the
+     feature's five controls competing with the required fields below. */
+  .brieftoggle { display:flex; align-items:center; gap:7px; width:100%; text-align:left; background:#faf9ff; border:1px solid #ece8f8; border-radius:10px; padding:11px 14px; margin:2px 0 18px; font-size:13px; font-weight:700; color:var(--ink); cursor:pointer; }
+  .brieftoggle:hover { border-color:var(--purple); }
+  .brieftoggle:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
+  .brieftoggle .opt { font-weight:400; }
+  .bt-caret { font-size:11px; color:var(--purple); transition:transform .15s; }
+  .brieftoggle[aria-expanded="true"] .bt-caret { transform:rotate(90deg); }
+  .bt-filled { color:var(--purple); font-weight:700; font-size:12px; }
   .notewrap { background:#faf9fe; border:1px solid #ece8f8; border-radius:11px; padding:12px; margin-top:6px; }
   .notewrap .cap { font-size:11.5px; color:var(--purple); font-weight:600; margin-bottom:7px; }
   .notewrap textarea { background:#fff; }
@@ -144,9 +154,20 @@
       <h3>Client details</h3>
       <p class="csub">Fields marked <span class="req">Required</span> generate the link. Everything else pre-fills the client's chat.</p>
 
-      <div id="briefBox" style="border:1px solid #e6e8ee;border-radius:10px;padding:14px 16px;margin:2px 0 20px;background:#faf9ff;">
-        <div style="font-weight:700;font-size:13px;color:#0f172a;">Have a completed brief? <span class="opt">Optional shortcut</span></div>
-        <p style="font-size:12px;color:#64748b;margin:6px 0 10px;line-height:1.5;">Upload a filled media brief (or paste a link to one) to pre-fill the fields below and give the assistant a head start, so the client doesn't repeat what they already told you.</p>
+      <!-- The brief import is the page's most complex block and its most optional:
+           five affordances a first-time rep read as "step one, do I need this?"
+           while the actual required path (five fields, one button) hid below it.
+           Collapsed by default so the 90% path IS the page; the toggle carries a
+           "· filled" marker whenever the brief box holds text while closed, so
+           content can never hide silently (e.g. after Fill-with-example). -->
+      <button type="button" id="briefToggle" class="brieftoggle" aria-expanded="false" aria-controls="briefBox">
+        <span class="bt-caret" aria-hidden="true">▸</span>
+        <span>Have a completed brief, or context to pass on?</span>
+        <span class="opt">Optional</span>
+        <span id="briefFilledMark" class="bt-filled" hidden>· filled</span>
+      </button>
+      <div id="briefBox" hidden style="border:1px solid #e6e8ee;border-radius:10px;padding:14px 16px;margin:2px 0 20px;background:#faf9ff;">
+        <p style="font-size:12px;color:#64748b;margin:0 0 10px;line-height:1.5;">Upload a filled media brief (or paste a link to one) to pre-fill the fields below and give the assistant a head start, so the client doesn't repeat what they already told you.</p>
         <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
           <a class="linklike" href="/media-brief-template.xlsx" download="Media Brief Template.xlsx">↓ Download the media brief template</a>
           <label class="btn alt" for="briefFile" style="cursor:pointer;">Upload completed brief</label>
@@ -254,6 +275,10 @@
 
       <div class="out" id="out">
         <div class="done">✓ Link ready</div>
+        <!-- WHO this link is for. The URL is an opaque id by design, so without
+             this line a rep juggling two clients in two tabs could email the
+             wrong link with no chance of noticing. -->
+        <div id="outFor" style="font-size:13px;color:#0f172a;margin:0 0 10px;line-height:1.5;"></div>
         <label for="link" style="margin:0 0 5px;">Client link</label>
         <div class="linkbox">
           <input id="link" readonly/>
@@ -304,9 +329,13 @@
 
   // Optional write token, only needed if SEED_WRITE_TOKEN is set on the Netlify
   // site. We do not bake a secret into this page: we send whatever token the
-  // consultant has entered (cached for the tab) and, if the server says 401,
-  // prompt once and retry. Same pattern the dashboard uses for its read token.
-  function writeToken() { return sessionStorage.getItem("sales_write_token") || ""; }
+  // consultant has entered and, if the server says 401, prompt once and retry.
+  // Kept in localStorage (remembered on this device, like "Prepared by"), NOT
+  // sessionStorage: per-tab caching meant the password wall greeted a rep on
+  // every fresh tab, which is exactly the friction that makes a sales tool go
+  // unused. Trade-off: a shared machine keeps the token; rotating
+  // SEED_WRITE_TOKEN on the server invalidates every stored copy at once.
+  function writeToken() { return localStorage.getItem("sales_write_token") || ""; }
   var _wtResolve = null;
   function askWriteToken(msg) {
     $("wtMsg").textContent = msg || "Enter the Sales write token to generate client links.";
@@ -320,7 +349,7 @@
     e.preventDefault();
     var t = $("wtInput").value.trim();
     if (!t) { $("wtErr").textContent = "Enter a token to continue."; return; }
-    sessionStorage.setItem("sales_write_token", t);
+    localStorage.setItem("sales_write_token", t);
     _wtClose(true);
   });
   $("wtCancel").addEventListener("click", function () { _wtClose(false); });
@@ -420,7 +449,7 @@
       var res = await postSeed(seed);
       if (res.status === 401) {
         // Server requires a write token: ask once (styled card), cache for the tab, retry.
-        sessionStorage.removeItem("sales_write_token");
+        localStorage.removeItem("sales_write_token");
         if (await askWriteToken("A write token is required. Enter the Sales write token:")) res = await postSeed(seed);
       }
       if (res.status === 401) { $("formErr").textContent = "A write token is required to generate links. Ask your admin for the Sales write token."; return; }
@@ -435,6 +464,12 @@
         || $("language").value !== seed.language || $("preparedBy").value.trim() !== seed.preparedBy;
       if (myGen !== _genSeq || changed) { $("formErr").textContent = "Details changed — click Generate again for an updated link."; return; }
       $("link").value = CHAT_BASE + "?s=" + encodeURIComponent(data.id);
+      // Echo who the link is for, from the seed actually sent. esc() everything:
+      // these are rep-entered values landing in innerHTML.
+      var tierTxt = $("pkgTier").selectedOptions[0] ? $("pkgTier").selectedOptions[0].textContent : "";
+      $("outFor").innerHTML = "For <b>" + esc(seed.contactName || seed.company) + "</b>" +
+        (seed.contactName ? " at <b>" + esc(seed.company) + "</b>" : "") +
+        " · chat in " + esc(seed.language) + (tierTxt ? " · " + esc(tierTxt) + " package" : "");
       setExpiryNote(data.expiresAt);
       setDupNote(company, data.duplicates);
       $("noEmailNote").style.display = seed.email ? "none" : ""; // heads-up if the email draft will open with a blank To
@@ -463,6 +498,9 @@
     $("err_company").textContent = ""; $("err_contactName").textContent = ""; $("err_preparedBy").textContent = ""; $("err_email").textContent = ""; $("err_pkg").textContent = ""; $("formErr").textContent = "";
     $("briefUrl").value = ""; if ($("briefStatus")) $("briefStatus").style.display = "none"; if ($("briefPreview")) $("briefPreview").style.display = "none"; // example populates the brief box directly
     updatePkgHint(); checkValid();
+    // The example just wrote into the brief box; if it is collapsed the rep would
+    // generate content they never saw. Open it.
+    setBriefOpen(true);
   }
 
   // Copy affordance for the link. A failed copy must not look like a success:
@@ -632,7 +670,7 @@
       var res = await postBrief(payload);
       // Ask once (same styled card as Generate), cache for the tab, retry.
       if (res.status === 401) {
-        sessionStorage.removeItem("sales_write_token");
+        localStorage.removeItem("sales_write_token");
         if (await askWriteToken("A write token is required to read a brief. Enter the Sales write token:")) res = await postBrief(payload);
       }
       if (res.status === 401) { briefMsg("A write token is required to read a brief. Ask your admin for the Sales write token.", "err"); return; }
@@ -674,7 +712,7 @@
     var btn = $("briefPreviewBtn"); btn.disabled = true;
     try {
       var headers = { "Content-Type": "application/json" };
-      var tok = sessionStorage.getItem("sales_write_token"); if (tok) headers["x-app-write-token"] = tok;
+      var tok = localStorage.getItem("sales_write_token"); if (tok) headers["x-app-write-token"] = tok;
       var res = await fetch("/.netlify/functions/preview-brief", { method: "POST", headers: headers, body: JSON.stringify({ brief: brief }) });
       var data = await res.json().catch(function () { return {}; });
       if (res.status === 401) { box.style.color = "#b42318"; box.textContent = "Preview needs the sales token. Generate a link once to enter it, then try again."; return; }
@@ -689,6 +727,22 @@
   $("briefPreviewBtn").addEventListener("click", previewBrief);
   // A stale preview shouldn't linger after the text changes.
   $("briefText").addEventListener("input", function () { var p = $("briefPreview"); if (p) p.style.display = "none"; });
+
+  // Brief-box disclosure. setBriefOpen is called from anything that writes into
+  // the box while it may be closed (Fill-with-example), so content is never
+  // edited sight-unseen; the "· filled" marker covers the collapsed-with-text
+  // state after a manual close.
+  function setBriefOpen(open) {
+    $("briefBox").hidden = !open;
+    $("briefToggle").setAttribute("aria-expanded", open ? "true" : "false");
+    updateBriefMark();
+  }
+  function updateBriefMark() {
+    var closed = $("briefBox").hidden;
+    $("briefFilledMark").hidden = !(closed && $("briefText").value.trim());
+  }
+  $("briefToggle").addEventListener("click", function () { setBriefOpen($("briefBox").hidden); });
+  $("briefText").addEventListener("input", updateBriefMark);
   bindCopy("link", "copy");
 
   // "Create another link": clear the client-specific fields so a rep can generate
@@ -705,6 +759,7 @@
     if ($("briefStatus")) $("briefStatus").style.display = "none"; // drop any imported-brief status for the next client
     if ($("briefPreview")) $("briefPreview").style.display = "none";
     $("out").classList.remove("show");
+    setBriefOpen(false); // box is empty again; back to the quiet default
     checkValid();
     try { $("company").focus(); $("company").scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
   }
