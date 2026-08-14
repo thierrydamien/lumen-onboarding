@@ -3199,6 +3199,31 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // the tab (or switches apps on a phone, where the tab can be discarded outright)
   // loses that last turn. visibilitychange is the reliable signal on mobile; pagehide
   // covers the desktop close/navigate case. keepalive lets the request outlive the page.
+  // Re-fit the composer when the viewport changes. Its inline height is computed
+  // from scrollHeight on CHANGE only, so it was frozen at whatever the wrap width
+  // was when the client last typed. Rotate a phone landscape -> portrait and the
+  // text needs more lines while the box stays the old height: measured at 390x844,
+  // a 170-character draft rendered 54px tall against 130px of content — 78px, about
+  // three lines, invisible with no scrollbar affordance on touch. The other
+  // direction only leaves the box slightly oversized, which is harmless.
+  // Also fires when the mobile keyboard opens/closes, where recomputing is correct.
+  useEffect(() => {
+    const fit = () => {
+      const el = taRef.current;
+      if (!el) return;
+      // Mirror the post-send reset: an empty composer goes back to "auto" rather
+      // than being pinned to a measured pixel height.
+      el.style.height = "auto";
+      if (el.value) el.style.height = el.scrollHeight + "px";
+    };
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+    };
+  }, []);
+
   useEffect(() => {
     const flush = () => {
       if (!started || sent || sendingRef.current) return;
@@ -4079,7 +4104,13 @@ input,textarea,select,button{font-family:inherit}
 
       {/* Stepper */}
       {started && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
-        <div style={{maxWidth:640,margin:"0 auto",display:"flex",alignItems:"flex-end",gap:16}}>
+        {/* Same translate as the message column and the composer below. The outer
+            bar stays full-width (it carries the background and border); only this
+            centred block moves, so the stepper keeps sitting directly above the
+            conversation it describes. Without it the chat shifted 160px when the
+            side panel opened and the stepper did not — measured at 1440x900,
+            centres 560 vs 720. Matching the easing keeps them moving together. */}
+        <div style={{maxWidth:640,margin:"0 auto",display:"flex",alignItems:"flex-end",gap:16,transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
           <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob} lang={uiLang}/></div>
           {/* Shown on mobile too (compact form): the welcome screen promises "pause
               anytime", and the mostly-mobile audience needs the safe-to-leave signal. */}
