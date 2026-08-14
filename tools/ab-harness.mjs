@@ -30,7 +30,7 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPromptConst } from "./extract-prompt.mjs";
+import { SYSTEM_PROMPT } from "../netlify/lib/system-prompt.js";
 import { multiQuestion, visibleOf } from "./quality-checks.mjs";
 
 const KEY = process.env.ANTHROPIC_API_KEY;
@@ -45,12 +45,12 @@ const MAX_TURNS = Number(process.env.AB_TURNS || 16);
 const RATES = { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 }; // $/MTok
 const MAX_HIST = Number(process.env.AB_MAX_HIST || 20); // prod's MAX_HIST_TURNS (src/lumen.jsx)
 
-// Pull the LIVE system prompt out of chat.js so this never drifts from prod.
-// The decoding lives in tools/extract-prompt.mjs: this used to JSON.parse the JS
-// string literal, which is not the same grammar, so one `\'` in the prompt threw
-// at import time and the harness never ran. See that file for the full story.
+// The LIVE prompt, imported straight from the module prod uses, so it cannot
+// drift. This used to parse it out of chat.js by JSON-parsing a JS string
+// literal — not the same grammar — and one `\'` in the text threw at import
+// time, which left this harness broken for 16 commits. Now that the prompt is
+// its own module there is nothing to parse, and that failure mode is gone.
 const __dir = path.dirname(fileURLToPath(import.meta.url));
-const SYSTEM_PROMPT = loadPromptConst("SYSTEM_PROMPT");
 
 // Each config = a system-prompt lever (`extra`, appended as an extra instruction)
 // + a history strategy. `history`:

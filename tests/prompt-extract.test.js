@@ -38,26 +38,29 @@ describe("decodeJsString", () => {
 });
 
 describe("the live prompt constants are extractable", () => {
-  // Behavioural assertions only — the handover's rule is not to pin identifiers,
-  // so these match on content the prompt must carry to work at all.
-  it("extracts SYSTEM_PROMPT as a substantial string", () => {
-    const p = loadPromptConst("SYSTEM_PROMPT");
-    expect(typeof p).toBe("string");
-    expect(p.length).toBeGreaterThan(10000);
+  // SYSTEM_PROMPT is no longer one of these — it moved to netlify/lib/system-prompt.js
+  // and is imported, not parsed, so tests/system-prompt.test.js owns it now. The
+  // corrective-pass strings below are still literals in chat.js, and they are still
+  // read by this decoder, so they still need this coverage.
+  it("extracts the corrective-pass prompts", () => {
+    for (const name of ["OVERSTATE_FIX", "NOTES_LEAK_FIX"]) {
+      const v = loadPromptConst(name);
+      expect(typeof v).toBe("string");
+      expect(v.length).toBeGreaterThan(100);
+    }
   });
 
-  it("carries the rule that keeps markers English in a non-English conversation", () => {
-    // If this rule is lost, every non-English session silently stops capturing
-    // data, because the client only parses English marker names.
-    const p = loadPromptConst("SYSTEM_PROMPT");
-    expect(p).toMatch(/mirror the client's language/i);
-    expect(p).toMatch(/stay in English/i);
+  it("carries the instruction that makes the corrective pass safe to run", () => {
+    // The rewrite must preserve markers, or a corrected turn silently drops the
+    // data it had already captured.
+    expect(loadPromptConst("OVERSTATE_FIX")).toMatch(/marker/i);
+    expect(loadPromptConst("NOTES_LEAK_FIX")).toMatch(/marker/i);
   });
 
   it("decodes to the same value the JS runtime gives the literal", () => {
     // The ultimate correctness check: our decoder must agree with JS itself.
     const src = readFileSync(CHAT_JS_PATH, "utf8");
-    const literal = src.match(/const SYSTEM_PROMPT = ("(?:[^"\\]|\\.)*");/)[1];
+    const literal = src.match(/const OVERSTATE_FIX = ("(?:[^"\\]|\\.)*");/)[1];
     // eslint-disable-next-line no-new-func -- the regex admits only a well-formed literal
     const viaRuntime = new Function("return " + literal)();
     expect(decodeJsString(literal)).toBe(viaRuntime);
