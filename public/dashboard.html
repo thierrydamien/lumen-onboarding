@@ -304,6 +304,14 @@
   .cval { font-size:10px; color:var(--teal); font-weight:700; margin-bottom:3px; }
   .cbar { width:100%; max-width:26px; background:linear-gradient(180deg,#a855f7,#7C3AED); border-radius:5px 5px 0 0; min-height:2px; }
   .clbl { font-size:9px; color:var(--muted); margin-top:6px; white-space:nowrap; }
+  /* A week with no completions: a flat baseline and a muted 0, so an empty run
+     reads as empty at a glance instead of as a row of small bars. */
+  .czero { width:100%; max-width:26px; height:2px; background:var(--border); border-radius:2px; }
+  .cval.zero { color:#aab6c6; font-weight:600; }
+  /* The last column is the current week and is still filling up; mark it so a
+     half-height final bar isn't misread as a drop. */
+  .scol.cur .clbl { color:var(--purple); font-weight:700; }
+  .scol.cur .cbar { background:linear-gradient(180deg,#c4a5fb,#9b6ef3); }
 
   @media (max-width:560px){ .wrap{padding:0 12px;} .kpis{grid-template-columns:1fr 1fr;} .ins{grid-template-columns:1fr;} th,td{padding:9px 8px;} .barlabel{display:none;} }
 </style>
@@ -740,32 +748,66 @@
         (conv ? '<div class="conv">' + conv + '</div>' : '') + '</div>';
     }).join("");
   }
-  // Weekly completed counts, bucketed by the Monday of each session's week, most
-  // recent 10 weeks.
+  // Weekly completed counts over the last 10 CALENDAR weeks, ending with the
+  // current (partial) one.
+  //
+  // This used to keep only the weeks that had completions and take the last 10 of
+  // THOSE, which silently deleted time: three completions, a dead month, two more
+  // completions rendered as five adjacent evenly-spaced columns reading "steady
+  // one a week". Worse, if completions stopped entirely a month ago the chart
+  // still ENDED on a healthy bar, because the recent empty weeks did not exist as
+  // buckets — a trend chart that structurally could not show the one signal that
+  // matters most. Empty weeks are now real columns, so a gap looks like a gap and
+  // a trailing run of zeros is the alarm it should be.
+  var WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  function mondayOf(d) {
+    var day = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
+  }
+  function weekKey(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
   function weeklyCompletions(rows) {
-    var buckets = {};
+    var buckets = {}, anyCompleted = false;
     rows.forEach(function (s) {
       if (s._linkSent || s.status !== "completed") return;
       var t = Date.parse(s.savedAt || s.sentAt || s.lastActiveAt || "");
       if (!isFinite(t)) return;
-      var d = new Date(t), day = (d.getDay() + 6) % 7;
-      var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
-      var key = mon.getFullYear() + "-" + String(mon.getMonth() + 1).padStart(2, "0") + "-" + String(mon.getDate()).padStart(2, "0");
-      buckets[key] = (buckets[key] || 0) + 1;
+      anyCompleted = true;
+      var k = weekKey(mondayOf(new Date(t)));
+      buckets[k] = (buckets[k] || 0) + 1;
     });
+    // Nothing completed at all (a fresh deployment): let sparkHtml show its
+    // friendly empty state rather than ten zero columns.
+    if (!anyCompleted) return [];
     var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return Object.keys(buckets).sort().slice(-10).map(function (k) {
-      var p = k.split("-");
-      return { label: MON[(+p[1]) - 1] + " " + (+p[2]), value: buckets[k] };
-    });
+    var thisMonday = mondayOf(new Date()), out = [];
+    for (var i = 9; i >= 0; i--) {
+      // Step back in whole weeks from this week's Monday. Built from a timestamp
+      // rather than by subtracting days so a DST shift can't move the boundary.
+      var m = mondayOf(new Date(thisMonday.getTime() - i * WEEK_MS));
+      out.push({
+        label: MON[m.getMonth()] + " " + m.getDate(),
+        value: buckets[weekKey(m)] || 0,
+        current: i === 0,
+      });
+    }
+    return out;
   }
   function sparkHtml(series) {
     if (!series.length) return '<div class="nodata">No completed sessions yet.</div>';
     var max = Math.max.apply(null, series.map(function (s) { return s.value; })) || 1;
     return '<div class="spark">' + series.map(function (s) {
-      var pct = Math.max(3, Math.min(100, Math.round(s.value / max * 100)));
-      return '<div class="scol"><div class="cval">' + s.value + '</div>' +
-        '<div class="cbar" style="height:' + pct + '%"></div><div class="clbl">' + esc(s.label) + '</div></div>';
+      // A zero week draws a flat baseline, not the old 3% stub, which read as "a
+      // little activity" when the answer was none. Its count is muted for the same
+      // reason: ten bold zeros would shout louder than the real numbers.
+      var zero = !s.value;
+      var pct = zero ? 0 : Math.max(6, Math.min(100, Math.round(s.value / max * 100)));
+      var wk = "Week of " + s.label + (s.current ? " (this week, so far)" : "") + ": " + s.value + " completed";
+      return '<div class="scol' + (s.current ? " cur" : "") + '" title="' + esc(wk) + '">' +
+        '<div class="cval' + (zero ? " zero" : "") + '">' + s.value + '</div>' +
+        (zero ? '<div class="czero"></div>' : '<div class="cbar" style="height:' + pct + '%"></div>') +
+        '<div class="clbl">' + esc(s.label) + '</div></div>';
     }).join("") + '</div>';
   }
   var _insSeen = false;
