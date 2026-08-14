@@ -1,6 +1,6 @@
 // Scheduled nudge for stalled onboardings (finding 10). Netlify runs this on a
 // cron: it scans the session store for IN-PROGRESS sessions that have been idle
-// longer than STALLED_HOURS (default 24) and were never nudged, posts one Slack
+// longer than STALLED_HOURS (default 48) and were never nudged, posts one Slack
 // alert to the same channel as the completion alert, and stamps `nudgedAt` so
 // each stalled session fires exactly once.
 //
@@ -10,7 +10,11 @@
 //                    function (which lives in Netlify, where the session store is)
 //                    can post directly.
 //   SLACK_CHANNEL    channel id (default C097154H39N, matches the Apps Script).
-//   STALLED_HOURS    idle threshold in hours (default 24).
+//   STALLED_HOURS    idle threshold in hours (default 48). MUST match STALE_MS in
+//                    public/dashboard.html, which is what a consultant sees: at 24 the
+//                    Slack nudge fired a full day before the dashboard showed the
+//                    session as stalled, so the alert pointed at a row still labelled
+//                    "in progress".
 //   URL              site URL (set automatically by Netlify); powers the dashboard
 //                    deep link in the alert.
 //
@@ -26,7 +30,7 @@ export default async () => {
   const token = process.env.SLACK_BOT_TOKEN;
   if (!token) { console.warn("SLACK_BOT_TOKEN not set — stalled check is a no-op"); return resp(200, "no token"); }
   const channel = process.env.SLACK_CHANNEL || DEFAULT_CHANNEL;
-  const hours = Number(process.env.STALLED_HOURS) || 24;
+  const hours = Number(process.env.STALLED_HOURS) || 48;
   const cutoff = Date.now() - hours * 3600000;
 
   let store;
