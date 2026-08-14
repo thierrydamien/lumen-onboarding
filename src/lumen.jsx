@@ -1740,16 +1740,35 @@ function splitChips(s) {
   const byComma = s.split(",").map(x=>x.trim()).filter(Boolean);
   return byComma.length >= 3 ? byComma : [s.trim()].filter(Boolean);
 }
-function parseReply(r) {
-  const progress = pProg(r), widgets = exWid(r);
-  const sm = r.match(/\[SUGGESTIONS:\s*(.+?)\]/);
+// Exported for tests/. EVERY extraction below runs on the reply with the hidden
+// <thought> block removed first, never on the raw text.
+//
+// This is load-bearing, not tidiness. The model plans out loud in <thought> and
+// routinely writes control tokens there while planning — observed live, e.g.
+// "next: STEP 4B — [WIDGET:MARKETS] with one context sentence". Extracting from
+// the raw text treats those planning mentions as real instructions:
+//   - a thought naming a DIFFERENT widget than the turn emits renders BOTH,
+//     stacking a widget the model never meant to show;
+//   - the prompt says never to show [WIDGET:LANGUAGES]/[WIDGET:TIMEZONE], but a
+//     thought reasoning about that rule made the client render exactly those;
+//   - quickReplies are suppressed whenever widgets.length > 0, so a single
+//     phantom widget silently deletes the quick-reply chips from a turn whose
+//     chips the prompt requires "every time and without exception";
+//   - a thought weighing whether to offer an early send ("[OFFER_SEND]? not
+//     yet") put the send button on screen, inviting a half-empty brief.
+// The thought is invisible to the client, so any of these look like the app
+// malfunctioning for no reason. Stripping once, here, closes all of them.
+export function parseReply(r) {
+  const v = stripThoughtForHistory(r);
+  const progress = pProg(v), widgets = exWid(v);
+  const sm = v.match(/\[SUGGESTIONS:\s*(.+?)\]/);
   const quickReplies = sm && widgets.length === 0 ? splitChips(sm[1]) : [];
-  const { suggestions:topicSuggestions, stripped } = procTopics(r);
+  const { suggestions:topicSuggestions, stripped } = procTopics(v);
   const clean = stripAll(stripped);
   if (topicSuggestions.length > 0 && !widgets.includes("TOPICS")) widgets.push("TOPICS");
-  return { clean, widgets, topicSuggestions, quickReplies, progress, offerSend: /\[OFFER_SEND\]/.test(r),
-    companyData:pMark(r,"COMPANY"), topicsData:pMark(r,"TOPICS"),
-    channelsData:pMark(r,"CHANNELS"), reportsData:pMark(r,"REPORTS"), alertsData:pMark(r,"ALERTS"), usersData:pMark(r,"USERS"), handoffData:pMark(r,"HANDOFF"), raw:r };
+  return { clean, widgets, topicSuggestions, quickReplies, progress, offerSend: /\[OFFER_SEND\]/.test(v),
+    companyData:pMark(v,"COMPANY"), topicsData:pMark(v,"TOPICS"),
+    channelsData:pMark(v,"CHANNELS"), reportsData:pMark(v,"REPORTS"), alertsData:pMark(v,"ALERTS"), usersData:pMark(v,"USERS"), handoffData:pMark(v,"HANDOFF"), raw:r };
 }
 function renderText(text) {
   const parts = [], rx = /(\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^\)]+)\))/g;
