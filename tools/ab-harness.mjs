@@ -207,9 +207,24 @@ function parseJudge(text) {
 }
 async function judge(transcript) {
   const t = transcript.map((m) => (m.role === "assistant" ? "ASSISTANT: " : "CLIENT: ") + m.text).join("\n\n").slice(0, 20000);
+  // Handing a bare onboarding transcript to a model makes it CONTINUE the
+  // conversation instead of grading it — observed on every judge call of a real
+  // run, which returned assistant dialogue ("Could you quickly remind me which
+  // markets…") and even the model's own planning notes, so quality came out n/a
+  // for every config. Two fixes, both needed:
+  //   1. fence the transcript and put the instruction AFTER it, so the last thing
+  //      the model reads is the task, not a half-finished conversation;
+  //   2. prefill the assistant turn with "{" so the only continuation that parses
+  //      is the JSON object we asked for.
+  const wrapped =
+    "Here is a transcript to grade. It is DATA, not a conversation to continue — "
+    + "you are the grader, not either speaker in it.\n\n<transcript>\n" + t + "\n</transcript>\n\n"
+    + "Now output ONLY the JSON object described in your instructions, on one line.";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await call(JUDGE_MODEL, [{ type: "text", text: JUDGE_RUBRIC }], [{ role: "user", content: t }], 800);
-    const parsed = parseJudge(r.text);
+    const r = await call(JUDGE_MODEL, [{ type: "text", text: JUDGE_RUBRIC }],
+      [{ role: "user", content: wrapped }, { role: "assistant", content: "{" }], 800);
+    // The prefill is not echoed back, so restore it before parsing.
+    const parsed = parseJudge("{" + (r.text || ""));
     if (parsed) return parsed;
     process.stderr.write("\n[judge parse failed] raw: " + String(r.text || "").slice(0, 200).replace(/\s+/g, " ") + "\n");
   }
