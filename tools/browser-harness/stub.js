@@ -6,7 +6,8 @@
 // is what makes timing bugs (in-flight clicks, failed saves) reachable at all.
 (function () {
   const ctl = window.__ctl = {
-    chatMode: "ok",        // ok | hang | http500 | malformed
+    chatMode: "ok",        // ok | hang | http500 | malformed | syncFail (sync 500s, background works)
+    seedMode: "ok",        // ok | expired | fail — what a client's ?s= link resolves to
     draftSave: "ok",       // ok | fail
     sessionUpsert: "ok",   // ok | fail
     sheet: "ok",           // ok | fail
@@ -14,8 +15,21 @@
     replies: [],           // queue of raw assistant strings; falls back to DEFAULT
     calls: [],             // observed requests, for assertions
     pending: new Map(),    // rid -> {resolvedAt} for the background path
+    draftStore: null,      // in-memory server draft, so resume is actually testable
+    draftSavedAt: 0,
     releaseAll() { for (const [, v] of ctl.pending) v.holdUntil = 0; },
   };
+
+  // A test that sets a mode and then RELOADS loses it: this script re-runs on
+  // every load and resets __ctl, so the reload silently tests the default path
+  // while claiming to test the failure (that exact false-pass happened). Modes
+  // that must survive a reload are read from sessionStorage, which persists per
+  // tab: sessionStorage.setItem("__stub.seedMode", "expired"); location.reload().
+  try {
+    for (const k of Object.keys(sessionStorage)) {
+      if (k.startsWith("__stub.")) ctl[k.slice(7)] = sessionStorage.getItem(k);
+    }
+  } catch { /* storage disabled: overrides simply unavailable */ }
 
   const DEFAULT =
     '%%PROGRESS%%{"section":"intro","percent":10,"collected":{}}%%END%%\n\n' +
@@ -58,6 +72,10 @@
     // ---- synchronous fallback ----
     if (url.includes("/functions/chat")) {
       if (ctl.chatMode === "http500") return json({ error: "boom" }, 500);
+      // syncFail: the SYNC path dies but chat-background/chat-status above work,
+      // which is exactly the fallback the client promises for heavy turns — and
+      // which had never been seen SUCCEEDING until this mode existed.
+      if (ctl.chatMode === "syncFail") return json({ error: "boom" }, 500);
       // NOTE: the client is SYNC-FIRST (src/lumen.jsx) — it tries this endpoint
       // before the background flow, and only falls back on failure. So this is the
       // path a test actually exercises, and "hang" must stay RELEASABLE: a bare
@@ -72,11 +90,27 @@
       return json({ content: [{ type: "text", text: nextReply() }], usage: { input_tokens: 5, output_tokens: 50 } });
     }
     if (url.includes("/functions/seed")) {
-      return json({ company: "Acme Corp", contactName: "Jane Smith", email: "jane@acme.com", industry: "Retail", language: "English" });
+      // 404, matching the real seed.js exactly (it sweeps the record and returns
+      // 404 {error:"expired"}). A first draft of this used 410 and the app
+      // CORRECTLY treated that as transient — only 404 is definitive to the client.
+      if (ctl.seedMode === "expired") return json({ error: "expired" }, 404);
+      if (ctl.seedMode === "fail") return json({ error: "boom" }, 500);
+      // Wrapped in {seed}, matching the real seed.js (`return json(200, {seed: out})`).
+      // A first draft returned the fields FLAT, which the client reads as "link
+      // present but profile unloadable" — so every test ran with seedError=true, a
+      // transient warning banner on the welcome screen, and no company prefill.
+      // Nothing those tests asserted depended on it, but it made one banner test
+      // pass vacuously. Shape fidelity in stubs is load-bearing.
+      return json({ seed: { company: "Acme Corp", contactName: "Jane Smith", email: "jane@acme.com", industry: "Retail", language: "English" } });
     }
     if (url.includes("/functions/draft")) {
       if (ctl.draftSave === "fail") return json({ error: "nope" }, 500);
-      if (method === "GET") return json({ snapshot: null });
+      if (method === "GET") {
+        if (!ctl.draftStore) return json({ error: "not_found" }, 404);
+        return json({ draft: ctl.draftStore, savedAt: new Date(ctl.draftSavedAt).toISOString() });
+      }
+      if (body && body.done) { ctl.draftStore = null; return json({ ok: true }); }
+      if (body && body.snapshot) { ctl.draftStore = body.snapshot; ctl.draftSavedAt = Date.now(); }
       return json({ ok: true });
     }
     const delay = () => (ctl.writeDelayMs ? new Promise((r) => setTimeout(r, ctl.writeDelayMs)) : null);
