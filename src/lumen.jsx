@@ -2368,6 +2368,19 @@ export async function extractFileText(file) {
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext === "xlsx" || ext === "xls") {
       const buf = await file.arrayBuffer();
+      // Every real .xlsx is a ZIP, so it starts with the local-file-header magic
+      // "PK\x03\x04". Check it before handing the bytes to XLSX.read, which does
+      // NOT throw on junk — it sniffs unknown input as text and returns the raw
+      // characters as a one-cell sheet. Without this a truncated download or a
+      // file renamed from .pdf reported a successful import, the client was told
+      // "Imported <file>", and control characters were sent to the model as their
+      // requirements document. Legacy .xls is exempt: it is OLE2, not a ZIP.
+      if (ext === "xlsx") {
+        const sig = new Uint8Array(buf.slice(0, 4));
+        if (!(sig[0] === 0x50 && sig[1] === 0x4b && sig[2] === 0x03 && sig[3] === 0x04)) {
+          return { error: "readError" };
+        }
+      }
       let XLSX;
       try { XLSX = await loadXLSX(); }
       catch (e) {
