@@ -231,6 +231,17 @@
       <div class="ferr" id="err_pkg"></div>
       <div class="pkghint" id="pkgHint"></div>
 
+      <label for="notes" style="margin-top:14px;">Notes for the assistant <span class="opt">Optional</span></label>
+      <div class="notewrap">
+        <div class="cap">The client never sees this — it shapes the assistant's questions, and reaches the onboarding team.</div>
+        <textarea id="notes" rows="3" maxlength="4000" placeholder="e.g. Budget holder is the CFO, not our contact. Sensitive about a competitor's name — don't lead with it. Bought after a crisis last quarter."></textarea>
+        <div class="chips">
+          <button type="button" class="chip" data-addnote="Why they bought: ">+ Why they bought</button>
+          <button type="button" class="chip" data-addnote="Sensitivities: ">+ Sensitivities</button>
+          <button type="button" class="chip" data-addnote="Watch out for: ">+ Watch out for…</button>
+        </div>
+      </div>
+
       <label for="preparedBy" style="margin-top:14px;">Prepared by <span class="req">Required</span> <span class="opt">· remembered on this device</span></label>
       <input id="preparedBy" placeholder="Your name"/>
       <div class="ferr" id="err_preparedBy"></div>
@@ -353,10 +364,15 @@
     el.classList.remove("partial");
     el.innerHTML = "";
   }
+  // Reports completeness; it deliberately does NOT disable Generate. A disabled
+  // button never fires a click, which made generate()'s click-time validation —
+  // which marks the offending field, says exactly what's missing and scrolls to
+  // it — unreachable from the primary path: a rep with one blank field clicked a
+  // pale button and got nothing at all, no message, no highlight. The button now
+  // stays live and that validation is the front door. `disabled` is reserved for
+  // the in-flight "Generating…" state, where it genuinely prevents a double-post.
   function checkValid() {
-    var ok = !!($("company").value.trim() && $("preparedBy").value.trim() && $("pkgProduct").value && $("pkgTier").value);
-    $("gen").disabled = !ok;
-    return ok;
+    return !!($("company").value.trim() && $("preparedBy").value.trim() && $("pkgProduct").value && $("pkgTier").value);
   }
 
   var _genSeq = 0;
@@ -389,6 +405,11 @@
       email: $("email").value.trim(),
       industry: $("industry").value.trim(),
       brief: $("briefText").value.trim(),
+      // Confidential. seed.js stores it but returns it only to a token-holder, and
+      // chat.js injects it into the system prompt server-side — it never reaches
+      // the browser, and the link carries only the opaque seed id. Distinct from
+      // `brief`, which is deliberately client-visible (the assistant reads it back).
+      notes: $("notes").value.trim(),
       language: $("language").value,
       preparedBy: preparedBy,
       package: pkg
@@ -432,6 +453,10 @@
     $("email").value = "steve.jobs@example.com";
     $("industry").value = "Consumer technology";
     $("briefText").value = "Main use case: competitive intelligence\nKey competitors: Samsung, Google\nKey markets: US, UK\nMigrating from: Brandwatch";
+    // The example fills BOTH text boxes on purpose: the difference between the
+    // client-visible brief and the confidential notes is the one thing about this
+    // form a new rep is most likely to get wrong.
+    $("notes").value = "Why they bought: lost share to Samsung in EMEA, board is watching.\nSensitivities: don't dwell on the Brandwatch migration, it was a difficult switch.";
     $("pkgProduct").value = "analyze"; $("pkgTier").value = "advanced";
     $("out").classList.remove("show"); // programmatic fill doesn't fire input events, so clear any stale link here too
     $("company").classList.remove("invalid"); $("contactName").classList.remove("invalid"); $("preparedBy").classList.remove("invalid"); $("pkgProduct").classList.remove("invalid"); $("pkgTier").classList.remove("invalid");
@@ -555,9 +580,11 @@
   // Brief import: a filled Lumen template — uploaded .xlsx, or a link to a
   // link-viewable Google Sheet — is parsed server-side (parse-brief). Its fields
   // pre-fill the form (rep reviews before generating) and its surfaceable facts fill
-  // the visible brief box, which the assistant confirms with the client. The template's
-  // "internal notes" row merges into the visible notes box. Unrecognized inputs are
-  // rejected by the parser, so a rep can't feed the assistant an arbitrary dump.
+  // the visible brief box, which the assistant confirms with the client. Unrecognized
+  // inputs are rejected by the parser, so a rep can't feed the assistant an arbitrary
+  // dump. The import never touches the confidential notes box: parse-brief returns
+  // only { form, brief } — the template is filled in BY THE CLIENT, so nothing in it
+  // is consultant-confidential, and merging it into notes would have been backwards.
   function briefMsg(txt, kind) {
     var el = $("briefStatus"); el.style.display = ""; el.textContent = txt;
     el.style.color = kind === "err" ? "#b42318" : (kind === "ok" ? "#0a5c2a" : "#64748b");
@@ -668,7 +695,10 @@
   // the next client's link without hand-deleting everything. Keeps the rep's name,
   // product, package and language (usually the same across a batch).
   function resetForNext() {
-    ["company", "contactName", "email", "industry", "briefText", "briefUrl"].forEach(function (id) {
+    // "notes" MUST be in this list: they are per-client and confidential, so
+    // carrying one client's notes into the next rep's link would feed the wrong
+    // context to the assistant and show it to the wrong onboarding team.
+    ["company", "contactName", "email", "industry", "briefText", "briefUrl", "notes"].forEach(function (id) {
       var e = $(id); if (e) { e.value = ""; e.classList.remove("invalid"); }
     });
     ["err_company", "err_contactName", "err_email", "formErr"].forEach(function (id) { if ($(id)) $(id).textContent = ""; });
@@ -680,20 +710,28 @@
   }
   $("againBtn").addEventListener("click", resetForNext);
 
-  // Enter in any single-line field generates the link (skips the multi-line notes
-  // textarea and the selects, where Enter has its own meaning). Guarded by checkValid,
-  // matching the button, so an incomplete form can't submit.
+  // Enter in any single-line field generates the link (skips the multi-line brief
+  // and notes textareas and the selects, where Enter has its own meaning).
   ["company", "contactName", "email", "industry", "preparedBy"].forEach(function (id) {
     $(id).addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); if (checkValid()) generate(); }
+      // Straight to generate(), which validates and reports. Gating on
+      // checkValid() here made Enter silently do nothing on an incomplete form —
+      // the same dead-end the disabled button used to create.
+      if (e.key === "Enter") { e.preventDefault(); generate(); }
     });
   });
 
-  // Brief shortcut chips: append a labelled line to the brief box so reps fill it
-  // in a consistent shape. Doesn't overwrite anything they've already typed.
+  // Shortcut chips: append a labelled line so reps fill each box in a consistent
+  // shape. Doesn't overwrite anything they've already typed. data-add targets the
+  // client-visible brief, data-addnote the confidential notes — the chip carries
+  // its own destination, because this handler binds EVERY .chip on the page and
+  // sending a notes chip to the brief box would publish it to the client.
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (chip) {
     chip.addEventListener("click", function () {
-      var t = $("briefText"), add = chip.getAttribute("data-add");
+      var isNote = chip.hasAttribute("data-addnote");
+      var t = $(isNote ? "notes" : "briefText");
+      var add = chip.getAttribute(isNote ? "data-addnote" : "data-add");
+      if (!t || !add) return;
       // Don't append the same labelled line twice; if it's already there, just focus.
       if (t.value.indexOf(add.trim()) !== -1) { t.focus(); return; }
       var cur = t.value.replace(/\s+$/, "");
@@ -706,7 +744,7 @@
 
   // Clear a stale link the moment the form is edited, so a consultant can never
   // copy a link that points to a different client's seed than what's on screen.
-  ["company", "contactName", "email", "industry", "briefText", "language", "preparedBy", "pkgProduct", "pkgTier"].forEach(function (id) {
+  ["company", "contactName", "email", "industry", "briefText", "notes", "language", "preparedBy", "pkgProduct", "pkgTier"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
     el.addEventListener("input", function () { $("out").classList.remove("show"); });
@@ -747,7 +785,6 @@
   // field they've already filled once.
   $("preparedBy").value = localStorage.getItem("sales_prepared_by") || "";
 
-  checkValid(); // Generate stays disabled until company, product, service package and "prepared by" are filled
 
   // Autofocus the first field so a rep can start typing immediately. Desktop only —
   // on touch/narrow screens an autofocus pops the keyboard and hides the form.
