@@ -154,7 +154,7 @@ function pairsForSheet(rows) {
   return { pairs: ordered.map(o => ({ label: o.label.text, value: o.values.join("; ") })), orphans };
 }
 
-function parseMediaBrief(wb) {
+export function parseMediaBrief(wb) {
   const dataSheets = wb.SheetNames.filter(n => low(n) !== "dropdown list");
   let signed = false;
   for (const n of wb.SheetNames) {
@@ -229,7 +229,7 @@ async function fetchSheetXlsx(id) {
   }
 }
 
-function readWorkbook(buf) {
+export function readWorkbook(buf) {
   try { return { wb: XLSX.read(buf, { type: "buffer" }) }; }
   catch { return { error: "unreadable" }; }
 }
