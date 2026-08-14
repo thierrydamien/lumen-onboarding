@@ -184,7 +184,6 @@ const I18N = {
     startBtn:       "Start",
     startBtnSeeded: "Start {company}'s setup",
     thinking:       "Assistant is thinking\u2026",
-    correctionHint: "Spot something wrong? Just tell me in the chat (for example, 'actually, our main market is Germany') and I'll fix it.",
     chooseLang:     "Choose your language to begin",
     preparedFor:    "Prepared for {company}",
     think1:         "Reading your answer\u2026",
@@ -205,15 +204,14 @@ const I18N = {
     panelHide: "Hide",
     panelFixAria: "Correct {label} in the chat",
     panelFixStarter: "Actually, {label} should be ",
-    panelTip: "Something off?",
     pnlSkipped: "Skipped",
     pnlCompany: "Company",
     pnlEmail: "Email",
     pnlIndustry: "Industry",
-    pnlGoal: "Goal / use case",
+    pnlGoal: "Goal",
     pnlMarkets: "Markets",
     pnlLanguages: "Languages",
-    pnlObjectives: "Objectives",
+    pnlObjectives: "Priorities",
     pnlTeams: "Teams",
     pnlTimezone: "Timezone",
     pnlTopics: "Topics",
@@ -263,7 +261,7 @@ const I18N = {
     expReqEmail: "Contact email",
     expReqMarkets: "Markets",
     expReqLanguages: "Languages",
-    expReqObjectives: "Objectives",
+    expReqObjectives: "Priorities",
     expReqTopic: "At least one topic",
     expReqTopicsConfirmed: "All topics confirmed",
     expReqUser: "At least one user",
@@ -277,9 +275,9 @@ const I18N = {
     expFldIndustry: "Industry",
     expFldMarkets: "Geographic Markets",
     expFldLanguages: "Key Languages",
-    expFldObjectives: "Business Objectives",
-    expFldObjDetails: "Objective Details",
-    expFldUseCases: "Use Cases",
+    expFldObjectives: "Priorities",
+    expFldObjDetails: "Priority details",
+    expFldUseCases: "Goal",
     expFldTimezone: "Preferred Time Zone",
     expFldTeams: "Teams / Departments",
     expFldContact: "Main Point of Contact",
@@ -373,7 +371,6 @@ const I18N = {
     startBtn:       "Commencer",
     startBtnSeeded: "Démarrer la configuration de {company}",
     thinking:       "L'assistant réfléchit\u2026",
-    correctionHint: "Vous voyez une erreur ? Dites-le-moi simplement dans le chat (par exemple, « en fait, notre marché principal est l'Allemagne ») et je la corrigerai.",
     chooseLang:     "Choisissez votre langue pour commencer",
     preparedFor:    "Préparé pour {company}",
     think1:         "Je lis votre réponse…",
@@ -394,15 +391,14 @@ const I18N = {
     panelHide: "Masquer",
     panelFixAria: "Corriger {label} dans le chat",
     panelFixStarter: "En fait, {label} devrait être ",
-    panelTip: "Une erreur ?",
     pnlSkipped: "Passé",
     pnlCompany: "Entreprise",
     pnlEmail: "E-mail",
     pnlIndustry: "Secteur",
-    pnlGoal: "Objectif / cas d'usage",
+    pnlGoal: "Objectif",
     pnlMarkets: "Marchés",
     pnlLanguages: "Langues",
-    pnlObjectives: "Objectifs",
+    pnlObjectives: "Priorités",
     pnlTeams: "Équipes",
     pnlTimezone: "Fuseau horaire",
     pnlTopics: "Sujets",
@@ -452,7 +448,7 @@ const I18N = {
     expReqEmail: "E-mail de contact",
     expReqMarkets: "Marchés",
     expReqLanguages: "Langues",
-    expReqObjectives: "Objectifs",
+    expReqObjectives: "Priorités",
     expReqTopic: "Au moins un sujet",
     expReqTopicsConfirmed: "Tous les sujets confirmés",
     expReqUser: "Au moins un utilisateur",
@@ -466,9 +462,9 @@ const I18N = {
     expFldIndustry: "Secteur",
     expFldMarkets: "Marchés géographiques",
     expFldLanguages: "Langues clés",
-    expFldObjectives: "Objectifs commerciaux",
-    expFldObjDetails: "Détails des objectifs",
-    expFldUseCases: "Cas d'usage",
+    expFldObjectives: "Priorités",
+    expFldObjDetails: "Détails des priorités",
+    expFldUseCases: "Objectif",
     expFldTimezone: "Fuseau horaire préféré",
     expFldTeams: "Équipes / services",
     expFldContact: "Interlocuteur principal",
@@ -562,7 +558,6 @@ const I18N = {
     startBtn:       "Starten",
     startBtnSeeded: "Einrichtung für {company} starten",
     thinking:       "Der Assistent denkt nach\u2026",
-    correctionHint: "Etwas stimmt nicht? Sagen Sie es mir einfach im Chat (zum Beispiel „eigentlich ist unser Hauptmarkt Deutschland“) und ich korrigiere es.",
     chooseLang:     "Wählen Sie Ihre Sprache, um zu beginnen",
     preparedFor:    "Vorbereitet für {company}",
     think1:         "Ich lese Ihre Antwort…",
@@ -583,15 +578,14 @@ const I18N = {
     panelHide: "Ausblenden",
     panelFixAria: "{label} im Chat korrigieren",
     panelFixStarter: "Eigentlich sollte {label} sein: ",
-    panelTip: "Stimmt etwas nicht?",
     pnlSkipped: "Übersprungen",
     pnlCompany: "Unternehmen",
     pnlEmail: "E-Mail",
     pnlIndustry: "Branche",
-    pnlGoal: "Ziel / Anwendungsfall",
+    pnlGoal: "Ziel",
     pnlMarkets: "Märkte",
     pnlLanguages: "Sprachen",
-    pnlObjectives: "Ziele",
+    pnlObjectives: "Prioritäten",
     pnlTeams: "Teams",
     pnlTimezone: "Zeitzone",
     pnlTopics: "Themen",
@@ -641,7 +635,7 @@ const I18N = {
     expReqEmail: "Kontakt-E-Mail",
     expReqMarkets: "Märkte",
     expReqLanguages: "Sprachen",
-    expReqObjectives: "Ziele",
+    expReqObjectives: "Prioritäten",
     expReqTopic: "Mindestens ein Thema",
     expReqTopicsConfirmed: "Alle Themen bestätigt",
     expReqUser: "Mindestens ein Benutzer",
@@ -655,9 +649,9 @@ const I18N = {
     expFldIndustry: "Branche",
     expFldMarkets: "Geografische Märkte",
     expFldLanguages: "Wichtige Sprachen",
-    expFldObjectives: "Geschäftsziele",
-    expFldObjDetails: "Details zu den Zielen",
-    expFldUseCases: "Anwendungsfälle",
+    expFldObjectives: "Prioritäten",
+    expFldObjDetails: "Details zu den Prioritäten",
+    expFldUseCases: "Ziel",
     expFldTimezone: "Bevorzugte Zeitzone",
     expFldTeams: "Teams / Abteilungen",
     expFldContact: "Wichtigster Ansprechpartner",
@@ -751,7 +745,6 @@ const I18N = {
     startBtn:       "Comenzar",
     startBtnSeeded: "Comenzar la configuración de {company}",
     thinking:       "El asistente está pensando\u2026",
-    correctionHint: "¿Ve algo incorrecto? Solo dígamelo en el chat (por ejemplo, «en realidad, nuestro mercado principal es Alemania») y lo corregiré.",
     chooseLang:     "Elija su idioma para comenzar",
     preparedFor:    "Preparado para {company}",
     think1:         "Leyendo su respuesta…",
@@ -772,15 +765,14 @@ const I18N = {
     panelHide: "Ocultar",
     panelFixAria: "Corregir {label} en el chat",
     panelFixStarter: "En realidad, {label} debería ser ",
-    panelTip: "¿Algo incorrecto?",
     pnlSkipped: "Omitido",
     pnlCompany: "Empresa",
     pnlEmail: "Correo",
     pnlIndustry: "Sector",
-    pnlGoal: "Objetivo / caso de uso",
+    pnlGoal: "Objetivo",
     pnlMarkets: "Mercados",
     pnlLanguages: "Idiomas",
-    pnlObjectives: "Objetivos",
+    pnlObjectives: "Prioridades",
     pnlTeams: "Equipos",
     pnlTimezone: "Zona horaria",
     pnlTopics: "Temas",
@@ -830,7 +822,7 @@ const I18N = {
     expReqEmail: "Correo de contacto",
     expReqMarkets: "Mercados",
     expReqLanguages: "Idiomas",
-    expReqObjectives: "Objetivos",
+    expReqObjectives: "Prioridades",
     expReqTopic: "Al menos un tema",
     expReqTopicsConfirmed: "Todos los temas confirmados",
     expReqUser: "Al menos un usuario",
@@ -844,9 +836,9 @@ const I18N = {
     expFldIndustry: "Sector",
     expFldMarkets: "Mercados geográficos",
     expFldLanguages: "Idiomas clave",
-    expFldObjectives: "Objetivos de negocio",
-    expFldObjDetails: "Detalles de los objetivos",
-    expFldUseCases: "Casos de uso",
+    expFldObjectives: "Prioridades",
+    expFldObjDetails: "Detalles de las prioridades",
+    expFldUseCases: "Objetivo",
     expFldTimezone: "Zona horaria preferida",
     expFldTeams: "Equipos / departamentos",
     expFldContact: "Contacto principal",
@@ -940,7 +932,6 @@ const I18N = {
     startBtn:       "Inizia",
     startBtnSeeded: "Avvia la configurazione di {company}",
     thinking:       "L'assistente sta pensando\u2026",
-    correctionHint: "Noti qualcosa di sbagliato? Dimmelo semplicemente in chat (per esempio, «in realtà, il nostro mercato principale è la Germania») e lo correggerò.",
     chooseLang:     "Scegli la tua lingua per iniziare",
     preparedFor:    "Preparato per {company}",
     think1:         "Sto leggendo la tua risposta…",
@@ -961,15 +952,14 @@ const I18N = {
     panelHide: "Nascondi",
     panelFixAria: "Correggi {label} nella chat",
     panelFixStarter: "In realtà, {label} dovrebbe essere ",
-    panelTip: "Qualcosa non torna?",
     pnlSkipped: "Saltato",
     pnlCompany: "Azienda",
     pnlEmail: "E-mail",
     pnlIndustry: "Settore",
-    pnlGoal: "Obiettivo / caso d'uso",
+    pnlGoal: "Obiettivo",
     pnlMarkets: "Mercati",
     pnlLanguages: "Lingue",
-    pnlObjectives: "Obiettivi",
+    pnlObjectives: "Priorità",
     pnlTeams: "Team",
     pnlTimezone: "Fuso orario",
     pnlTopics: "Argomenti",
@@ -1019,7 +1009,7 @@ const I18N = {
     expReqEmail: "E-mail di contatto",
     expReqMarkets: "Mercati",
     expReqLanguages: "Lingue",
-    expReqObjectives: "Obiettivi",
+    expReqObjectives: "Priorità",
     expReqTopic: "Almeno un argomento",
     expReqTopicsConfirmed: "Tutti gli argomenti confermati",
     expReqUser: "Almeno un utente",
@@ -1033,9 +1023,9 @@ const I18N = {
     expFldIndustry: "Settore",
     expFldMarkets: "Mercati geografici",
     expFldLanguages: "Lingue principali",
-    expFldObjectives: "Obiettivi aziendali",
-    expFldObjDetails: "Dettagli sugli obiettivi",
-    expFldUseCases: "Casi d'uso",
+    expFldObjectives: "Priorità",
+    expFldObjDetails: "Dettagli sulle priorità",
+    expFldUseCases: "Obiettivo",
     expFldTimezone: "Fuso orario preferito",
     expFldTeams: "Team / reparti",
     expFldContact: "Referente principale",
@@ -1129,7 +1119,6 @@ const I18N = {
     startBtn:       "ابدأ",
     startBtnSeeded: "ابدأ إعداد {company}",
     thinking:       "المساعد يفكّر\u2026",
-    correctionHint: "لاحظت شيئًا غير صحيح؟ فقط أخبرني في المحادثة (على سبيل المثال، «في الواقع، سوقنا الرئيسي هو ألمانيا») وسأصححه.",
     chooseLang:     "اختر لغتك للبدء",
     preparedFor:    "أُعدّ لأجل {company}",
     think1:         "أقرأ إجابتك…",
@@ -1150,15 +1139,14 @@ const I18N = {
     panelHide: "إخفاء",
     panelFixAria: "تصحيح {label} في المحادثة",
     panelFixStarter: "في الواقع، {label} يجب أن يكون ",
-    panelTip: "هل هناك خطأ؟",
     pnlSkipped: "تم التخطي",
     pnlCompany: "الشركة",
     pnlEmail: "البريد الإلكتروني",
     pnlIndustry: "القطاع",
-    pnlGoal: "الهدف / حالة الاستخدام",
+    pnlGoal: "الهدف",
     pnlMarkets: "الأسواق",
     pnlLanguages: "اللغات",
-    pnlObjectives: "الأهداف",
+    pnlObjectives: "الأولويات",
     pnlTeams: "الفرق",
     pnlTimezone: "المنطقة الزمنية",
     pnlTopics: "المواضيع",
@@ -1208,7 +1196,7 @@ const I18N = {
     expReqEmail: "بريد جهة الاتصال",
     expReqMarkets: "الأسواق",
     expReqLanguages: "اللغات",
-    expReqObjectives: "الأهداف",
+    expReqObjectives: "الأولويات",
     expReqTopic: "موضوع واحد على الأقل",
     expReqTopicsConfirmed: "تأكيد جميع المواضيع",
     expReqUser: "مستخدم واحد على الأقل",
@@ -1222,9 +1210,9 @@ const I18N = {
     expFldIndustry: "القطاع",
     expFldMarkets: "الأسواق الجغرافية",
     expFldLanguages: "اللغات الرئيسية",
-    expFldObjectives: "أهداف العمل",
-    expFldObjDetails: "تفاصيل الأهداف",
-    expFldUseCases: "حالات الاستخدام",
+    expFldObjectives: "الأولويات",
+    expFldObjDetails: "تفاصيل الأولويات",
+    expFldUseCases: "الهدف",
     expFldTimezone: "المنطقة الزمنية المفضّلة",
     expFldTeams: "الفرق / الأقسام",
     expFldContact: "جهة الاتصال الرئيسية",
@@ -1308,12 +1296,12 @@ function L(key, lang, vars) {
 // placeholders, tooltips) follows the client's language, so a non-English chat
 // no longer renders an all-English form.
 const WI18N = {
-  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your objectives? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit" },
-  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos objectifs ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier" },
-  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Zielen? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten" },
-  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus objetivos? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar" },
-  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sui tuoi obiettivi? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica" },
-  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أهدافك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل" },
+  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your priorities? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit" },
+  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos priorités ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier" },
+  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Prioritäten? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten" },
+  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus prioridades? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar" },
+  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sulle tue priorità? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica" },
+  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أولوياتك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل" },
 };
 function WL(key, lang) {
   const dict = WI18N[lang] || WI18N.English;
@@ -1410,6 +1398,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // In-progress autosave to localStorage for same-device pause/resume. Keyed by the
 // seed id when present, else a single default slot. Best-effort: any failure
 // (private mode, quota, storage disabled) degrades to no-resume without throwing.
+// Minimum viewport width at which the captured-answers panel can sit BESIDE the
+// conversation rather than on top of it. ONE constant on purpose: the panel's
+// default-open test and the transform that makes room for it used to be two separate
+// numbers (>1080 and >=1280). Between them the panel opened but nothing moved, so on
+// any 1081-1279px window — a very common laptop size, and the DEFAULT state there —
+// it covered the right edge of the chat. Right-aligned content suffers most, which
+// means the client's own answers were the part getting cut off mid-word.
+const SIDE_COL_MIN = 1280;
+
 const LS_PREFIX = "lumen_onb_v1_";
 const lsKey = seedId => LS_PREFIX + (seedId || "default");
 function lsLoadDraft(seedId) {
@@ -1417,10 +1414,38 @@ function lsLoadDraft(seedId) {
     const raw = localStorage.getItem(lsKey(seedId));
     if (!raw) return null;
     const o = JSON.parse(raw);
-    return (o && Array.isArray(o.messages) && o.messages.length && o.progress && (o.progress.percent || 0) < 100) ? o : null;
+    // Deliberately NOT gated on percent < 100. That test conflated "finished
+    // answering" with "sent", and 100%-but-unsent is a completely ordinary state: the
+    // client answers everything, sees "One last step: send your brief", and closes the
+    // tab. They came back to a blank Start screen, and starting again overwrote the
+    // finished brief — 27 messages destroyed in the case that surfaced this.
+    // Sent-ness is already handled without it: the autosave effect bails once `sent`
+    // is true, so no draft is ever written after a send, and handleSend clears both
+    // copies on success. The one draft that deliberately survives a send is the
+    // save-failed-but-Sheet-delivered case, which is kept precisely so it CAN be
+    // resumed and re-sent — something the old guard made impossible.
+    return (o && Array.isArray(o.messages) && o.messages.length && o.progress) ? o : null;
   } catch { return null; }
 }
 function lsSaveDraft(seedId, snap) { try { localStorage.setItem(lsKey(seedId), JSON.stringify(snap)); return true; } catch { return false; } }
+// A tiny receipt written once the brief is delivered. `sent` and `sheetLink` are plain
+// component state and the draft is deliberately cleared on a successful send, so before
+// this a refresh (or simply re-opening the emailed link to find the Sheet again) dropped
+// the client back on the untouched Start screen as if they had never sent anything —
+// confirmation gone, Sheet link gone. Pressing Start there mints a NEW session id, so
+// the consultant gets a second dashboard row for the same client. Deliberately tiny: no
+// messages, no history, nothing that could resurrect a conversation.
+const lsSentKey = seedId => LS_PREFIX + "sent_" + (seedId || "default");
+function lsSaveReceipt(seedId, r) { try { localStorage.setItem(lsSentKey(seedId), JSON.stringify(r)); } catch {} }
+function lsLoadReceipt(seedId) {
+  try {
+    const raw = localStorage.getItem(lsSentKey(seedId));
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    return (o && o.sentAt) ? o : null;
+  } catch { return null; }
+}
+function lsClearReceipt(seedId) { try { localStorage.removeItem(lsSentKey(seedId)); } catch {} }
 // Is localStorage actually writable? (Private mode / quota / disabled storage
 // all throw.) Used so the "Saved on this device" badge isn't shown when saving
 // silently fails.
@@ -1476,8 +1501,9 @@ async function srvLoadDraft(seedId) {
     if (!res.ok) return null; // 404 = nothing saved yet, which is the normal first visit
     const data = await res.json();
     const d = data && data.draft;
-    // Same validity bar as the local draft: a real conversation that isn't finished.
-    return (d && Array.isArray(d.messages) && d.messages.length && d.progress && (d.progress.percent || 0) < 100)
+    // Same validity bar as the local draft: a real conversation. No percent ceiling —
+    // see the note in lsLoadDraft for why 100%-but-unsent must stay resumable.
+    return (d && Array.isArray(d.messages) && d.messages.length && d.progress)
       ? { ...d, savedAt: Date.parse(data.savedAt) || d.savedAt || 0 }
       : null;
   } catch { return null; }
@@ -1994,7 +2020,18 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
           {errors[`${i}-email`] && <div style={{fontSize:10,color:"#ef4444",marginTop:3}}>{errors[`${i}-email`]}</div>}
         </div>
       </div>
-      <div style={{display:"flex",gap:6}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#64748b"}}>{a}</button>)}</div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#64748b"}}>{a}</button>)}
+        {/* Remove a row. The fully-empty guard above already stops an untouched extra row
+            from blocking Confirm, but a row the client STARTED and thought better of does
+            count as filled: it then failed validation with no way to get rid of it, so
+            Confirm sat dead until they hunted down and blanked each field by hand. The
+            review modal has always had this control on its user rows; the widget did not.
+            Hidden at one row, since there must always be someone to add details to. */}
+        {users.length>1 && <button onClick={()=>{setUsers(us=>us.filter((_,j)=>j!==i)); setErrors({});}}
+          aria-label={L("expRemoveUser",lang,{name:u.firstName||u.email||i+1})}
+          title={L("expRemoveUser",lang,{name:u.firstName||u.email||i+1})}
+          style={{flexShrink:0,background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:13,padding:"6px 8px",lineHeight:1}}>✕</button>}
+      </div>
     </div>)}
     {/* The reason Confirm is disabled, stated next to it — a grey button with a
         silent why strands non-technical clients (tooltips don't exist on touch). */}
@@ -2007,12 +2044,18 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
   </div>;
 }
 
-function TopicCards({ suggestions, onConfirm, onSkip, lang }) {
+function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
   // Suggested topics default to KEPT (they were proposed for this client for a
   // reason): the client reviews and discards, rather than opting in to each card.
   // The old default ("pending") made Confirm start disabled at "(0)" and silently
   // dropped every card the client agreed with but never explicitly ticked.
-  const [cards,setCards] = useState(suggestions.map(s=>({...s,status:"kept",id:Math.random().toString(36).substr(2,9)})));
+  //
+  // A previous confirmation WINS over the model's suggestions. Re-seeding from
+  // `suggestions` on every mount threw away the client's own edits the moment they
+  // reopened the widget via Edit. Only the kept cards are stored on confirm, so
+  // anything the client discarded correctly stays discarded on reopen too.
+  const seed = Array.isArray(initialData) && initialData.length ? initialData : suggestions;
+  const [cards,setCards] = useState(seed.map(s=>({...s,status:s.status||"kept",id:Math.random().toString(36).substr(2,9)})));
   const [dragIdx,setDragIdx] = useState(null);
   const upd  = (i,f,v) => setCards(c=>c.map((x,j)=>j===i?{...x,[f]:v}:x));
   const setSt = (i,s) => setCards(c=>c.map((x,j)=>j===i?{...x,status:s}:x));
@@ -2399,17 +2442,29 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   const emptyAlert  = () => ({ name:"",type:"",details:"",comments:"" });
   const emptyTopic = () => ({ name:"",keywords:"",rationale:"",comments:"",id:Date.now(),confirmed:true });
   const confirmTopic = (i,v) => setTopics(ts=>ts.map((x,j)=>j===i?{...x,confirmed:v,comments:v?(x.comments||"").replace(GUESS_RE,"").replace(/^[\s,-]+|[\s,-]+$/g,"")||"Confirmed by client":x.comments}:x));
-  const unconfirmed = topics.filter(t=>!t.confirmed).length;
+  // Every "+ Add …" button appends a fully blank row. Those rows must not count as
+  // content: clicking "+ Add topic" and typing nothing used to satisfy BOTH "At least
+  // one topic" and "All topics confirmed" (emptyTopic is created confirmed:true), moving
+  // readiness 38% -> 63% for zero information. Worse, `merged` passed the rows straight
+  // through, so the blank landed in the brief, the Sheet and the dashboard's topic count.
+  // Judge and send on rows that actually carry something.
+  const hasContent = (o, keys) => keys.some(k => String((o && o[k]) ?? "").trim());
+  const realTopics  = topics.filter(t => hasContent(t, ["name","keywords"]));
+  const realUsers   = users.filter(u => hasContent(u, ["firstName","lastName","email","role"]));
+  const realChans   = chans.filter(c => hasContent(c, ["author","url","type"]));
+  const realReports = reports.filter(r => hasContent(r, ["name","objective","details","comments"]));
+  const realAlerts  = alerts.filter(a => hasContent(a, ["name","type","details","comments"]));
+  const unconfirmed = realTopics.filter(t=>!t.confirmed).length;
   // readiness scoring
   const reqChecks = [
-    ["expReqCompany", !!co.name],
+    ["expReqCompany", !!String(co.name||"").trim()],
     ["expReqEmail", !!co.email && EMAIL_RE.test(co.email)],
     ["expReqMarkets", !!mkts.trim()],
     ["expReqLanguages", !!langs.trim()],
     ["expReqObjectives", !!objs.trim()],
-    ["expReqTopic", topics.length>0],
-    ["expReqTopicsConfirmed", topics.length>0 && unconfirmed===0],
-    ["expReqUser", users.length>0],
+    ["expReqTopic", realTopics.length>0],
+    ["expReqTopicsConfirmed", realTopics.length>0 && unconfirmed===0],
+    ["expReqUser", realUsers.length>0],
   ];
   const passed = reqChecks.filter(c=>c[1]).length;
   const pct = Math.round(passed/reqChecks.length*100);
@@ -2424,11 +2479,16 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
       : <input value={val} onChange={e=>set(e.target.value)} aria-label={label} style={{width:"100%",border:`1px solid ${req&&!val?"#fca5a5":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>}
   </div>;
   const addBtn = (label,onClick) => <button onClick={onClick} style={{background:"transparent",border:`1px dashed ${LINK}`,color:LINK,borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",marginTop:6}}>{label}</button>;
-  const merged = { company:{...co,markets:mkts,languages:langs,objectives:objs,objectiveDetails:objDetails,teams,timezone:tz}, topics:topics.map(({confirmed,id,...t})=>t), channels:chans.map(({id,...c})=>c), reports:reports.map(({id,...r})=>r), alerts:alerts.map(({id,...a})=>a), queries:gw("QUERIES")||"" };
+  // Blank rows are dropped here, not just hidden from the readiness score: they used to
+  // travel all the way into the brief, the generated Sheet and the dashboard's counts,
+  // so a consultant opened a setup form padded with empty topic/user/channel rows.
+  const merged = { company:{...co,markets:mkts,languages:langs,objectives:objs,objectiveDetails:objDetails,teams,timezone:tz}, topics:realTopics.map(({confirmed,id,...t})=>t), channels:realChans.map(({id,...c})=>c), reports:realReports.map(({id,...r})=>r), alerts:realAlerts.map(({id,...a})=>a), queries:gw("QUERIES")||"" };
   // Unmet-requirement labels in English (the UI stays in the client's language), so
   // the consultant reading the handoff sees exactly what to finish at the review call.
   const openGaps = reqChecks.filter(c => !c[1]).map(c => L(c[0], "English"));
-  const doSend = () => { if (sending) return; onSend(merged, users, ready ? undefined : { incomplete: true, gaps: openGaps }); };
+  // realUsers, not users: the user list travels as its own argument, so filtering it in
+  // `merged` alone would still have sent blank people to the brief and the Sheet.
+  const doSend = () => { if (sending) return; onSend(merged, realUsers, ready ? undefined : { incomplete: true, gaps: openGaps }); };
   const dialogRef = useRef(null);
   useEffect(() => {
     // Dialog a11y: Escape closes; focus moves in on open, is TRAPPED while open
@@ -2588,7 +2648,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               {/* Download stays a quiet text link so it never reads as "download = done"
                   beside Send, but it is available whether or not the brief is complete —
                   a stuck client can always keep a copy of their own answers. */}
-              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,users)} style={{background:"transparent",border:"none",color:"#64748b",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
+              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,realUsers)} style={{background:"transparent",border:"none",color:"#64748b",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
               {/* Ready: submit directly. Not ready: enabled but amber, opening the confirm
                   step rather than dead-ending, so a stuck client is never trapped. */}
               <button onClick={()=>{ if (sending) return; if (ready) doSend(); else setConfirmSend(true); }} disabled={sending} style={ready
@@ -2602,7 +2662,10 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   </div>;
 }
 
-async function doExport(merged, users, rawMessages) {
+// lang is the session's UI language, threaded in from the component: this runs at
+// module scope so it cannot read uiLang itself, and without it the downloaded copy
+// reported "English" for every client (see the note in handleSend).
+async function doExport(merged, users, rawMessages, lang) {
   let companyName = merged.company?.name;
   if (!companyName) {
     const m = (rawMessages||[]).filter(m=>m.role==="user").map(m=>m.content||"").join(" ")
@@ -2610,7 +2673,7 @@ async function doExport(merged, users, rawMessages) {
     companyName = m?.[1]?.trim()||"Draft";
   }
   const XLSX = await loadXLSX();
-  const { wb, filename } = buildWorkbook(XLSX, {...merged, company:{...merged.company, name:companyName}}, users);
+  const { wb, filename } = buildWorkbook(XLSX, {...merged, company:{...merged.company, name:companyName, onboardingLanguage: merged.company?.onboardingLanguage || lang}}, users);
   XLSX.writeFile(wb, filename);
 }
 
@@ -2660,6 +2723,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // consistent. The Sales page only offers supported languages, so no legitimate
   // seed is affected.
   const [uiLang,setUiLang]     = useState(() => (seed?.language && UI_LANGS.some(l => l.code === seed.language)) ? seed.language : "English");
+  // Set when the CLIENT picks a language themselves (as opposed to it being restored
+  // from a seed or a draft). resumeConvo restores the saved language, which would
+  // otherwise instantly undo a correction made on the Welcome-back screen.
+  const langOverrideRef = useRef(false);
   const [messages,setMessages] = useState([]);
   const [input,setInput]       = useState("");
   const [loading,setLoading]   = useState(false);
@@ -2677,7 +2744,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const [attachNote,setAttachNote] = useState(null); // inline note when an attached file can't be read (too large / unsupported)
   const [initErr,setInitErr]   = useState(null); // "start" | "resume" | null — first-turn/resume API failure, offers retry
   const [draftOk,setDraftOk]   = useState(lsProbe); // is on-device draft saving actually working?
-  const [showPanel,setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth > 1080);
+  // Open by default only where there is room to sit beside the chat. Below this the
+  // panel still works, it just stays closed until asked for and then floats over the
+  // conversation as an overlay (which is what the shadow below SIDE_COL_MIN is for).
+  const [showPanel,setShowPanel] = useState(() => typeof window !== "undefined" && window.innerWidth >= SIDE_COL_MIN);
   const [linkCopied,setLinkCopied] = useState(false);
   const [sent,setSent]         = useState(false);
   const [sending,setSending]   = useState(false);
@@ -2685,6 +2755,33 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const [sheetLink,setSheetLink] = useState(null);
   const [ww,setWw] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => { const f = () => setWw(window.innerWidth); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  // The captured-answers panel is position:fixed and has to start BELOW the header. Its
+  // top used to be the literal 56, which is only the header's minHeight: on mobile the
+  // header is height:auto with flexWrap, so a longer wordmark/tagline (any non-English
+  // language will do it) pushes it taller and the panel then sat ON TOP of the header's
+  // own controls. Measured on a 375px phone: header 94px, all three controls 91%
+  // covered, and a hit-test at each button's centre returned the panel, so the sound,
+  // dark-mode and panel toggles were simply dead. Measured, not assumed, so it also
+  // survives rotation and language changes.
+  const headerRef = useRef(null);
+  const [headerH,setHeaderH] = useState(56);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderH(Math.round(el.getBoundingClientRect().height) || 56);
+    measure();
+    if (typeof ResizeObserver === "undefined") return; // older browsers keep the 56 default
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // Depends on `checked` because the component returns <BootScreen/> until it is true,
+    // so on the very first run the header does not exist yet and the ref is null. With
+    // empty deps the effect never re-ran once the real tree mounted, the observer was
+    // never attached, and the panel silently kept the 56 default — which is exactly the
+    // bug this is meant to fix. `checked` is declared above; `mob`/`uiLang` are declared
+    // below and would be in the temporal dead zone here, but the observer covers those
+    // reflows anyway.
+  }, [checked]);
   const mob = ww < 640;
 
   const botRef  = useRef(null);
@@ -2805,6 +2902,19 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // A delivered brief wins over any draft: show the client what actually happened
+      // (sent, plus their Sheet link) instead of a blank Start screen. Checked first and
+      // returns early, so a stale draft can never resurrect a conversation that has
+      // already been submitted.
+      const receipt = lsLoadReceipt(seedId);
+      if (receipt) {
+        if (receipt.uiLang && UI_LANGS.some(l => l.code === receipt.uiLang)) setUiLang(receipt.uiLang);
+        setSheetLink(receipt.sheetLink || null);
+        setSent(true);
+        setStarted(true);
+        setChecked(true);
+        return;
+      }
       const local = lsLoadDraft(seedId);
       let remote = null;
       // Only seeded links have a stable server key. Skip the fetch otherwise so a
@@ -2838,10 +2948,16 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // Keep the live snapshot available to the flush-on-hide handler below. Set
     // OUTSIDE the debounce timer, so a client who closes the tab within the debounce
     // window still has their latest turn saved rather than losing it.
-    snapRef.current = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current } };
+    // retryMsg is part of the draft, not incidental UI state. When a turn fails to
+    // send, the user turn is POPPED off histRef (so a dead turn never reaches the
+    // model) and its text survives only here. Leaving it out meant a client who
+    // refreshed at the retry card came back to their own message still in the
+    // transcript, absent from history, with no Try again anywhere: the answer was
+    // silently lost and the assistant carried on as if it had never been given.
+    snapRef.current = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg };
     if (saveT.current) clearTimeout(saveT.current);
     saveT.current = setTimeout(() => {
-      const snap = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, savedAt: Date.now() };
+      const snap = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg, savedAt: Date.now() };
       setDraftOk(lsSaveDraft(seedId, snap));
       // Cross-device copy. Best-effort and never blocks the chat; the local copy
       // already covers this device if it fails. Skipped while a send is in flight so
@@ -2886,7 +3002,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       }
     }, 600);
     return () => { if (saveT.current) clearTimeout(saveT.current); };
-  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId, seed]);
+    // retryMsg is in the deps deliberately: a send failure changes nothing else the
+    // effect watches (messages already holds the bubble), so without it the draft would
+    // never learn there is a pending unsent turn.
+  }, [messages, progress, wState, cdata, started, sent, uiLang, seedId, seed, retryMsg]);
 
   // Flush the draft the moment the page is backgrounded or closed. The autosave above
   // is debounced by 600ms, so without this a client who answers and immediately closes
@@ -3144,6 +3263,12 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         if (!actionable) throw new Error("empty_reply");
         if (prog) setProgress(prog);
         else setProgress(p=>({...p,percent:Math.max(p.percent,inferPct())}));
+        // A turn just succeeded, so any first-turn/resume failure card is stale. Clearing
+        // it here is not cosmetic: that card's Try again calls startConvo(), which
+        // resetSession()s. Left on screen above a conversation that had since recovered,
+        // it read as "there is still a problem" and one reasonable tap on it wiped the
+        // whole conversation. Verified: the client's answers went from present to gone.
+        setInitErr(null);
         applyCdata(pr);
         histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
         if (sndRef.current) pop();
@@ -3183,6 +3308,14 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         const _co = merged.company || {};
         merged = { ...merged, company: { ..._co, contact: _co.contact || seed.contactName || "", email: _co.email || seed.email || "" } };
       }
+      // Stamp the session's language onto the brief HERE, before anything consumes it.
+      // It used to be spliced in further down, inline in the Sheets request body only,
+      // so the workbook never carried it: buildWorkbook read company.onboardingLanguage,
+      // found it undefined, and fell back to "English". The Apps-Script Sheet looked
+      // right (it is built from that JSON payload) while the client's "Download a copy"
+      // and the Drive-conversion fallback both told the consultant English, whatever
+      // language the client actually used. One assignment, one source of truth.
+      merged = { ...merged, company: { ...(merged.company || {}), onboardingLanguage: uiLang } };
       const XLSX = await loadXLSX();
       const { wb, filename } = buildWorkbook(XLSX, merged, users || []);
       const sentAt = new Date();
@@ -3251,7 +3384,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
           // failed/slow save let a resend copy a SECOND Sheet + re-send the branded
           // email + re-fire Slack, and killed the link writeback. The completed record
           // is persisted below on every success-ish path, so the Slack deep link resolves.
-          body: JSON.stringify({ sessionId: sidRef.current, xlsxBase64, brief: { ...merged, company: { ...merged.company, onboardingLanguage: uiLang }, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
+          body: JSON.stringify({ sessionId: sidRef.current, xlsxBase64, brief: { ...merged, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
         }, 30000); // aligned to the sheet function's own 24s upstream abort + the 26s function ceiling; was 45s, which left the client waiting ~19s after the platform would already have killed the function
         if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
         else {
@@ -3273,7 +3406,14 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         if (e && e.name === "AbortError") sheetPending = true; // client's own wait elapsed — same reasoning: the Sheet is likely still being built server-side
         console.error("Sheet generation failed (non-fatal)", e);
       }
-      setSheetLink(sheetUrl);
+      // Never null out a link we already have. The Send button stays live after a
+      // successful send (re-sending is a deliberate recovery path), and `sheetUrl` is a
+      // fresh local that stays null whenever the Sheet step fails. Assigning it
+      // unconditionally meant one failed re-send removed "Open your brief" from the
+      // finish card even though the Sheet existed and was untouched — the client lost
+      // their only in-app route to it. Same rule session.js already applies server-side
+      // when reconciling a completed record.
+      if (sheetUrl) setSheetLink(sheetUrl);
       record.sheetUrl = sheetUrl;
 
       // Second write: attach the Sheet link so the dashboard can open it, or — when
@@ -3317,6 +3457,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // failed but the Sheet carried it through, keep the draft so the session can
       // still be re-sent later to populate the dashboard.
       if (saveOk) { lsClearDraft(seedId); srvClearDraft(seedId); }
+      // Written on every delivered send, including the save-failed-but-Sheet-delivered
+      // path above, so a return visit always reflects that the brief is gone rather than
+      // inviting the client to start again from scratch.
+      lsSaveReceipt(seedId, { sentAt: sentAt.toISOString(), sheetLink: sheetUrl || null, uiLang });
       // Bring the "Brief sent" confirmation into view — without this the modal just
       // closes and the client is left looking at empty scroll space (reads as a blank
       // screen / no confirmation).
@@ -3397,6 +3541,13 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // Without this, a failed first turn left a permanent "Assistant is thinking…"
       // spinner with no way out. Clear it and offer a retry instead.
       console.error("startConvo failed", e);
+      // Drop the seeded opener. It is a USER turn, and the composer is already live at
+      // this point (started is true), so a client who types instead of tapping Try again
+      // would otherwise send [seeded-opener, their-answer] — two consecutive user turns
+      // with no assistant between, the malformed shape the pop in sendToAPI and busyRef
+      // both exist to prevent. The seeded facts are not lost: chat.js injects the client
+      // profile server-side, and Try again rebuilds this opener from scratch anyway.
+      histRef.current = [];
       setInitErr("start");
     } finally {
       setLoading(false);
@@ -3405,20 +3556,43 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
 
   const resumeConvo = useCallback(async () => {
     init(); if (!saved) return;
+    // Re-read the on-device draft AT RESUME TIME rather than trusting the snapshot
+    // captured when this tab mounted. A second tab opened on the same link holds the
+    // draft as it looked when IT loaded; resuming there restored that stale copy and
+    // the next autosave overwrote everything the first tab had done since. Verified by
+    // driving two tabs: a client answer went from present to permanently gone.
+    // pickDraft only ever moves forward (newer savedAt wins), so this can never select
+    // older state than we already had.
+    const s = pickDraft(lsLoadDraft(seedId), saved) || saved;
     setStarted(true); setLoading(true); setInitErr(null);
-    if (saved.uiLang) setUiLang(saved.uiLang);
-    if (saved.sid) sidRef.current = saved.sid;
-    startedAtRef.current = saved.startedAt || Date.now();
+    // Do not restore the saved language over a correction the client just made on the
+    // Welcome-back screen — that was the whole point of offering the picker there.
+    if (s.uiLang && !langOverrideRef.current) setUiLang(s.uiLang);
+    if (s.sid) sidRef.current = s.sid;
+    startedAtRef.current = s.startedAt || Date.now();
     // Rehydrate usage so the dashboard's api-calls/tokens/cost aren't undercounted
     // after a resume (they were reset to 0 on resume, dropping all pre-pause usage).
-    apiCountRef.current = saved.apiCalls || 0;
-    usageRef.current = saved.tokens ? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...saved.tokens } : { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-    setMessages(saved.messages); setProgress(saved.progress); setWState(saved.wState||{});
-    prevSecRef.current = saved.progress?.section || null;
-    if (saved.cdata) setCdata(saved.cdata);
+    apiCountRef.current = s.apiCalls || 0;
+    usageRef.current = s.tokens ? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...s.tokens } : { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    setMessages(s.messages); setProgress(s.progress); setWState(s.wState||{});
+    prevSecRef.current = s.progress?.section || null;
+    if (s.cdata) setCdata(s.cdata);
+    // A turn that failed to send lives ONLY in retryMsg by this point: sendToAPI popped
+    // it back off histRef so a dead turn could never reach the model. Restore that
+    // pending state and stop here, WITHOUT asking the model for a welcome-back message.
+    // The client lands on their own message plus a working "Try again", which is the
+    // one action that recovers it. Resuming normally instead would deliver a fresh
+    // assistant reply that silently talks past the answer they can still see on screen.
+    if (s.retryMsg) {
+      histRef.current = [...(s.history || [])];
+      setRetryMsg(s.retryMsg);
+      setSaved(null);
+      setLoading(false);
+      return;
+    }
     // Clone the saved history so a failed attempt + retry can't stack two
     // "[RESUMING SESSION]" markers onto the same array reference.
-    histRef.current = [...(saved.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
+    histRef.current = [...(s.history||[]), {role:"user",content:"[RESUMING SESSION] The client is returning to continue their onboarding."}];
     try {
       const raw = await callAPILive(histRef.current);
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
@@ -3435,7 +3609,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     } finally {
       setLoading(false);
     }
-  }, [saved, callAPI, init, pop]);
+  }, [saved, seedId, callAPI, init, pop]);
 
   const sendMsg = useCallback(async (ov, chip) => {
     init();
@@ -3542,7 +3716,13 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     return <div>
       {WHY[type] && <div style={{fontSize:11,color:C.muted,margin:"0 0 6px",fontStyle:"italic"}}>{WHY[type]}</div>}
       {type==="QUERIES"   && <QueriesWidget onSubmit={os} initialData={pd} lang={uiLang}/>}
-      {type==="TOPICS"    && topicSuggestions?.length>0 && <TopicCards suggestions={topicSuggestions} onConfirm={os} onSkip={sk} lang={uiLang}/>}
+      {/* initialData, like every other widget here. Without it TopicCards re-seeded from
+          `suggestions` — the model's ORIGINAL batch stored on the message — every time it
+          mounted, so a client who renamed their topics, confirmed, then hit Edit to tweak
+          one thing found all of their edits silently replaced by the AI's first guesses.
+          Confirming again would then overwrite their own good data. Topics are what Lumen
+          actually gets configured with, so this was the worst field to lose. */}
+      {type==="TOPICS"    && (pd?.length>0 || topicSuggestions?.length>0) && <TopicCards suggestions={topicSuggestions} initialData={pd} onConfirm={os} onSkip={sk} lang={uiLang}/>}
       {type==="MARKETS"   && <ChipSelector options={MARKETS_OPT}  onSubmit={os} onSkip={sk} placeholder={WL("phMarket",uiLang)}   hint={WL("hintSelectAll",uiLang)}    initialData={pd||[]} lang={uiLang}/>}
       {type==="LANGUAGES" && <ChipSelector options={LANG_OPT}     onSubmit={os} onSkip={sk} placeholder={WL("phLanguage",uiLang)} hint={WL("hintSelectAll",uiLang)}  initialData={pd||[]} lang={uiLang}/>}
       {type==="OBJECTIVES"&& <RankedSelector options={OBJ_OPT}   onSubmit={os} onSkip={sk} max={WIDGET_MAX.OBJECTIVES}    hint={WL("hintObjectives",uiLang)} initialData={pd} lang={uiLang}/>}
@@ -3562,7 +3742,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const fmtV = v => { if (v==null||v===""||(Array.isArray(v)&&!v.length)) return null; if (v==="__skip__") return "Skipped"; return Array.isArray(v)?v.join(", "):String(v); };
   const topicsList = (cdata.topics?.length?cdata.topics:Array.isArray(gwp("TOPICS"))?gwp("TOPICS"):[]);
   const usersList  = unionUsers(gwp("USERS"), cdata.users);
-  const sideCol = ww >= 1280;
+  const sideCol = ww >= SIDE_COL_MIN;
   const panelRows = [
     [L("pnlCompany",uiLang), fmtV(cdata.company?.name)],
     [L("pnlEmail",uiLang), fmtV(cdata.company?.email)],
@@ -3618,9 +3798,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 input,textarea,select,button{font-family:inherit}
 @media (max-width:640px){input,textarea,select{font-size:16px !important}}`}</style>
 
-      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink} uiLang={uiLang}/></ModalBoundary>}
+      {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages,uiLang);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink} uiLang={uiLang}/></ModalBoundary>}
 
-      {showPanel && started && <div style={{position:"fixed",top:56,...(uiLang==="Arabic"?{left:0,borderRight:`1px solid ${C.border}`}:{right:0,borderLeft:`1px solid ${C.border}`}),bottom:0,width:mob?"100%":320,background:C.card,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":`${uiLang==="Arabic"?"4px":"-4px"} 0 16px rgba(0,0,0,0.08)`}}>
+      {showPanel && started && <div style={{position:"fixed",top:headerH,...(uiLang==="Arabic"?{left:0,borderRight:`1px solid ${C.border}`}:{right:0,borderLeft:`1px solid ${C.border}`}),bottom:0,width:mob?"100%":320,background:C.card,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":`${uiLang==="Arabic"?"4px":"-4px"} 0 16px rgba(0,0,0,0.08)`}}>
         {/* Header: a LABELLED "Hide" control, not a lone ✕. The faint ✕ read as
             decoration and clients did not realise the panel could be closed. */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -3661,22 +3841,19 @@ input,textarea,select,button{font-family:inherit}
                 <span aria-hidden="true" style={{flexShrink:0,width:13,height:13,borderRadius:"50%",border:`1.5px solid ${C.border}`}}/>{label}
               </div>)}
             </div>}
-            {/* The correction hint used to sit at the TOP in a grey bubble styled just
-                like a chat message, so it read as something the assistant had said.
-                Demoted to a quiet tip at the bottom, clearly guidance rather than
-                dialogue, and it no longer competes with the captured values. */}
-            <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:16,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-              <span style={{flexShrink:0,color:LINK,marginTop:1}}><Ic d={IC.pencil} size={12}/></span>
-              <p style={{margin:0,fontSize:11,lineHeight:1.5,color:C.muted}}>
-                <strong style={{color:C.text,fontWeight:700}}>{L("panelTip",uiLang)}</strong> {L("correctionHint",uiLang)}
-              </p>
-            </div>
+            {/* The generic correction hint that used to sit here is gone: every captured
+                row already has its own "Correct X in the chat" pencil (Fix, above), and
+                every chat message already carries a visible, always-shown Edit link right
+                under it. Both are self-explanatory on their own; a sentence telling people
+                they can "just type a correction" was teaching a weaker version of what two
+                actual buttons already do, in an interface that's a chat and already sells
+                itself as "a conversation, not a form." */}
           </>;
         })()}
       </div>}
 
       {/* Header */}
-      <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:mob?"8px 12px":"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:56,height:mob?"auto":56,flexWrap:mob?"wrap":"nowrap",gap:mob?6:0,flexShrink:0}}>
+      <div ref={headerRef} style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:mob?"8px 12px":"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:56,height:mob?"auto":56,flexWrap:mob?"wrap":"nowrap",gap:mob?6:0,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <LumenMark size={32}/>
           <div>
@@ -3720,7 +3897,7 @@ input,textarea,select,button{font-family:inherit}
       <div ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
 
         {!started && !saved && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"24px 24px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"18px 24px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
             {/* Masked and shortened (was 220px tall, unmasked): the 2px stroke used to run
                 straight through the h1 glyphs and read as a line struck through the title,
                 worst on mobile where it wraps to two lines and sits deeper into the band.
@@ -3730,37 +3907,47 @@ input,textarea,select,button{font-family:inherit}
               <path d="M0,150 C180,60 320,220 480,130 C640,40 760,180 900,90 L900,0 L0,0 Z" fill="url(#lw)"/>
               <path d="M0,190 C220,110 380,240 560,150 C720,70 820,200 900,140" fill="none" stroke="#7C3AED" strokeOpacity="0.18" strokeWidth="2"/>
             </svg>
-            <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4,animation:"slideUpFade .5s ease-out both"}}>
+            <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:2,animation:"slideUpFade .5s ease-out both"}}>
               <div aria-hidden="true" style={{position:"absolute",width:150,height:150,borderRadius:"50%",background:"radial-gradient(closest-side, rgba(126,72,236,.22), transparent)",animation:"haloPulse 4s ease-in-out infinite",pointerEvents:"none"}}/>
-              <div style={{position:"relative",animation:"orbBreathe 5s ease-in-out infinite"}}><LumenMark size={72}/></div>
+              <div style={{position:"relative",animation:"orbBreathe 5s ease-in-out infinite"}}><LumenMark size={68}/></div>
             </div>
-            <h1 style={{margin:"14px 0 8px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{(seed&&seed.contactName)?L("welcomeTitleSeeded",uiLang,{name:seed.contactName.split(" ")[0]}):L("welcomeTitle",uiLang)}</h1>
+            <h1 style={{margin:"10px 0 6px",color:C.text,fontSize:26,fontWeight:700,animation:"slideUpFade .5s ease-out both",animationDelay:"60ms"}}>{(seed&&seed.contactName)?L("welcomeTitleSeeded",uiLang,{name:seed.contactName.split(" ")[0]}):L("welcomeTitle",uiLang)}</h1>
             {seed && <div style={{display:"inline-flex",alignItems:"center",gap:6,margin:"0 0 12px",padding:"5px 13px",borderRadius:999,background:`${A}14`,color:LINK,fontSize:12,fontWeight:600,animation:"slideUpFade .5s ease-out both",animationDelay:"110ms"}}><span aria-hidden="true">✦</span>{L("preparedFor",uiLang,{company:seed.company})}</div>}
-            <p style={{color:C.muted,fontSize:14,margin:"0 0 18px",maxWidth:420,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"150ms"}}>{seed?L("welcomeSubSeeded",uiLang,{company:seed.company}):L("welcomeSub",uiLang)}</p>
+            {/* maxWidth matches the steps block below (480) and the disclosure further down,
+                rather than each picking its own measure. Five blocks at five different
+                widths — 420/480/440/514/353 before this — left no shared vertical edge
+                anywhere on the screen, which is what read as "floating" rather than
+                composed, even though each width read fine on its own line-length. */}
+            <p style={{color:C.muted,fontSize:14,margin:"0 0 14px",maxWidth:480,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"150ms"}}>{seed?L("welcomeSubSeeded",uiLang,{company:seed.company}):L("welcomeSub",uiLang)}</p>
             {/* Prepared-link load failed (expired or store error). Copy is intentionally
                 inline English: this path forces uiLang to English (the seed, and its
                 language, never loaded), so an i18n key would only ever render English
                 here anyway. Non-blocking — the client can still start fresh below. */}
             {seedError && !seed && <div role="status" style={{maxWidth:440,margin:"0 0 22px",padding:"11px 15px",borderRadius:T.radius.md,background:dark?"#3a2f12":"#fffbeb",border:`1px solid ${dark?"#5b4a1a":"#fde68a"}`,color:dark?"#fde68a":"#92400e",fontSize:13,lineHeight:1.5,textAlign:"left",animation:"slideUpFade .5s ease-out both",animationDelay:"170ms"}}>{L(seedExpired ? "seedErrExpired" : "seedErrTransient", uiLang)}</div>}
-            <div style={{margin:"0 0 20px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:10}}>{L("chooseLang",uiLang)}</div>
+            {/* Deliberately NOT capped to the 480 measure used below: six pills need 514px
+                to sit on one line, and constraining the row wrapped them 5+1, orphaning the
+                Arabic pill alone on its own line — worse than the misalignment it was meant
+                to fix. A wrapping button row reads fine at its own natural width; it's the
+                paragraphs that needed a shared edge. */}
+            <div style={{margin:"0 0 16px",animation:"slideUpFade .5s ease-out both",animationDelay:"210ms"}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:8}}>{L("chooseLang",uiLang)}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
                 {UI_LANGS.map(l => { const on = uiLang===l.code; return (
                   <button key={l.code} onClick={()=>setUiLang(l.code)} aria-pressed={on} style={{padding:"9px 16px",borderRadius:999,fontSize:13,minHeight:40,cursor:"pointer",border:"1px solid",background:on?A:"transparent",borderColor:on?A:C.border,color:on?"white":C.text,fontWeight:on?700:500,boxShadow:on?"0 4px 14px rgba(126,72,236,0.30)":"none",transition:"all 0.15s"}}>{l.native}</button>
                 ); })}
               </div>
             </div>
-            <div style={{width:"100%",maxWidth:480,margin:"0 auto 22px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
+            <div style={{width:"100%",maxWidth:480,margin:"0 auto 18px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
               {[[L("step1Title",uiLang),seedId?L("step1DescAny",uiLang):(draftOk?L("step1Desc",uiLang):L("step1DescNoSave",uiLang))],
                 [L("step2Title",uiLang),L("step2Desc",uiLang)],
                 [L("step3Title",uiLang),L("step3Desc",uiLang)]].map(([t,d],i) => (
-                <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
+                <div key={i} style={{display:"flex",gap:12,padding:"7px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
                   <div style={{width:32,height:32,borderRadius:8,background:`${A}14`,color:A,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Ic d={[IC.clock,IC.chat,IC.send][i]} size={17}/></div>
                   <div><div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:2}}>{t}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.5}}>{d}</div></div>
                 </div>
               ))}
             </div>
-            <p style={{color:C.muted,fontSize:12,margin:"0 0 20px",maxWidth:440,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"360ms"}}>{L("disclaimer",uiLang)}</p>
+            <p style={{color:C.muted,fontSize:12,margin:"0 0 16px",maxWidth:480,lineHeight:1.6,animation:"slideUpFade .5s ease-out both",animationDelay:"360ms"}}>{L("disclaimer",uiLang)}</p>
             <button onClick={startConvo} style={{background:A,color:"white",border:"none",borderRadius:12,padding:"14px 48px",fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px rgba(126,72,236,0.30)",animation:"slideUpFade .5s ease-out both",animationDelay:"390ms"}}>{seed?L("startBtnSeeded",uiLang,{company:seed.company}):L("startBtn",uiLang)}</button>
           </div>
         )}
@@ -3773,6 +3960,20 @@ input,textarea,select,button{font-family:inherit}
             {/* Hide a meaningless "0% complete" — a saved-but-barely-started draft
                 shouldn't greet the client with a zero. */}
             <p style={{color:P,fontSize:13,fontWeight:600,margin:"0 0 24px"}}>{(saved?.progress?.percent||0) > 0 ? L("savedPercent",uiLang,{pct:saved.progress.percent}) : L(seedId?"savedAnyDevice":"savedOnDevice",uiLang)}</p>
+            {/* The language picker also belongs HERE, not only on the first-visit screen.
+                Sales sets the seeded language and does not always know it, so a client can
+                easily be mid-conversation in the wrong one — and once started there was no
+                control anywhere to change it. The only escape was Start over, which erases
+                every answer to fix a dropdown. Choosing here marks an explicit override so
+                resumeConvo will not immediately restore the saved language over the top. */}
+            <div style={{margin:"0 0 22px"}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,marginBottom:8}}>{L("chooseLang",uiLang)}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",alignItems:"center"}}>
+                {UI_LANGS.map(l => { const on = uiLang===l.code; return (
+                  <button key={l.code} onClick={()=>{ langOverrideRef.current = true; setUiLang(l.code); }} aria-pressed={on} style={{padding:"7px 14px",borderRadius:999,fontSize:12.5,minHeight:36,cursor:"pointer",border:"1px solid",background:on?A:"transparent",borderColor:on?A:C.border,color:on?"white":C.text,fontWeight:on?700:500,transition:"all 0.15s"}}>{l.native}</button>
+                ); })}
+              </div>
+            </div>
             {!confirmFresh ? (
               <div style={{display:"flex",gap:12}}>
                 <button onClick={resumeConvo} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("resumeBtn",uiLang)}</button>
@@ -3953,7 +4154,7 @@ function buildWorkbook(XL, merged, users) {
   const boSheet = XL.utils.aoa_to_sheet([
     ["Welcome to your Lumen onboarding setup form!"],
     ["During onboarding, our team will configure your initial setup to help you get started quickly."],
-    ["Please review and complete each tab: Business Objectives, Users list, Topics/Filters, Social Channels, Reports."],
+    ["Please review and complete each tab: About your business, Users list, Topics/Filters, Social Channels, Reports."],
     [],
     ["Field","Instructions / Example","Comments"],
     ["Company Name","",co.name||""],
@@ -3962,9 +4163,9 @@ function buildWorkbook(XL, merged, users) {
     ["Industry","",co.industry||""],
     ["Relevant Geographic Markets","Example: US, Germany, UK",co.markets||""],
     ["Key Languages","Example: English, German",co.languages||""],
-    ["Business Objectives (Top 3 in priority order)","Example: 1. Reputation Management, 2. Competitive Intelligence, 3. Issue Tracking",co.objectives||""],
-    ["Objective Details","Anything else about your objectives",co.objectiveDetails||""],
-    ["Planned Use Cases Description","What insights or outcomes are you most interested in?",co.useCase||""],
+    ["Priorities (Top 3 in priority order)","Example: 1. Reputation Management, 2. Competitive Intelligence, 3. Issue Tracking",co.objectives||""],
+    ["Priority details","Anything else about your priorities",co.objectiveDetails||""],
+    ["Goal","What insights or outcomes are you most interested in?",co.useCase||""],
     ["Preferred Onboarding Language","English",co.onboardingLanguage||"English"],
     ["Preferred Time Zone","CET",co.timezone||""],
     ["Teams/Departments Using Platform","Marketing, Comms, PR",co.teams||""],
@@ -3973,7 +4174,7 @@ function buildWorkbook(XL, merged, users) {
   ]);
   boSheet["!merges"] = [{s:{r:0,c:0},e:{r:0,c:2}},{s:{r:1,c:0},e:{r:1,c:2}},{s:{r:2,c:0},e:{r:2,c:2}}];
   boSheet["!cols"]   = [{wch:40},{wch:50},{wch:40}];
-  XL.utils.book_append_sheet(wb, boSheet, "Business Objectives");
+  XL.utils.book_append_sheet(wb, boSheet, "About your business");
 
   // Same no-wrap constraint as above: the old single cell with embedded \n
   // rendered as one broken line — one row per line instead.
