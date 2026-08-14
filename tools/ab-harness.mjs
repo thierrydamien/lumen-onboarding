@@ -31,6 +31,7 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPromptConst } from "./extract-prompt.mjs";
+import { multiQuestion } from "./quality-checks.mjs";
 
 const KEY = process.env.ANTHROPIC_API_KEY;
 if (!KEY) { console.error("Set ANTHROPIC_API_KEY (e.g. ANTHROPIC_API_KEY=sk-... node tools/ab-harness.mjs)"); process.exit(1); }
@@ -64,6 +65,19 @@ const CONFIGS = [
   { key: "full-history", extra: "", history: "full" },
   { key: "terser-thought", extra: "\n\nLEVER: Keep the hidden <thought> block to at most TWO short sentences. Plan tersely; do not narrate your reasoning at length.", history: "slide20" },
   { key: "emit-on-change", extra: "\n\nLEVER: Emit the data markers (COMPANY, TOPICS, CHANNELS, REPORTS, ALERTS) ONLY when their values actually changed since your previous message. Always still emit the PROGRESS marker every turn.", history: "slide20" },
+  // Targets a defect measured live against the deployed build: 9 of 40 real turns
+  // asked two questions at once, and it landed on the SAME step in all five
+  // non-English languages. The prompt already says "Never ask more than one
+  // question at a time" — it is not the rule that is missing, it is that the two
+  // observed violations do not feel like violations to the model. Both are named
+  // explicitly here:
+  //   1. asking, then immediately rephrasing ("what do you hope to get from
+  //      Lumen? What brought you to this?") — FR, ES, IT
+  //   2. pairing a confirmation with a fresh question ("...you're in craft beer,
+  //      is that right? And which email should we use?") — DE, AR
+  // Read this lever's multiQ column, not its quality score: the whole point is
+  // that a coarse 1-5 judge cannot see a defect this narrow.
+  { key: "one-question", extra: "\n\nLEVER: Ask exactly ONE question per message, and count them literally — a message must contain at most one question mark. This includes rhetorical restatements: never follow a question with a second phrasing of the same question. It also includes confirmations: never pair a check like \"is that right?\" with a new question in the same message — either confirm OR ask, not both. When you want to illustrate a good answer, phrase the example as a statement, not as a second question.", history: "slide20" },
 ];
 
 // Distinctive, INVENTED facts (not real brands) stated by the client early. Using
@@ -100,6 +114,8 @@ const stripThought = (s) => s.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim
 const visibleOf = (s) => stripThought(s).replace(/%%[A-Z]+%%[\s\S]*?%%END%%/g, "").replace(/\[(WIDGET|SUGGESTIONS|TOPIC_SUGGESTION)[^\]]*\]/g, "").trim();
 const costOf = (u) => (u.input * RATES.input + u.output * RATES.output + u.cacheWrite * RATES.cacheWrite + u.cacheRead * RATES.cacheRead) / 1e6;
 
+
+
 // Apply the history strategy and replicate v35: the cache breakpoint goes on the
 // last message, so the conversation prefix is billed at the cache-read rate. With
 // "slide20" the window slides — message[0] changes each turn once the chat passes
@@ -127,6 +143,7 @@ async function runConversation(cfg) {
   const hist = [{ role: "user", content: "[BEGIN ONBOARDING] The client just opened their link. " + FACT_INTRO }];
   const transcript = [];
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  let multiQ = 0, turnsSeen = 0; // deterministic one-question-per-message check
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const a = await call(ASSISTANT_MODEL, system, prepMessages(hist, cfg.history), 2000);
     usage.input += a.usage.input_tokens || 0;
@@ -135,6 +152,8 @@ async function runConversation(cfg) {
     usage.cacheWrite += a.usage.cache_creation_input_tokens || 0;
     hist.push({ role: "assistant", content: stripThought(a.text) });
     const visible = visibleOf(a.text);
+    turnsSeen++;
+    if (multiQuestion(visible)) multiQ++;
     transcript.push({ role: "assistant", text: visible });
     if (/%%PROGRESS%%[\s\S]*?"percent"\s*:\s*100/.test(a.text)) break;
     const c = await call(ASSISTANT_MODEL, [{ type: "text", text: CLIENT_PERSONA }],
@@ -168,7 +187,7 @@ async function runConversation(cfg) {
     process.stderr.write(`\n[recall ${cfg.key}] ${kept.length}/${factList.length}` + (missing.length ? " missing: " + missing.join(", ") : "") + "\n");
   } catch (e) { process.stderr.write(`\n[recall ${cfg.key}] PROBE FAILED: ${e.message}\n`); }
 
-  return { transcript, usage, recall };
+  return { transcript, usage, recall, multiQ, turnsSeen };
 }
 
 const JUDGE_RUBRIC =
@@ -207,9 +226,12 @@ async function main() {
   let log = "";
   for (const cfg of configs) {
     const costs = [], scores = [], recalls = [];
+    let multiQ = 0, turnsSeen = 0;
     for (let i = 0; i < RUNS; i++) {
       process.stderr.write(`\r${cfg.key}: run ${i + 1}/${RUNS}        `);
-      const { transcript, usage, recall } = await runConversation(cfg);
+      const r = await runConversation(cfg);
+      const { transcript, usage, recall } = r;
+      multiQ += r.multiQ; turnsSeen += r.turnsSeen;
       costs.push(costOf(usage));
       scores.push((await judge(transcript)).overall);
       recalls.push(recall);
@@ -218,7 +240,7 @@ async function main() {
       log += `\n\n===== CONFIG: ${cfg.key} — run ${i + 1}/${RUNS} (recall ${recall == null ? "n/a" : Math.round(recall * 100) + "%"}) =====\n`
         + transcript.map((m) => (m.role === "assistant" ? "ASSISTANT: " : "CLIENT:    ") + m.text).join("\n\n") + "\n";
     }
-    results[cfg.key] = { avgCost: avg(costs), avgScore: avg(scores), avgRecall: avg(recalls) };
+    results[cfg.key] = { avgCost: avg(costs), avgScore: avg(scores), avgRecall: avg(recalls), multiQ, turnsSeen };
   }
   try {
     const outPath = path.join(__dir, "..", "ab-transcripts.txt");
@@ -228,20 +250,26 @@ async function main() {
   process.stderr.write("\r");
   const base = results.baseline;
   console.log("\n=== Lumen cost-lever A/B — " + RUNS + " runs each, " + ASSISTANT_MODEL + " ===\n");
-  console.log("config".padEnd(18) + "avg $/convo".padEnd(14) + "quality/5".padEnd(12) + "recall".padEnd(9) + "vs baseline");
+  console.log("config".padEnd(18) + "avg $/convo".padEnd(14) + "quality/5".padEnd(12) + "recall".padEnd(9) + "multi-Q".padEnd(12) + "vs baseline");
   for (const k of Object.keys(results)) {
     const r = results[k];
     const d = base.avgCost ? (r.avgCost - base.avgCost) / base.avgCost * 100 : 0;
     const q = r.avgScore == null ? "n/a" : r.avgScore.toFixed(2);       // null = judge failed, NOT a real 0
     const rc = r.avgRecall == null ? "n/a" : Math.round(r.avgRecall * 100) + "%"; // null = probe failed, NOT a real 0
+    const mq = r.turnsSeen ? `${r.multiQ}/${r.turnsSeen} (${Math.round(r.multiQ / r.turnsSeen * 100)}%)` : "n/a";
     console.log(
       k.padEnd(18) +
       ("$" + (r.avgCost ?? 0).toFixed(4)).padEnd(14) +
       q.padEnd(12) +
       rc.padEnd(9) +
+      mq.padEnd(12) +
       (k === "baseline" ? "—" : (d >= 0 ? "+" : "") + d.toFixed(0) + "% cost")
     );
   }
+  console.log("\nmulti-Q = assistant turns asking more than one question, which the prompt");
+  console.log("forbids. Measured at 23% (9/40) on the live deployed build across six");
+  console.log("languages. This is the column the 'one-question' lever exists to move;");
+  console.log("the 1-5 quality score is far too coarse to see it.");
   console.log("\nColumns: recall = % of the 9 facts the client stated early that the model read");
   console.log("back correctly at the end (the finding-21 signal a coarse quality score misses).");
 
