@@ -27,9 +27,10 @@
  * (one client per run, no warm cross-session cache), so read the RELATIVE delta
  * between configs — that's what the decision rests on.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadPromptConst } from "./extract-prompt.mjs";
 
 const KEY = process.env.ANTHROPIC_API_KEY;
 if (!KEY) { console.error("Set ANTHROPIC_API_KEY (e.g. ANTHROPIC_API_KEY=sk-... node tools/ab-harness.mjs)"); process.exit(1); }
@@ -44,14 +45,11 @@ const RATES = { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.30 }; // $/
 const MAX_HIST = Number(process.env.AB_MAX_HIST || 20); // prod's MAX_HIST_TURNS (src/lumen.jsx)
 
 // Pull the LIVE system prompt out of chat.js so this never drifts from prod.
+// The decoding lives in tools/extract-prompt.mjs: this used to JSON.parse the JS
+// string literal, which is not the same grammar, so one `\'` in the prompt threw
+// at import time and the harness never ran. See that file for the full story.
 const __dir = path.dirname(fileURLToPath(import.meta.url));
-const chatSrc = readFileSync(path.join(__dir, "..", "netlify", "functions", "chat.js"), "utf8");
-function extract(name) {
-  const m = chatSrc.match(new RegExp("const " + name + " = (\"(?:[^\"\\\\]|\\\\.)*\");"));
-  if (!m) throw new Error("Could not find " + name + " in netlify/functions/chat.js");
-  return JSON.parse(m[1]);
-}
-const SYSTEM_PROMPT = extract("SYSTEM_PROMPT");
+const SYSTEM_PROMPT = loadPromptConst("SYSTEM_PROMPT");
 
 // Each config = a system-prompt lever (`extra`, appended as an extra instruction)
 // + a history strategy. `history`:
