@@ -1665,13 +1665,34 @@ const emptyCdata = () => ({company:{},topics:[],channels:[],reports:[],alerts:[]
 // %%USERS%% marker (people named in conversation, e.g. report recipients) — so a
 // user recorded either way reaches the brief. Dedupe by email (else by name);
 // blank rows (no email or name) are dropped. Widget entries come first.
-const unionUsers = (a, b) => {
+// Identity is the (email, name) PAIR, not the email alone. Keying on email only
+// silently dropped a real person whenever two of them shared one mailbox — a
+// team alias like info@ or marketing@, a PA on the director's address. The chat
+// had reported both, the brief kept one, and the missing person simply never got
+// access provisioned. Losing someone invisibly is worse than showing a duplicate
+// the review modal can delete, so the pair wins ties.
+export const unionUsers = (a, b) => {
+  const norm = s => String(s == null ? "" : s).trim().toLowerCase();
+  const emailOf = u => norm(u && u.email);
+  const nameOf = u => (norm(u && u.firstName) + " " + norm(u && u.lastName)).trim();
   const out = [], seen = new Set();
-  const key = u => String((u && (u.email || ((u.firstName||"")+"|"+(u.lastName||"")))) || "").trim().toLowerCase().replace(/^\|$/, "");
-  for (const list of [Array.isArray(a)?a:[], Array.isArray(b)?b:[]]) {
-    for (const u of list) { const k = key(u); if (!k || seen.has(k)) continue; seen.add(k); out.push(u); }
+  for (const list of [Array.isArray(a) ? a : [], Array.isArray(b) ? b : []]) {
+    for (const u of list) {
+      const e = emailOf(u), n = nameOf(u);
+      if (!e && !n) continue;                       // blank row: nothing to identify
+      const k = e && n ? e + "|" + n : (e || "n|" + n);
+      if (seen.has(k)) continue;
+      seen.add(k); out.push(u);
+    }
   }
-  return out;
+  // One person captured twice — once before their name was known (the %%USERS%%
+  // marker can name a recipient by email alone) and once with it — is still one
+  // person, so drop the nameless copy when a named entry shares that email.
+  return out.filter(u => {
+    const e = emailOf(u);
+    if (!e || nameOf(u)) return true;
+    return !out.some(v => emailOf(v) === e && nameOf(v));
+  });
 };
 // Reconcile confirmed topic CARDS (client-facing; may be renamed/edited inline) with
 // the %%TOPICS%% MARKER (re-emitted by the model, carrying urls/hashtags/comments and
@@ -2034,8 +2055,32 @@ export function widgetInitialData(ws) {
 // the prose tells the client to use an attach button that never appeared, at STEP 2 of
 // every guided flow. Quick replies are natural-language answers, so a lone @-word is
 // never a legitimate option. \p{L} so non-Latin scripts match too.
+// The chips that become a file-picker button: the documented @ATTACH plus the
+// word for "attach" in each supported language.
+//
+// This is an ALLOWLIST rather than the old /^@[\p{L}_]+$/u for a reason on each
+// side. Matching any @-word hijacked legitimate answers: the model offers social
+// handles as chips at the channels step ("[SUGGESTIONS: @maisonverlaine | …]"),
+// and every one of those turned into an "Attach a document" button, so the client
+// could not pick their own handle at all. Matching ONLY @ATTACH would drop the
+// safety net the loose form was really there for — the prompt says never to
+// translate the token, but that is model obedience, not a guarantee, and it can
+// only go wrong in a language nobody tests in. The allowlist keeps the net and
+// stops the hijacking, because a brand handle colliding with the word "attach"
+// in one of six languages is not a realistic case.
+//
+// Live French and Arabic sessions both emitted @ATTACH intact, so the
+// translations below are insurance, not the common path.
+const ATTACH_TOKENS = new Set([
+  "@attach",
+  "@joindre", "@attacher",                 // French
+  "@anhängen", "@anhangen", "@anhang",     // German (with and without the umlaut)
+  "@adjuntar", "@adjunta",                 // Spanish
+  "@allegare", "@allega",                  // Italian
+  "@إرفاق", "@أرفق",                        // Arabic
+]);
 export function isAttachToken(qr) {
-  return /^@[\p{L}_]+$/u.test(String(qr == null ? "" : qr).trim());
+  return ATTACH_TOKENS.has(String(qr == null ? "" : qr).trim().toLowerCase());
 }
 
 // Document language + text direction for a conversation language. Pure so it can be
@@ -2315,7 +2360,7 @@ async function docxToText(buf) {
 // success or { error, mb? } with a QN message key. The caller applies its own
 // size cap. Used by BOTH the QUERIES widget and the composer attach affordance,
 // so the two can't drift.
-async function extractFileText(file) {
+export async function extractFileText(file) {
   // Guard before reading: XLSX.read / file.text() load the whole file into
   // memory, so a huge file freezes the tab before any downstream cap applies.
   if (file.size > Q_MAX_FILE_BYTES) return { error: "tooLarge", mb: (file.size / 1048576).toFixed(1) };
@@ -2364,7 +2409,14 @@ async function extractFileText(file) {
     } else if (ext === "docx") {
       if (typeof DecompressionStream === "undefined") return { error: "docxUnavailable" };
       return { text: await docxToText(await file.arrayBuffer()) };
-    } else if (ext === "txt" || ext === "csv" || file.type.startsWith("text/")) {
+    // The MIME fallback is deliberately two EXACT types, not a text/* prefix.
+    // startsWith("text/") turned the extension allowlist into a suggestion: the
+    // browser reports text/html, text/javascript, text/xml and more, so a file
+    // the UI has just promised it cannot read (".txt, .csv, .xlsx or .docx") was
+    // read anyway and its raw bytes sent on as a requirements document. These two
+    // still cover the case the fallback is for — a genuine text file whose
+    // extension is missing or unusual.
+    } else if (ext === "txt" || ext === "csv" || file.type === "text/plain" || file.type === "text/csv") {
       return { text: await file.text() };
     }
     return { error: "unsupported" };
@@ -2407,7 +2459,7 @@ export function safeAttachName(name) {
 // attach cap so anything bigger than what an attachment would even keep is redirected.
 const COMPOSER_MAX_CHARS = 40000;
 
-function QueriesWidget({ onSubmit, initialData, lang }) {
+export function QueriesWidget({ onSubmit, initialData, lang }) {
   const [text,setText] = useState(initialData==="__skip__"||!initialData?"":initialData);
   const [note,setNote] = useState(null);
   const fileRef = useRef(null);
@@ -2434,7 +2486,13 @@ function QueriesWidget({ onSubmit, initialData, lang }) {
     {note && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:7,padding:"6px 10px",marginTop:6}}>{note}</div>}
     <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
       <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{WL("submitQueries",lang)}</button>
-      <button onClick={()=>onSubmit("__skip__")} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("noQueries",lang)}</button>
+      {/* "No queries" is disabled once the box has content, mirroring Submit being
+          disabled while it is empty: exactly one of the two applies at any moment.
+          It used to discard whatever was pasted, with no confirmation and no undo —
+          and this widget is the ONLY path that preserves a client's original query
+          syntax verbatim, so that text is the one thing here that cannot be
+          reconstructed later. Clearing the box re-enables it. */}
+      <button onClick={()=>!text.trim()&&onSubmit("__skip__")} disabled={!!text.trim()} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:text.trim()?"#cbd5e1":"#64748b",cursor:text.trim()?"default":"pointer"}}>{WL("noQueries",lang)}</button>
       <button onClick={()=>fileRef.current?.click()} style={{display:"inline-flex",alignItems:"center",gap:6,background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"8px 4px"}}><Ic d={IC.clip} size={12}/><span style={{textDecoration:"underline"}}>{WL("importFile",lang)}</span></button>
     </div>
   </div>;
