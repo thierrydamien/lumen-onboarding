@@ -85,10 +85,33 @@
   .filters input[type="search"]:focus, .filters select:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
   .filters input[type="date"] { font-family:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:9px; background:#fff; color:var(--ink); cursor:pointer; outline:none; }
   .filters input[type="date"]:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.12); }
-  .fexport { background:var(--purple-soft); color:var(--purple); border:none; border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  /* The filter bar uses THREE shapes, one per job, so a consultant can tell at a
+     glance what a control will do before clicking it. Everything used to be a
+     white pill: status values, the disclosure and the reset button were
+     indistinguishable, while the two controls that DO the same job (status pills
+     and "Show archived") looked nothing alike.
+       fully-round pill  = a filter VALUE you toggle   (.spill)
+       rounded rect      = a disclosure or a scope switch (.fmore, .farch)
+       right-hand button = an ACTION that does something (.fclear, .fexport)
+     Actions are pushed to the right edge inside .factions so they never sit in
+     the same visual run as the values they act on. */
+  .factions { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .fexport { background:var(--purple); color:#fff; border:none; border-radius:9px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+  .fexport:hover { background:#6d28d9; }
+  .fexport:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
   /* Archive / delete controls. The selection column is narrow and centred so it reads
      as a gutter rather than a data column. */
-  .farch { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  /* "Show archived" is NOT a status value — it swaps the endpoint (?archived=1),
+     i.e. it changes which records exist, not which of them pass a filter. So it
+     deliberately does not wear the round status pill: it is a scope switch, and
+     styling it as a peer of "Completed" would invite reading it as one. It was a
+     bare checkbox, the only one in the bar, which under-sold it just as badly. */
+  .farch { background:#fff; border:1px solid var(--border); border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); display:inline-flex; align-items:center; gap:7px; }
+  .farch:hover { border-color:var(--purple); color:var(--purple); }
+  .farch[aria-pressed="true"] { background:var(--purple-soft); border-color:var(--purple); color:var(--purple); }
+  .farch:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
+  .farch .fdot { width:7px; height:7px; border-radius:50%; background:#c3ccd6; flex:none; }
+  .farch[aria-pressed="true"] .fdot { background:var(--purple); }
   .selcol { width:34px; text-align:center; padding-left:10px; padding-right:0; }
   .selcol input { cursor:pointer; }
   /* Sticky, because clearing test rows means scrolling down and ticking a run of them.
@@ -131,17 +154,35 @@
              font-weight:700; color:var(--ink); cursor:pointer; text-align:left; }
   .rowopen:hover { color:var(--purple); text-decoration:underline; }
   .rowopen:focus-visible { outline:2px solid var(--purple); outline-offset:2px; border-radius:3px; }
-  .fclear { background:#fff; border:1px solid #c3ccd6; border-radius:9px; padding:7px 15px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); }
+  /* Quiet, and absent entirely when there is nothing to clear. As a permanently
+     lit white pill beside Export CSV it was a misclick that silently wiped a
+     consultant's whole filter setup with no undo. */
+  .fclear { background:none; border:none; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
+  .fclear:hover { color:var(--purple); }
+  .fclear:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
+  .fclear.hidden { display:none; }
+  .emptybtn { background:#fff; border:1px solid #c3ccd6; border-radius:9px; padding:7px 15px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); }
+  .emptybtn:hover { background:#f1eefb; border-color:var(--purple); color:var(--purple); }
+  .emptybtn:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
   /* Progressive disclosure for the six less-used filters. Search and status stay in the
      bar because they carry nearly all the traffic; package, language, progress and the
      date range were together making the filter row taller than the first table rows.
      Nothing is hidden dangerously: the active-filter chips below still name every
      filter in force, and the toggle carries a count when any of these are set. */
-  .fmore { background:#fff; border:1px solid var(--border); border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); }
+  .fmore { background:#fff; border:1px solid var(--border); border-radius:9px; padding:7px 13px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--teal); display:inline-flex; align-items:center; gap:6px; }
   .fmore:hover { border-color:var(--purple); color:var(--purple); }
   .fmore.on { background:var(--purple-soft); border-color:var(--purple); color:var(--purple); }
-  .morefilters { flex-basis:100%; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .fmore:focus-visible { outline:2px solid var(--purple); outline-offset:2px; }
+  /* The caret is what separates "a door" from "a value". It rotates on open, so
+     the control also reports its own state without reading the aria. */
+  .fcaret { font-size:9px; transition:transform .15s; }
+  .fmore[aria-expanded="true"] .fcaret { transform:rotate(180deg); }
+  .morefilters { flex-basis:100%; display:flex; gap:14px; align-items:center; flex-wrap:wrap; padding-top:12px; border-top:1px solid var(--border); }
   .morefilters.closed { display:none; }
+  /* From/To are one filter (a range), so they read as one unit rather than two
+     unrelated date pickers that happen to sit next to each other. */
+  .fdates { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .fdates .fdash { color:var(--muted); }
   /* Active-filter chips: a visible, individually-removable summary of what's filtering. */
   #activeFilters { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:-4px 2px 16px; }
   #activeFilters:empty { display:none; }
@@ -177,7 +218,9 @@
   button { transition:filter .15s ease, transform .08s ease; }
   button:not(:disabled):hover { filter:brightness(1.05); }
   button:not(:disabled):active { transform:translateY(1px); }
-  .ghost:hover, .fclear:hover, .close:hover { background:#f1eefb; }
+  /* .fclear dropped from this rule: it is now a borderless text button, and a
+     filled hover background on it read as a stray highlight. It has its own hover. */
+  .ghost:hover, .close:hover { background:#f1eefb; }
   /* E1: styled in-page access gate replacing window.prompt(). */
   .gate { position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
   .gate.show { display:flex; }
@@ -560,7 +603,13 @@
   var LINKSENT = []; // pseudo-rows: seeds (links) generated but never opened
   // status is a LIST so several can be active at once (e.g. stalled + link sent,
   // the two that need chasing). Empty means no status filter rather than a magic "all".
-  var FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
+  // ONE definition of the default shape, used for both the initial state and the
+  // reset — spelled out twice, a newly added dimension gets filtered but never
+  // cleared, so Clear silently leaves it in force.
+  function defaultFilter() {
+    return { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
+  }
+  var FILTER = defaultFilter();
   // Whether the "More filters" panel is expanded. Module state, not derived from
   // FILTER: renderFilters() runs on every status-pill click and chart cross-filter, so
   // deriving it would snap the panel shut mid-interaction.
@@ -790,18 +839,26 @@
           return '<button type="button" class="spill' + (on ? " on" : "") + '" data-status="' + esc(o[0]) +
             '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(o[1]) + '</button>';
         }).join("") + '</div>' +
+      // The label lives in its own span: paintMoreBadge() rewrites the count on
+      // every table render, and writing to the button's textContent would eat the
+      // caret with it.
       '<button type="button" id="fMore" class="fmore' + (moreN ? " on" : "") + '" aria-expanded="' +
-        (MOREOPEN ? "true" : "false") + '" aria-controls="moreBox">More filters' + (moreN ? " (" + moreN + ")" : "") + '</button>' +
-      '<button type="button" id="fClear" class="fclear">Clear</button>' +
-      '<button type="button" id="fExport" class="fexport">Export CSV</button>' +
-      '<label class="farch"><input type="checkbox" id="fArchived"' + (SHOW_ARCHIVED ? " checked" : "") + '/> Show archived</label>' +
+        (MOREOPEN ? "true" : "false") + '" aria-controls="moreBox"><span id="fMoreLabel">More filters' +
+        (moreN ? " (" + moreN + ")" : "") + '</span><span class="fcaret" aria-hidden="true">▼</span></button>' +
+      // Actions, right-aligned and out of the run of filter values.
+      '<div class="factions">' +
+        '<button type="button" id="fArchived" class="farch" aria-pressed="' + (SHOW_ARCHIVED ? "true" : "false") +
+          '"><span class="fdot" aria-hidden="true"></span>Archived</button>' +
+        '<button type="button" id="fClear" class="fclear' + (activeFilterDims().length ? "" : " hidden") + '">Clear filters</button>' +
+        '<button type="button" id="fExport" class="fexport">Export CSV</button>' +
+      '</div>' +
       '<div class="morefilters' + (MOREOPEN ? "" : " closed") + '" id="moreBox">' +
         sel("fPct", "Progress", pctOpts, FILTER.minPct) +
         (ownerKeys.length ? sel("fOwner", "Prepared by", ownerOpts, FILTER.owner) : "") +
         (pkgKeys.length ? sel("fPkg", "Package", pkgOpts, FILTER.pkg) : "") +
         (langKeys.length ? sel("fLang", "Language", langOpts, FILTER.lang) : "") +
-        '<label>From <input id="fFrom" type="date" value="' + esc(FILTER.dateFrom) + '"/></label>' +
-        '<label>To <input id="fTo" type="date" value="' + esc(FILTER.dateTo) + '"/></label>' +
+        '<span class="fdates">Created <input id="fFrom" type="date" aria-label="Created from" value="' + esc(FILTER.dateFrom) +
+          '"/><span class="fdash" aria-hidden="true">–</span><input id="fTo" type="date" aria-label="Created to" value="' + esc(FILTER.dateTo) + '"/></span>' +
       '</div>';
     box.hidden = false;
     // Toggling only flips a class: no re-render, so the panel can't collapse under the
@@ -829,14 +886,15 @@
     // Feature 4: date-range inputs. Empty means unbounded; the predicate treats "To" as end-of-day.
     $("fFrom").addEventListener("change", function (e) { FILTER.dateFrom = e.target.value; renderTable(); });
     $("fTo").addEventListener("change", function (e) { FILTER.dateTo = e.target.value; renderTable(); });
-    $("fClear").addEventListener("click", function () { FILTER = { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" }; renderFilters(); renderTable(); });
+    $("fClear").addEventListener("click", clearAllFilters);
     // Feature 3: export exactly the current filtered view.
     $("fExport").addEventListener("click", exportCsv);
     var arch = document.getElementById("fArchived");
-    if (arch) arch.addEventListener("change", function () {
+    if (arch) arch.addEventListener("click", function () {
       // Switching views changes which records are on screen, so a selection made in
       // the other view would be invisible but still act on. Drop it.
-      SHOW_ARCHIVED = arch.checked;
+      SHOW_ARCHIVED = !SHOW_ARCHIVED;
+      arch.setAttribute("aria-pressed", SHOW_ARCHIVED ? "true" : "false");
       clearSel();
       load();
     });
@@ -1138,8 +1196,16 @@
   function paintMoreBadge() {
     var b = $("fMore"); if (!b) return;
     var n = secondaryFilterCount();
-    b.textContent = "More filters" + (n ? " (" + n + ")" : "");
+    // Write to the LABEL span, not the button: the button also holds the caret,
+    // and setting its textContent would delete that on the next table render.
+    var lab = $("fMoreLabel");
+    if (lab) lab.textContent = "More filters" + (n ? " (" + n + ")" : "");
     b.classList.toggle("on", n > 0);
+    // Clear only exists when there is something to clear. Repainted here (rather
+    // than only in renderFilters) because the panel's selects call renderTable
+    // alone, so a filter set from inside the panel must still reveal it.
+    var c = $("fClear");
+    if (c) c.classList.toggle("hidden", activeFilterDims().length === 0);
   }
 
   function renderActiveFilters() {
@@ -1151,9 +1217,18 @@
       dims.map(function (d) { return '<button type="button" class="afchip" data-clear="' + esc(d) + '">' + esc(filterLabel(d)) + ' <span aria-hidden="true">×</span></button>'; }).join("") +
       '<button type="button" class="afclear" data-clear="__all__">Clear all</button>';
   }
+  // ONE definition of "reset everything", shared by the Clear button, the
+  // empty-state escape hatch and the "Clear all" chip. It used to live inside the
+  // Clear button's handler with the other two calling .click() on it — which meant
+  // the reset silently depended on that button being present in the DOM, and Clear
+  // is now hidden when no filter is active.
+  function clearAllFilters() {
+    FILTER = defaultFilter();
+    renderFilters(); renderTable();
+  }
   // Reset a single filter (or all) to its default, then re-render.
   function clearFilter(dim) {
-    if (dim === "__all__") { var fc = $("fClear"); if (fc) { fc.click(); return; } }
+    if (dim === "__all__") { clearAllFilters(); return; }
     // "status:<value>" removes just that one status; bare "status" clears them all.
     if (dim.indexOf("status:") === 0) {
       var st = dim.slice(7), si = FILTER.status.indexOf(st);
@@ -1202,7 +1277,10 @@
           '<div style="margin-bottom:14px">' + (nDims
             ? (nDims === 1 ? "One filter is" : nDims + " filters are") + " narrowing the list."
             : "Nothing to show here.") + '</div>' +
-          (nDims ? '<button type="button" class="fclear" id="emptyClear">Clear filters</button>' : "") +
+          // NOT .fclear: in the bar that is a deliberately quiet ghost sitting beside
+          // Export CSV, but here it is the only way out of an empty table and has to
+          // read as the primary action.
+          (nDims ? '<button type="button" class="emptybtn" id="emptyClear">Clear filters</button>' : "") +
         '</td></tr>';
     $("body").innerHTML =
       '<div id="bulkSlot"></div>' +
@@ -1241,10 +1319,11 @@
         if (again) again.focus();
       });
     });
-    // Empty-state escape hatch. Defers to the real Clear button so there is one reset
-    // path rather than two that can drift.
+    // Empty-state escape hatch. Calls the shared reset directly, so there is one
+    // reset path rather than two that can drift — and it no longer breaks if the
+    // Clear button is hidden.
     var ec = $("emptyClear");
-    if (ec) ec.addEventListener("click", function () { var fc = $("fClear"); if (fc) fc.click(); });
+    if (ec) ec.addEventListener("click", clearAllFilters);
     // Opening a session from the keyboard: the row's name button. Mouse users can still
     // click anywhere on the row (handler below); this is the same action, reachable.
     Array.prototype.forEach.call(document.querySelectorAll(".rowopen"), function (b) {

@@ -20,6 +20,15 @@ function loadFn(name) {
   return new Function(m[0] + "; return " + name + ";")();
 }
 
+// Source text of a top-level function, for the wiring that cannot be evaluated
+// standalone. Bounded by the function itself rather than a guessed char count, so
+// adding a comment inside it can't silently push an assertion out of the window.
+function fnBody(name) {
+  const m = dash.match(new RegExp("function " + name + "\\([\\s\\S]*?\\n  \\}"));
+  if (!m) throw new Error(name + " not found in dashboard.html");
+  return m[0];
+}
+
 const fmtRelative = loadFn("fmtRelative");
 const ago = (ms) => fmtRelative(new Date(Date.now() - ms).toISOString());
 const SEC = 1000, MIN = 60 * SEC, HOUR = 60 * MIN, DAY = 24 * HOUR, WEEK = 7 * DAY;
@@ -135,11 +144,84 @@ describe("the no-match empty state", () => {
 
   it("offers a way out, and only when a filter is actually the cause", () => {
     const empty = dash.slice(dash.indexOf("var nDims = activeFilterDims().length;"));
-    expect(empty.slice(0, 700)).toMatch(/nDims \?[\s\S]{0,120}emptyClear/);
+    expect(empty.slice(0, 900)).toMatch(/nDims \?[\s\S]{0,400}emptyClear/);
   });
 
-  it("defers to the real Clear button rather than resetting state itself", () => {
-    // Two reset paths drift; this one delegates.
-    expect(dash).toMatch(/emptyClear[\s\S]{0,200}\$\("fClear"\)[\s\S]{0,40}\.click\(\)/);
+  it("defers to the shared reset rather than resetting state itself", () => {
+    // Three reset paths (the Clear button, this escape hatch, the "Clear all"
+    // chip) share ONE definition. They used to delegate by calling .click() on
+    // the Clear button, which silently depended on that button being in the DOM
+    // — it is now hidden whenever no filter is active.
+    expect(dash).toMatch(/function clearAllFilters\(\)/);
+    expect(dash).toMatch(/emptyClear[\s\S]{0,160}clearAllFilters/);
+    expect(dash).toMatch(/\$\("fClear"\)\.addEventListener\("click", clearAllFilters\)/);
+    expect(dash).toMatch(/dim === "__all__"[\s\S]{0,60}clearAllFilters\(\)/);
+    // And exactly one place still spells out the default FILTER shape.
+    expect(dash.match(/sortKey: "lastActive", sortDir: "desc" \}/g).length).toBe(1);
+    expect(dash).toMatch(/var FILTER = defaultFilter\(\)/);
+    expect(dash).toMatch(/FILTER = defaultFilter\(\);\s*\n\s*renderFilters/);
+  });
+});
+
+// The filter bar's visual grammar: three shapes, one per job. Before this, status
+// values, the disclosure and the reset button were all identical white pills, so
+// nothing on screen said which of them held a value, opened a panel, or destroyed
+// filter state — while "Show archived", the one control that changes which records
+// are loaded at all, was a bare checkbox.
+describe("the filter bar tells you what each control does", () => {
+  it("keeps round pills for filter VALUES only", () => {
+    expect(dash).toMatch(/\.spill \{[^}]*border-radius:999px/);
+    // The disclosure and the scope switch must not wear the value shape.
+    expect(dash).toMatch(/\.fmore \{[^}]*border-radius:9px/);
+    expect(dash).toMatch(/\.farch \{[^}]*border-radius:9px/);
+  });
+
+  it("marks the disclosure with a caret that reports its own state", () => {
+    expect(dash).toContain('class="fcaret"');
+    expect(dash).toMatch(/\.fmore\[aria-expanded="true"\] \.fcaret \{ transform:rotate\(180deg\)/);
+  });
+
+  it("does not let the badge repaint eat the caret", () => {
+    // paintMoreBadge runs on every table render. Writing the count into the
+    // button's textContent would delete the caret span with it.
+    const paint = fnBody("paintMoreBadge");
+    expect(paint).toContain("fMoreLabel");
+    // \bb\. so this does not match the "b.textContent" inside "lab.textContent".
+    expect(paint).not.toMatch(/\bb\.textContent =/);
+  });
+
+  it("makes 'Archived' a pressed-state toggle, not a stray checkbox", () => {
+    // It swaps the endpoint (?archived=1) rather than filtering loaded rows, so
+    // it is a scope switch: a real button reporting aria-pressed.
+    expect(dash).toMatch(/id="fArchived" class="farch" aria-pressed=/);
+    expect(dash).not.toMatch(/type="checkbox" id="fArchived"/);
+    expect(dash).toMatch(/arch\.setAttribute\("aria-pressed"/);
+  });
+
+  it("separates actions from filters and right-aligns them", () => {
+    expect(dash).toMatch(/\.factions \{ margin-left:auto/);
+    const actions = dash.slice(dash.indexOf('<div class="factions">'));
+    const block = actions.slice(0, actions.indexOf("</div>") + 6);
+    for (const id of ["fArchived", "fClear", "fExport"]) expect(block, id).toContain(id);
+  });
+
+  it("hides Clear until there is something to clear", () => {
+    // An always-lit Clear beside Export CSV is a misclick that silently wipes a
+    // consultant's whole filter setup, with no undo.
+    expect(dash).toMatch(/id="fClear" class="fclear' \+ \(activeFilterDims\(\)\.length \? "" : " hidden"\)/);
+    // And it must be repainted when a filter is set from inside the More panel,
+    // which calls renderTable() alone.
+    expect(fnBody("paintMoreBadge")).toMatch(/fClear[\s\S]{0,200}activeFilterDims\(\)\.length === 0/);
+  });
+
+  it("groups the date range as one filter", () => {
+    const panel = dash.slice(dash.indexOf('<div class="morefilters'));
+    const box = panel.slice(0, panel.indexOf("</div>"));
+    expect(box).toContain("fdates");
+    expect(box).toContain("Created");
+    // Both inputs keep an accessible name now that the visible "From"/"To"
+    // <label> wrappers are gone.
+    expect(box).toContain('aria-label="Created from"');
+    expect(box).toContain('aria-label="Created to"');
   });
 });
