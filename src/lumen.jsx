@@ -3888,7 +3888,17 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       email:cdata.company.email, role:"", access:"Admin"
     }] : []);
     const WHY = { MARKETS:WL("whyMarkets",uiLang), TEAMS:WL("whyTeams",uiLang), USERS:WL("whyUsers",uiLang), QUERIES:WL("whyQueries",uiLang), TOPICS:WL("whyTopics",uiLang) };
-    return <div>
+    // While a turn is in flight, onWSubmit/onWSkip already bail on busyRef — but
+    // they bailed SILENTLY, and every widget went on rendering its Confirm button
+    // at full opacity with a pointer cursor. Measured in a real browser: styling
+    // byte-identical to the idle state, the click swallowed, no message, no error.
+    // A client who taps Confirm and sees nothing happen taps again, or assumes the
+    // app is broken. Dimming the whole widget makes the existing guard visible,
+    // in one place, for all five widget types. It also freezes chip selection for
+    // the few seconds a turn takes, which is a fair price for never showing a
+    // control that looks live and is not.
+    return <div aria-busy={loading ? "true" : undefined}
+      style={loading ? { opacity: 0.55, pointerEvents: "none", transition: "opacity .15s" } : { transition: "opacity .15s" }}>
       {WHY[type] && <div style={{fontSize:11,color:C.muted,margin:"0 0 6px",fontStyle:"italic"}}>{WHY[type]}</div>}
       {type==="QUERIES"   && <QueriesWidget onSubmit={os} initialData={pd} lang={uiLang}/>}
       {/* initialData, like every other widget here. Without it TopicCards re-seeded from
@@ -3905,7 +3915,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       {type==="TIMEZONE"  && <ChipSelector options={TZ_OPT}       onSubmit={os} onSkip={sk} max={WIDGET_MAX.TIMEZONE}      hint={WL("hintTimezone",uiLang)}   initialData={pd||[]} lang={uiLang}/>}
       {type==="USERS"     && <UserForm onSubmit={os} onSkip={sk} initialData={userPrefill} lang={uiLang}/>}
     </div>;
-  }, [wState, onWSubmit, onWSkip, C, cdata, uiLang]);
+  }, [wState, onWSubmit, onWSkip, C, cdata, uiLang, loading]);
 
   if (!checked) return <BootScreen label="Loading…"/>;
 
