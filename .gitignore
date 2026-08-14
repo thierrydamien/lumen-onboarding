@@ -6,3 +6,7 @@ ab-transcripts.txt
 
 # Local Netlify folder
 .netlify
+
+# Playwright writes here when a screenshot path env var is unset (SHOT_DIR/SD).
+# Two stray PNGs reached a commit this way; never again.
+undefined/
