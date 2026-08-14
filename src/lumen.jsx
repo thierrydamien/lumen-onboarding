@@ -2919,6 +2919,13 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const [attachNote,setAttachNote] = useState(null); // inline note when an attached file can't be read (too large / unsupported)
   const [initErr,setInitErr]   = useState(null); // "start" | "resume" | null — first-turn/resume API failure, offers retry
   const [draftOk,setDraftOk]   = useState(lsProbe); // is on-device draft saving actually working?
+  // Is the SERVER draft actually working? null = not attempted yet (stay optimistic,
+  // a seeded link normally resumes anywhere), false = a write was tried and failed,
+  // so the cross-device promise must be withdrawn. Distinct from draftOk: that one
+  // only ever backed "saved on this device".
+  const [srvOk,setSrvOk]       = useState(null);
+  // The single source of truth for every "reopen on any device" promise in the UI.
+  const crossDevice = !!seedId && srvOk !== false;
   // Open by default only where there is room to sit beside the chat. Below this the
   // panel still works, it just stays closed until asked for and then floats over the
   // conversation as an overlay (which is what the shadow below SIDE_COL_MIN is for).
@@ -3137,7 +3144,12 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // Cross-device copy. Best-effort and never blocks the chat; the local copy
       // already covers this device if it fails. Skipped while a send is in flight so
       // a late autosave can't resurrect a draft for an already-sent session.
-      if (seedId && !sendingRef.current) srvSaveDraft(seedId, snap);
+      // srvSaveDraft already returns res.ok — RECORD it. Discarding it meant the
+      // header promised "Progress saved / reopen on any device" on every seeded
+      // session whether or not a single write had ever landed, so a client whose
+      // server draft was failing was told their work was safe anywhere, closed the
+      // tab, and lost it. Only ever downgrades the claim; it never blocks the chat.
+      if (seedId && !sendingRef.current) srvSaveDraft(seedId, snap).then(setSrvOk);
       // Server upsert. Best-effort, never blocks the chat. Skipped while a send is
       // in flight so a late autosave can't overwrite the completed record.
       const pct = (progress && progress.percent) || 0;
@@ -3194,7 +3206,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       if (!snap || !Array.isArray(snap.messages) || snap.messages.length === 0) return;
       const stamped = { ...snap, savedAt: Date.now() };
       lsSaveDraft(seedId, stamped);
-      if (seedId) srvSaveDraft(seedId, stamped, { keepalive: true });
+      if (seedId) srvSaveDraft(seedId, stamped, { keepalive: true }).then(setSrvOk);
     };
     const onVis = () => { if (typeof document !== "undefined" && document.visibilityState === "hidden") flush(); };
     document.addEventListener("visibilitychange", onVis);
@@ -4071,7 +4083,12 @@ input,textarea,select,button{font-family:inherit}
           <div style={{flex:1}}><Stepper progress={progress} dark={dark} compact={mob} lang={uiLang}/></div>
           {/* Shown on mobile too (compact form): the welcome screen promises "pause
               anytime", and the mostly-mobile audience needs the safe-to-leave signal. */}
-          {!sent && (draftOk || seedId) && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>{L(mob?"savedShort":(seedId?"savedFullAny":"savedFull"),uiLang)}</div>}
+          {/* crossDevice, not bare seedId: the "any device" wording is a promise about
+              the SERVER draft, so it must not outlive a server draft that is failing.
+              srvOk===null (nothing written yet) stays optimistic; only a real failure
+              downgrades to the on-device wording, and if THAT is failing too the
+              indicator disappears rather than claim something untrue. */}
+          {!sent && (draftOk || crossDevice) && <div style={{fontSize:11,color:C.muted,whiteSpace:"nowrap",paddingBottom:2}}>{L(mob?"savedShort":(crossDevice?"savedFullAny":"savedFull"),uiLang)}</div>}
         </div>
       </div>}
 
@@ -4123,7 +4140,7 @@ input,textarea,select,button{font-family:inherit}
               </div>
             </div>
             <div style={{width:"100%",maxWidth:480,margin:"0 auto 18px",textAlign:uiLang==="Arabic"?"right":"left",animation:"slideUpFade .5s ease-out both",animationDelay:"270ms"}}>
-              {[[L("step1Title",uiLang),seedId?L("step1DescAny",uiLang):(draftOk?L("step1Desc",uiLang):L("step1DescNoSave",uiLang))],
+              {[[L("step1Title",uiLang),crossDevice?L("step1DescAny",uiLang):(draftOk?L("step1Desc",uiLang):L("step1DescNoSave",uiLang))],
                 [L("step2Title",uiLang),L("step2Desc",uiLang)],
                 [L("step3Title",uiLang),L("step3Desc",uiLang)]].map(([t,d],i) => (
                 <div key={i} style={{display:"flex",gap:12,padding:"7px 0",borderBottom:i<2?`1px solid ${C.border}`:"none"}}>
