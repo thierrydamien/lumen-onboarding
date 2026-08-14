@@ -2044,7 +2044,11 @@ export function Stepper({ progress, dark, compact, lang }) {
     return <div key={key} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
       {i < SECTION_KEYS.length-1 && <div style={{position:"absolute",top:11,insetInlineStart:"50%",width:"100%",height:2,background:done?F:inactive,zIndex:0,transition:"background 0.4s"}}/>}
       <div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${done||cur?F:inactive}`,background:done?F:circleBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:done?"white":cur?F:muted,zIndex:1,transition:"all 0.3s",boxShadow:cur&&!done?`0 0 0 4px ${A}22`:"none"}}>{done?<span style={{display:"inline-flex",animation:REDUCE_MOTION?"none":"popIn .3s ease-out"}}>✓</span>:i+1}</div>
-      {(!compact || cur) && <div style={{fontSize:10,marginTop:4,color:done||cur?P:muted,fontWeight:done||cur?600:400,whiteSpace:"nowrap"}}>{L(SECTION_LABEL_KEYS[key],lang)}</div>}
+      {/* P is a near-black navy: correct on white, invisible on the dark canvas —
+          and it was applied to exactly the labels that matter (done + CURRENT), so
+          in dark mode the client could not read where they were. Mirrors the
+          compact branch above, which already picks a light ink when dark. */}
+      {(!compact || cur) && <div style={{fontSize:10,marginTop:4,color:done||cur?(dark?"#c8d8e8":P):muted,fontWeight:done||cur?600:400,whiteSpace:"nowrap"}}>{L(SECTION_LABEL_KEYS[key],lang)}</div>}
     </div>;
   })}</div>;
 }
@@ -4004,7 +4008,15 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   if (!checked) return <BootScreen label="Loading…"/>;
 
   const SHOW = 6, canCollapse = messages.length>SHOW, vStart = canCollapse&&collapsed ? messages.length-SHOW : 0;
+  // Index of the most recent early-send offer; only that one renders its button.
+  const lastOfferIdx = messages.reduce((acc,m,idx)=> m.role==="assistant"&&m.offerSend ? idx : acc, -1);
   const last = messages[messages.length-1], showQR = last?.role==="assistant"&&last?.quickReplies?.length>0&&!loading;
+  // The "Answer above — or just type it here" composer nudge is too long for a
+  // narrow composer: at 375px it wraps and the second line is clipped by the
+  // single-row height, so the first text a phone client reads is cut mid-word.
+  // The widget on screen is already the affordance there, so fall back to the
+  // short prompt rather than showing a broken one.
+  const awaitingWidget = last?.role==="assistant" && (last.widgets||[]).some(w=>!wState[`${messages.length-1}-${w}`]?.submitted);
   const done = progress.percent === 100;
 
   const gwp = type => { const es=Object.entries(wState).filter(([k,v])=>k.endsWith(`-${type}`)&&(v===true||v?.submitted)).sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0)); return es.length?es[es.length-1][1].data:null; };
@@ -4331,8 +4343,12 @@ input,textarea,select,button{font-family:inherit}
                   during the chat: an always-visible exit invites clients to submit a
                   half-finished brief. Instead the assistant emits [OFFER_SEND] only when
                   the client signals they have to stop, so the option appears at the one
-                  moment it is the right answer. Suppressed once sent. */}
-              {m.role==="assistant" && m.offerSend && !sent && !done && <div style={{marginTop:10}}>
+                  moment it is the right answer. Suppressed once sent.
+                  Only the LATEST offer renders a button: a client who signals twice
+                  ("I have to go" ... later "can I talk to a human") used to be left
+                  with a stack of identical CTAs scrolling up the transcript, which
+                  reads as several different actions rather than one standing option. */}
+              {m.role==="assistant" && m.offerSend && i===lastOfferIdx && !sent && !done && <div style={{marginTop:10}}>
                 <button onClick={()=>setShowExport(true)} style={{display:"inline-flex",alignItems:"center",gap:7,background:dark?"#241c3d":"#f4f1fe",border:`1px solid ${dark?"#3a2f5c":"#e0d6fb"}`,color:LINK,borderRadius:9,padding:"9px 15px",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>
                   <Ic d={IC.send} size={13}/>{L("sendNowBtn",uiLang)}
                 </button>
@@ -4407,7 +4423,7 @@ input,textarea,select,button{font-family:inherit}
             <textarea ref={taRef} value={input}
               onChange={e=>{setInput(e.target.value);if(taRef.current){taRef.current.style.height="auto";taRef.current.style.height=taRef.current.scrollHeight+"px";}}}
               onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg();}}}
-              aria-label={L("phReply",uiLang)} placeholder={last?.role==="assistant"&&(last.widgets||[]).some(w=>!wState[`${messages.length-1}-${w}`]?.submitted)?L("phAnswerAbove",uiLang):L("phReply",uiLang)} rows={1}
+              aria-label={L("phReply",uiLang)} placeholder={!mob&&awaitingWidget?L("phAnswerAbove",uiLang):L("phReply",uiLang)} rows={1}
               style={{flex:1,background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"11px 14px",fontSize:mob?16:14,resize:"none",outline:"none",color:C.text}}/>
             <button onClick={()=>sendMsg()} aria-label="Send message" disabled={!input.trim()&&!loading}
               style={{background:A,color:"white",border:"none",borderRadius:12,width:44,height:44,cursor:input.trim()||loading?"pointer":"default",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",opacity:input.trim()||loading?1:0.4,boxShadow:input.trim()&&!loading?"0 4px 14px rgba(126,72,236,0.35)":"none"}}>

@@ -1,6 +1,9 @@
 import { chromium } from "playwright-core";
 
-const URL_BASE = "http://localhost:9100/?s=sd_test";
+// Port is overridable so a test can be pointed at two builds in turn (serve the
+// pre-fix bundle on one port, the fixed one on another) and prove it actually
+// detects the defect instead of passing vacuously.
+const URL_BASE = `http://localhost:${process.env.HARNESS_PORT || 9100}/?s=sd_test`;
 
 export async function open({ viewport = { width: 1280, height: 900 }, lang } = {}) {
   // The image ships Chromium 1194; playwright-core here expects a newer build, so
