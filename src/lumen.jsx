@@ -2691,7 +2691,12 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={L("expTitle",uiLang)} tabIndex={-1} style={{background:"white",borderRadius:T.radius.lg,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:T.shadow.modal,outline:"none",animation:REDUCE_MOTION?"none":"modalPop .2s ease-out"}}>
       <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div><h2 style={{fontWeight:700,fontSize:16,color:"#1e293b",margin:0}}>{L("expTitle",uiLang)}</h2><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{L("expSubtitle",uiLang)}</div></div>
-        <button onClick={onClose} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:"pointer",color:"#64748b"}}>✕</button>
+        {/* Not closeable mid-send. sendErr renders ONLY inside this modal, so closing
+            it while the send is in flight threw away the one surface the failure had:
+            the client saw the dialog vanish, no error anywhere, and reasonably assumed
+            the brief had gone. It had not. Verified in a browser with every write
+            failing — the page carried no trace of the failure at all. */}
+        <button onClick={onClose} disabled={sending} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:sending?"default":"pointer",color:sending?"#cbd5e1":"#64748b"}}>✕</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,padding:"12px 14px",borderRadius:10,background:ready?"#f0fdf4":"#fffbeb",border:`1px solid ${ready?"#bbf7d0":"#fde68a"}`}}>
@@ -3660,6 +3665,11 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // (a retry is idempotent now that sessionId is always sent).
       if (!saveOk && !sheetUrl && !sheetPending) {
         setSendErr("send-failed");
+        // Belt to the close-button brace: sendErr has no surface outside the modal,
+        // so if it is not on screen the failure is invisible and the client walks
+        // away believing the brief was sent. Re-open it rather than add a second
+        // error surface to keep in sync. No-op when it is already open.
+        setShowExport(true);
         return; // the `finally` below still re-enables the Send button
       }
 
@@ -3683,6 +3693,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       // Never leave the client on a stuck spinner or a false success.
       console.error("Send failed", e);
       setSendErr("send-failed");
+      setShowExport(true); // same reason as above: the modal is the only error surface
     } finally {
       setSending(false);
       sendingRef.current = false;
@@ -3744,8 +3755,16 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     setInitErr(null);
     try {
       const raw = await callAPILive([ini]);
-      const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
+      const pr = parseReply(raw);
+      const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = pr;
       if (prog) setProgress(prog);
+      // applyCdata used to run ONLY in sendToAPI, so any data marker in the very
+      // first reply was parsed and then thrown away. On a seeded session the model
+      // is handed the company, contact and industry up front and told to weave them
+      // in, so a %%COMPANY%% on turn 1 is a reasonable thing for it to emit — and it
+      // vanished. Harmless to run here: the seed prefill above already populated
+      // company, and mergeObj drops blank fields, so a partial marker cannot wipe it.
+      applyCdata(pr);
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       prevSecRef.current = prog?.section || "company";
       setMessages([{role:"assistant",content:clean,widgets,topicSuggestions,quickReplies,offerSend,timestamp:gts(),at:gat()}]);
@@ -3764,7 +3783,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     } finally {
       setLoading(false);
     }
-  }, [callAPI, init, resetSession, seed, uiLang]);
+  }, [callAPI, init, resetSession, seed, uiLang, applyCdata]);
 
   const resumeConvo = useCallback(async () => {
     init(); if (!saved) return;

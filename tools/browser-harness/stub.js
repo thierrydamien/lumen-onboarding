@@ -10,6 +10,7 @@
     draftSave: "ok",       // ok | fail
     sessionUpsert: "ok",   // ok | fail
     sheet: "ok",           // ok | fail
+    writeDelayMs: 0,       // delay session/sheet/draft responses, to stage mid-flight UI
     replies: [],           // queue of raw assistant strings; falls back to DEFAULT
     calls: [],             // observed requests, for assertions
     pending: new Map(),    // rid -> {resolvedAt} for the background path
@@ -78,11 +79,14 @@
       if (method === "GET") return json({ snapshot: null });
       return json({ ok: true });
     }
+    const delay = () => (ctl.writeDelayMs ? new Promise((r) => setTimeout(r, ctl.writeDelayMs)) : null);
     if (url.includes("/functions/session")) {
+      await delay();
       if (ctl.sessionUpsert === "fail") return json({ error: "nope" }, 500);
       return json({ ok: true });
     }
     if (url.includes("/functions/sheet")) {
+      await delay();
       if (ctl.sheet === "fail") return json({ error: "nope" }, 500);
       return json({ url: "https://docs.google.com/spreadsheets/d/FAKE/edit" });
     }
