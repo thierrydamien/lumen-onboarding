@@ -28,4 +28,18 @@ for (let i = 0; i < SEQ.length; i++) {
   r = await read();
   console.log(`  message ${i + 1}     ${String(r.pct + "%").padEnd(5)}  ${r.step}`);
 }
+
+// A marker that goes BACKWARDS (a retry re-emitting an early section) must not
+// drag the displayed percent down with it — progress evaporating mid-session
+// reads as data loss. This exercises the ratchet through the real chat path,
+// not just the pure function.
+const atPeak = Number(r.pct);
+await page.evaluate((rp) => { window.__ctl.replies = [rp]; },
+  '%%PROGRESS%%{"section":"intro","percent":5,"collected":{}}%%END%%\n\nSorry — could you repeat that?');
+await page.locator("textarea").first().fill("ok");
+await page.keyboard.press("Enter");
+await page.waitForTimeout(3000);
+r = await read();
+console.log(`  regressed mkr ${String(r.pct + "%").padEnd(5)}  ${r.step}`);
+console.log("percent survived a regressed marker:", Number(r.pct) >= atPeak, `(${atPeak}% -> ${r.pct}%)`);
 await browser.close();

@@ -1653,6 +1653,22 @@ function mergeCdata(base, pr) {
     users: keepArr(usersData, base.users),
     handoff: mergeObj(handoffData, base.handoff)};
 }
+// Progress can only move forward. The stepper obeys %%PROGRESS%% markers
+// verbatim, so a single malformed or sparse one (a retry that re-emitted an
+// early section, a collected map that dropped keys) un-ticked the whole journey
+// — six checkmarks vanishing mid-session reads as data loss to the client, and
+// on the 100% turn it put a step-1 stepper above a "brief is done" finish card.
+// Same philosophy as mergeCdata just below: percent never decreases and
+// collected keys only accumulate (a re-emitted key still takes its NEW value).
+// The section itself passes through untouched, so a legitimate revisit
+// ("actually, change my markets") can still point the ring at the section being
+// reworked — the accumulated collected map keeps the ticks in place regardless.
+// Deliberate resets (new session) call setProgress directly and skip this.
+export const ratchetProgress = (prev, next) => ({
+  ...next,
+  percent: Math.max(Number(prev?.percent) || 0, Number(next?.percent) || 0),
+  collected: { ...(prev?.collected || {}), ...(next?.collected || {}) },
+});
 // Drop null/undefined/blank values so a marker re-emit with empty fields never
 // overwrites a previously captured value.
 const pruneEmpty = o => {
@@ -3510,7 +3526,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         // to click. Treat that as a failure and retry / offer-retry rather than hang.
         const actionable = clean.trim() || widgets.length || topicSuggestions.length || quickReplies.length;
         if (!actionable) throw new Error("empty_reply");
-        if (prog) setProgress(prog);
+        if (prog) setProgress(p=>ratchetProgress(p,prog));
         else setProgress(p=>({...p,percent:Math.max(p.percent,inferPct())}));
         // A turn just succeeded, so any first-turn/resume failure card is stale. Clearing
         // it here is not cosmetic: that card's Try again calls startConvo(), which
@@ -3789,7 +3805,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
       const raw = await callAPILive([ini]);
       const pr = parseReply(raw);
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = pr;
-      if (prog) setProgress(prog);
+      if (prog) setProgress(p=>ratchetProgress(p,prog));
       // applyCdata used to run ONLY in sendToAPI, so any data marker in the very
       // first reply was parsed and then thrown away. On a seeded session the model
       // is handed the company, contact and industry up front and told to weave them
@@ -3859,7 +3875,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     try {
       const raw = await callAPILive(histRef.current);
       const { clean,widgets,topicSuggestions,quickReplies,progress:prog,offerSend } = parseReply(raw);
-      if (prog) setProgress(prog);
+      if (prog) setProgress(p=>ratchetProgress(p,prog));
       histRef.current.push({role:"assistant",content:stripThoughtForHistory(raw)});
       if (sndRef.current) pop();
       const dv = maybeDivider(prog, uiLang);
