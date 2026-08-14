@@ -1996,7 +1996,7 @@ function TypingIndicator({ lang, doc=false }) {
     <span key={step} style={{fontSize:13,color:"#64748b",animation:REDUCE_MOTION?"none":"slideUpFade .3s ease-out"}}>{label}</span>
   </>}</div>;
 }
-function Stepper({ progress, dark, compact, lang }) {
+export function Stepper({ progress, dark, compact, lang }) {
   const inactive = dark?"#2d4a6a":"#E7E7EF", muted = dark?"#8aa4c1":"#64748b", F = A, circleBg = dark?"#111f30":"#ffffff";
   // Onboarding is linear, but the model's `collected` map can arrive
   // non-monotonic (e.g. "channels" marked done before "topics"), which drew
@@ -2014,7 +2014,18 @@ function Stepper({ progress, dark, compact, lang }) {
   if (compact) {
     const total = SECTION_KEYS.length;
     const doneCount = SECTION_KEYS.reduce((n,_,i)=> isDone(i)?n+1:n, 0);
-    const pct = Math.round((doneCount/total)*100);
+    // Sections completed, which can only ever read 0/17/33/50/67/83/100.
+    const sectionPct = Math.round((doneCount/total)*100);
+    // The MODEL reports a finer percent every turn (measured live: 0, 5, 8, 12,
+    // 15, 18, 22...). Using sectionPct alone discarded it, and since section 1
+    // covers company, email, industry, goal AND the experience question, a client
+    // could exchange six messages on a phone and watch the number sit on 17% the
+    // whole time — which reads as "this thing is stuck". Desktop never showed a
+    // percentage at all, so this only ever affected mobile, where most clients are.
+    // sectionPct stays as a FLOOR so the number can never contradict the "Step N
+    // of 6" label right beside it; the clamp keeps a malformed marker in range.
+    const modelPct = Math.min(100, Math.max(0, Math.round(Number(progress.percent) || 0)));
+    const pct = Math.max(sectionPct, modelPct);
     const label = L(SECTION_LABEL_KEYS[SECTION_KEYS[frontier]], lang) || "";
     return <div style={{width:"100%"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
