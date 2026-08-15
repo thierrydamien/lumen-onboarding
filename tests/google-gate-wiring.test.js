@@ -147,3 +147,53 @@ describe("the dashboard's second lock does not reach the client", () => {
     expect(af.slice(0, 900)).toMatch(/reauthGoogle\(/);
   });
 });
+
+// The lock stopped a stranger ACTING. It did not stop them LOOKING: the Sales
+// gate used a 40%-opacity scrim, so the whole internal form — product tiers,
+// package allowances, the "never shown to the client" section, the confidential
+// notes box — was readable straight through the sign-in card. Reported from a
+// real incognito window, not caught by any test, because every test so far
+// asserted the card was PRESENT rather than that the page was UNREADABLE.
+describe("a stranger cannot read the internal tools", () => {
+  for (const page of ["public/sales.html", "public/dashboard.html"]) {
+    const s = read(page);
+
+    it(`${page}: the backdrop is opaque, not a see-through scrim`, () => {
+      const gate = s.match(/\.gate \{[^}]*\}/)[0];
+      expect(gate, "translucent backdrop leaks the page behind it").not.toMatch(/rgba\([^)]*,\s*0?\.\d+\s*\)/);
+      expect(gate).toMatch(/background:var\(--bg\)/);
+    });
+
+    it(`${page}: content is hidden from FIRST PAINT, not once the card appears`, () => {
+      // Without this there is a readable window between paint and the gate
+      // resolving — and it also covers scrolling past a card that only covers
+      // the viewport.
+      expect(s).toMatch(/html\.gate-check \.wrap, html\.gate-locked \.wrap \{ visibility: hidden; \}/);
+      // Set synchronously in <body>, before the form markup.
+      const setAt = s.indexOf('className += " gate-check"');
+      expect(setAt).toBeGreaterThan(-1);
+      expect(setAt).toBeLessThan(s.indexOf('<div class="wrap">'));
+    });
+
+    it(`${page}: cannot stay blank forever if the gate script never runs`, () => {
+      expect(s).toMatch(/setTimeout\(function \(\) \{ document\.documentElement\.classList\.remove\("gate-check"\); \}, 4000\)/);
+    });
+
+    it(`${page}: re-locks when the sign-in expires`, () => {
+      // reauth must hide the page again, not leave it readable behind the card.
+      const re = s.slice(s.indexOf("function reauthGoogle("));
+      expect(re.slice(0, 200)).toMatch(/lock(Form|Shell)\(\)/);
+    });
+  }
+
+  it("reveals only on an explicit allow — gate off, or signed in", () => {
+    const s = read("public/sales.html");
+    // Three call sites: config unreachable, gate not configured, sign-in success.
+    expect((s.match(/revealForm\(\)/g) || []).length).toBeGreaterThanOrEqual(4); // 1 def + 3 calls
+    // Bounded by the next function, not a guessed char count — a fixed window
+    // already cut this assertion short once.
+    const start = s.indexOf("function onGoogleCredential(");
+    const onCred = s.slice(start, s.indexOf("async function initGoogleGate()", start));
+    expect(onCred).toMatch(/revealForm\(\)/);
+  });
+});

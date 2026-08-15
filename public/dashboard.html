@@ -244,6 +244,11 @@
      filled hover background on it read as a stray highlight. It has its own hover. */
   .ghost:hover, .close:hover { background:#f1eefb; }
   /* E1: styled in-page access gate replacing window.prompt(). */
+  /* Same hide-until-resolved as sales.html: the backdrop here is already opaque,
+     but between first paint and the gate appearing the shell is readable. Less
+     sensitive than the Sales form (no client data has loaded yet) but there is no
+     reason to show a stranger the tool's chrome either. */
+  html.gate-check .wrap, html.gate-locked .wrap { visibility: hidden; }
   .gate { position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
   .gate.show { display:flex; }
   .gcard { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; max-width:360px; width:100%; text-align:center; box-shadow:var(--shadow-modal); }
@@ -339,6 +344,10 @@
 </style>
 </head>
 <body>
+<script>
+  document.documentElement.className += " gate-check";
+  setTimeout(function () { document.documentElement.classList.remove("gate-check"); }, 4000);
+</script>
   <div class="bar">
     <div class="mark"><img src="/lumen-mark.png" alt=""/></div>
     <div class="brand"><b>Lumen</b> <span class="by">by Talkwalker</span></div>
@@ -443,8 +452,11 @@
     return h;
   }
   function gErr(msg) { var e = $("gErr"); if (e) e.textContent = msg || ""; }
+  function revealShell() { var c = document.documentElement.classList; c.remove("gate-check"); c.remove("gate-locked"); }
+  function lockShell() { var c = document.documentElement.classList; c.remove("gate-check"); c.add("gate-locked"); }
   function reauthGoogle(msg) {
     GOOGLE.token = "";
+    lockShell();
     var m = $("gMsg"); if (m) m.textContent = msg || "Your sign-in expired. Sign in again to continue.";
     $("gGate").classList.add("show");
     try { window.google.accounts.id.prompt(); } catch (e) {}
@@ -455,6 +467,7 @@
     GOOGLE.token = t;
     gErr("");
     $("gGate").classList.remove("show");
+    revealShell();
     // The page may have been waiting on this before its first load().
     if (_gPending) { _gPending = false; load(); }
   }
@@ -464,9 +477,10 @@
     // Fail OPEN here on purpose: the server is the real enforcement point, so a
     // transient config failure should not lock the team out of their own tool.
     try { cfg = await (await fetch("/.netlify/functions/app-config")).json(); }
-    catch (e) { return false; }
-    if (!cfg || !cfg.googleAuth || !cfg.clientId) return false;
+    catch (e) { revealShell(); return false; }
+    if (!cfg || !cfg.googleAuth || !cfg.clientId) { revealShell(); return false; }
     GOOGLE.on = true; GOOGLE.clientId = cfg.clientId; GOOGLE.domain = cfg.domain || "";
+    lockShell();
     $("gGate").classList.add("show");
     await new Promise(function (res) {
       var s = document.createElement("script");

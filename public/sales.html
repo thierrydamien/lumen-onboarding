@@ -137,7 +137,16 @@
   .dupnote { color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:9px; padding:9px 11px; font-size:11.5px; line-height:1.5; margin-top:10px; }
 
   /* Write-token gate (only shown if the server requires a token). */
-  .gate { position:fixed; inset:0; background:rgba(15,23,42,.4); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
+  /* OPAQUE, not a translucent scrim. At 40% the whole internal form — product
+     tiers, package allowances, the "never shown to the client" section — was
+     readable straight through the sign-in card by anyone who opened the page.
+     The server-side lock stopped them ACTING; it never stopped them LOOKING. */
+  .gate { position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
+  /* And hide the form until the gate has decided, so there is no window between
+     first paint and the card appearing where the page is simply readable.
+     Belt and braces with the opaque backdrop above: this also covers a visitor
+     who scrolls, or who is on a screen taller than the card. */
+  html.gate-check .wrap, html.gate-locked .wrap { visibility: hidden; }
   .gate.show { display:flex; }
   .gcard { background:#fff; border-radius:var(--radius-lg); padding:28px; max-width:360px; width:100%; text-align:center; box-shadow:var(--shadow-modal); }
   .glogo { width:52px; height:52px; border-radius:50%; background:var(--purple-soft); display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
@@ -157,6 +166,16 @@
 </style>
 </head>
 <body>
+<script>
+  // Set BEFORE the form paints: the page starts hidden and is revealed only once
+  // the gate has resolved (off, or signed in). Inline and synchronous on purpose
+  // — a deferred script would still allow one readable frame.
+  document.documentElement.className += " gate-check";
+  // Safety net: if the gate script never runs (JS error, blocked bundle) the page
+  // must not stay blank forever. The server is the real lock, so revealing here
+  // costs nothing but a readable form.
+  setTimeout(function () { document.documentElement.classList.remove("gate-check"); }, 4000);
+</script>
   <div class="top">
     <div class="mark"><img src="/lumen-mark.png" alt=""/></div>
     <div class="brand"><b>Lumen</b> <span class="by">by Talkwalker</span></div>
@@ -390,6 +409,17 @@
     return h;
   }
   function gErr(msg) { var e = $("gErr"); if (e) e.textContent = msg || ""; }
+  // The form is hidden from first paint (see the inline script in <body>).
+  // revealForm() is the ONLY way it becomes visible, so every path that ends with
+  // "this person may use the tool" has to call it explicitly.
+  function revealForm() {
+    var c = document.documentElement.classList;
+    c.remove("gate-check"); c.remove("gate-locked");
+  }
+  function lockForm() {
+    var c = document.documentElement.classList;
+    c.remove("gate-check"); c.add("gate-locked");
+  }
 
   // Called by Google Identity Services with a credential (the ID token JWT).
   function onGoogleCredential(resp) {
@@ -411,6 +441,7 @@
     }
     gErr("");
     $("gGate").classList.remove("show");
+    revealForm();
   }
 
   async function initGoogleGate() {
@@ -422,10 +453,12 @@
       // working tool over a transient failure. The server is still the real
       // enforcement point, so a rep who gets through here simply gets a clear
       // 401 from Generate instead of a silent dead end.
+      revealForm();
       return;
     }
-    if (!cfg || !cfg.googleAuth || !cfg.clientId) return; // not configured: unchanged behaviour
+    if (!cfg || !cfg.googleAuth || !cfg.clientId) { revealForm(); return; } // not configured: unchanged behaviour
     GOOGLE.on = true; GOOGLE.clientId = cfg.clientId; GOOGLE.domain = cfg.domain || "";
+    lockForm();
     $("gGate").classList.add("show");
     await new Promise(function (res) {
       var s = document.createElement("script");
@@ -466,6 +499,7 @@
   // WILL hit this. Re-show the gate rather than telling them to reload.
   function reauthGoogle(msg) {
     GOOGLE.token = "";
+    lockForm();
     var m = $("gMsg"); if (m) m.textContent = msg || "Your sign-in expired. Sign in again to continue.";
     $("gGate").classList.add("show");
     try { window.google.accounts.id.prompt(); } catch (e) {}
