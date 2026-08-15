@@ -7,6 +7,7 @@
 // with no siteID/token wiring. Only dependency: @netlify/blobs.
 
 import { getStore } from "@netlify/blobs";
+import { verifyGoogleAuth } from "../lib/google-auth.js";
 import crypto from "node:crypto"; // explicit import: globalThis.crypto only exists on Node >= 19
 import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
@@ -173,6 +174,12 @@ export default async (req) => {
     }
     const provided = req.headers.get("x-dashboard-token");
     if (provided !== expected) return json(401, { error: "unauthorized" });
+    // Second, independent gate: Google Sign-In, dormant unless configured. Only
+    // the GET branch is gated — the POST above is the CLIENT saving their own
+    // onboarding session, and they are not (and must never need to be) signed
+    // into a Hootsuite Google account.
+    const gauth = await verifyGoogleAuth(req);
+    if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
 
     const id = url.searchParams.get("id");
     if (id) {

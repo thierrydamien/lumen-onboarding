@@ -350,6 +350,20 @@
     </div>
   </div>
 
+  <!-- Google Sign-In gate. Shown BEFORE the token card, and only when the site has
+       GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN set. Two independent locks on the
+       surface that holds every client's PII, notes and transcripts: something you
+       are (a work Google account) and something you know (the shared token). -->
+  <div class="gate" id="gGate">
+    <div class="gcard">
+      <div class="glogo"><img src="/lumen-mark.png" alt=""/></div>
+      <h2>Proserv dashboard</h2>
+      <p id="gMsg">Sign in with your work Google account to continue.</p>
+      <div id="gBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+      <div class="gerr" id="gErr"></div>
+    </div>
+  </div>
+
   <!-- E1: styled access gate; replaces the browser window.prompt() for the token. -->
   <div class="gate" id="gate">
     <form class="gcard" id="gateForm">
@@ -417,9 +431,76 @@
     var waiters = _gateWaiters; _gateWaiters = [];
     waiters.forEach(function (r) { r(); });
   });
+  // ---- Google Sign-In gate (second, independent lock) ----
+  // Same mechanism as the Sales page: dormant unless the site sets
+  // GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN, verified SERVER-side on every
+  // dashboard read, and the ID token is held in memory only (it expires hourly,
+  // so a stored copy would just produce confusing 401s later).
+  var GOOGLE = { on: false, clientId: "", domain: "", token: "" };
+  function googleHeaders(h) {
+    h = h || {};
+    if (GOOGLE.on && GOOGLE.token) h["x-google-id-token"] = GOOGLE.token;
+    return h;
+  }
+  function gErr(msg) { var e = $("gErr"); if (e) e.textContent = msg || ""; }
+  function reauthGoogle(msg) {
+    GOOGLE.token = "";
+    var m = $("gMsg"); if (m) m.textContent = msg || "Your sign-in expired. Sign in again to continue.";
+    $("gGate").classList.add("show");
+    try { window.google.accounts.id.prompt(); } catch (e) {}
+  }
+  function onGoogleCredential(resp) {
+    var t = resp && resp.credential;
+    if (!t) { gErr("Sign-in did not return a credential. Try again."); return; }
+    GOOGLE.token = t;
+    gErr("");
+    $("gGate").classList.remove("show");
+    // The page may have been waiting on this before its first load().
+    if (_gPending) { _gPending = false; load(); }
+  }
+  var _gPending = false;
+  async function initGoogleGate() {
+    var cfg;
+    // Fail OPEN here on purpose: the server is the real enforcement point, so a
+    // transient config failure should not lock the team out of their own tool.
+    try { cfg = await (await fetch("/.netlify/functions/app-config")).json(); }
+    catch (e) { return false; }
+    if (!cfg || !cfg.googleAuth || !cfg.clientId) return false;
+    GOOGLE.on = true; GOOGLE.clientId = cfg.clientId; GOOGLE.domain = cfg.domain || "";
+    $("gGate").classList.add("show");
+    await new Promise(function (res) {
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true; s.defer = true;
+      s.onload = res;
+      s.onerror = function () { gErr("Could not reach Google to sign in. Check your connection and reload."); res(); };
+      document.head.appendChild(s);
+    });
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      gErr("Google sign-in could not load — an ad blocker or network policy may be blocking accounts.google.com. Allow it and reload, or ask IT.");
+      return true;
+    }
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE.clientId, callback: onGoogleCredential,
+      auto_select: true, cancel_on_tap_outside: false,
+    });
+    window.google.accounts.id.renderButton($("gBtn"), { theme: "outline", size: "large", text: "signin_with" });
+    window.google.accounts.id.prompt();
+    return true;
+  }
+
   function authedFetch(url) {
-    return fetch(url, { headers: { "x-dashboard-token": getToken() } }).then(function (r) {
+    return fetch(url, { headers: googleHeaders({ "x-dashboard-token": getToken() }) }).then(async function (r) {
       if (r.status === 401) {
+        // Two gates now return 401, and they need opposite remedies: clearing the
+        // stored dashboard token because the GOOGLE token expired would make a
+        // teammate re-type a password that was never the problem.
+        var isG = false;
+        try { isG = (await r.clone().json()).error === "unauthorized_google"; } catch (e) {}
+        if (isG) {
+          reauthGoogle("Your sign-in expired. Sign in again to continue.");
+          return r;
+        }
         sessionStorage.removeItem("dash_token");
         return requestToken("That token was wrong or has expired. Enter it again.").then(function () { return authedFetch(url); });
       }
@@ -541,7 +622,7 @@
   // stays silent until the next manual action.
   function pollUpdates() {
     if (_loading || !getToken()) return;
-    fetch(SESSION_ENDPOINT, { headers: { "x-dashboard-token": getToken() } })
+    fetch(SESSION_ENDPOINT, { headers: googleHeaders({ "x-dashboard-token": getToken() }) })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !Array.isArray(d.sessions)) return;
@@ -1122,7 +1203,7 @@
     try {
       res = await fetch(ADMIN_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-dashboard-token": getToken() },
+        headers: googleHeaders({ "Content-Type": "application/json", "x-dashboard-token": getToken() }),
         body: JSON.stringify({ action: action, items: items }),
       });
     } catch (e) { window.alert("Could not reach the server. Nothing was changed."); return; }
@@ -1785,7 +1866,16 @@
     var b = (e.target && e.target.closest) ? e.target.closest("[data-clear]") : null;
     if (b) clearFilter(b.getAttribute("data-clear"));
   });
-  load();
+  // Resolve the Google gate BEFORE the first read. Loading first would fire a
+  // request that is guaranteed to 401, and pop the token card up behind the
+  // sign-in card — two stacked prompts, the wrong one on top. When the gate is
+  // configured, load() is deferred until the credential arrives
+  // (onGoogleCredential); when it is not, this resolves false and nothing about
+  // the existing flow changes.
+  initGoogleGate().then(function (gateOn) {
+    if (gateOn) { _gPending = true; return; }
+    load();
+  });
   setInterval(pollUpdates, UPDATE_POLL_MS); // background check for new activity
 </script>
 </body>

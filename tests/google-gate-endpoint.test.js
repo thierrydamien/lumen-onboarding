@@ -19,7 +19,12 @@ const written = [];
 vi.mock("@netlify/blobs", () => ({
   getStore: () => ({
     setJSON: async (k, v) => { written.push(v); },
-    get: async () => null,
+    // A real record for the client-prefill test, so that assertion exercises an
+    // actual 200 + field filtering rather than passing vacuously on a 404.
+    get: async (k) => (k === "sd_x"
+      ? { id: "sd_x", company: "ClientCo", contactName: "Jane", language: "English",
+          notes: "CONFIDENTIAL", preparedBy: "Alex", savedAt: new Date().toISOString() }
+      : null),
     list: async () => ({ blobs: [] }),
     delete: async () => {},
   }),
@@ -90,5 +95,74 @@ describe("the seed endpoint with the gate switched OFF", () => {
     const res = await post({});
     expect(res.status).toBe(200);
     expect(written).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The dashboard gets the same second lock. The danger here is over-reach: the
+// SAME two functions also serve the client chat page, which has no login and
+// must never need one. These tests exist mainly to prove the client paths were
+// left alone — gating them would break onboarding for every client.
+
+const { default: session } = await import("../netlify/functions/session.js");
+
+const ON = { URL: ORIGIN, GOOGLE_CLIENT_ID: CLIENT_ID, ALLOWED_EMAIL_DOMAIN: "hootsuite.com", DASHBOARD_TOKEN: "dash-secret" };
+const stub = (env) => { for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v); };
+
+describe("dashboard reads, gate ON", () => {
+  beforeEach(() => { written.length = 0; stub(ON); });
+
+  it("rejects a correct dashboard token with no Google sign-in", () => {
+    // The whole point of a second lock: the shared secret alone is no longer
+    // enough, so a leaked token is not a breach on its own.
+    return session(new Request(ORIGIN + "/.netlify/functions/session", {
+      headers: { "x-dashboard-token": "dash-secret" },
+    })).then(async (res) => {
+      expect(res.status).toBe(401);
+      expect((await res.json()).error).toBe("unauthorized_google");
+    });
+  });
+
+  it("rejects a correct token with a Google account from another domain", async () => {
+    const res = await session(new Request(ORIGIN + "/.netlify/functions/session", {
+      headers: { "x-dashboard-token": "dash-secret", "x-google-id-token": "GMAIL" },
+    }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("unauthorized_google");
+  });
+
+  it("allows a signed-in work account holding the token", async () => {
+    const res = await session(new Request(ORIGIN + "/.netlify/functions/session", {
+      headers: { "x-dashboard-token": "dash-secret", "x-google-id-token": "GOOD" },
+    }));
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("the CLIENT chat page is never gated", () => {
+  beforeEach(() => { written.length = 0; stub(ON); });
+
+  it("still saves a session with no Google token at all", async () => {
+    // A client is a stranger on the internet finishing their onboarding. If this
+    // ever 401s, every client silently loses their progress.
+    const res = await session(new Request(ORIGIN + "/.netlify/functions/session", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: ORIGIN },
+      body: JSON.stringify({ session: { id: "cs_1", company: "ClientCo", status: "in_progress" } }),
+    }));
+    expect(res.status).not.toBe(401);
+    expect(written.length).toBeGreaterThan(0);
+  });
+
+  it("still fetches its own seed prefill with no Google token", async () => {
+    // seed.js GET-by-id serves BOTH the client (client-safe fields) and the
+    // dashboard (full record). Only the token-presenting caller is gated.
+    const res = await seed(new Request(ORIGIN + "/.netlify/functions/seed?id=sd_x"));
+    expect(res.status).toBe(200);
+    const { seed: got } = await res.json();
+    expect(got.company).toBe("ClientCo");
+    // ...and the client-safe filtering still holds: no notes, no preparedBy.
+    expect(got.notes).toBeUndefined();
+    expect(got.preparedBy).toBeUndefined();
   });
 });

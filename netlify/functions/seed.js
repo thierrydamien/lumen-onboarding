@@ -159,6 +159,21 @@ export default async (req) => {
     const authed = !!expected && provided === expected;
     const id = url.searchParams.get("id");
 
+    // Google Sign-In as a second gate on the DASHBOARD's view of a seed.
+    // Deliberately scoped to callers presenting a dashboard token: an
+    // unauthenticated GET-by-id is the CLIENT chat page fetching its own
+    // prefill, and clients are not signed into a Hootsuite Google account —
+    // gating that would break every onboarding link.
+    //
+    // A token-presenting caller who fails the Google check is REJECTED rather
+    // than quietly downgraded to the client-safe subset: a silent downgrade
+    // would render the dashboard's notes panel as "No notes." and read as
+    // missing data instead of a failed sign-in.
+    if (authed) {
+      const gauth = await verifyGoogleAuth(req);
+      if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
+    }
+
     if (id) {
       let rec;
       try { rec = await store.get(id, { type: "json" }); }

@@ -14,6 +14,11 @@ const WRITE_ENDPOINTS = [
   "netlify/functions/seed.js",
   "netlify/functions/parse-brief.js",
   "netlify/functions/preview-brief.js",
+  // Dashboard surfaces: every client's PII, transcripts and consultant notes.
+  // The shared DASHBOARD_TOKEN is a secret people paste into Slack, so it gets
+  // the same second lock.
+  "netlify/functions/session.js",
+  "netlify/functions/session-admin.js",
 ];
 
 describe("every Sales write endpoint enforces the gate", () => {
@@ -93,5 +98,52 @@ describe("app-config exposes only what the page needs", () => {
     expect(cfg).toMatch(/googleAuth = !!\(clientId && domain\)/);
     // And withholds the id when off, so a half-configured site can't half-work.
     expect(cfg).toMatch(/googleAuth \? clientId : ""/);
+  });
+});
+
+describe("the dashboard's second lock does not reach the client", () => {
+  const session = read("netlify/functions/session.js");
+  const seed = read("netlify/functions/seed.js");
+  const dash = read("public/dashboard.html");
+
+  it("gates session READS but never the client's own save", () => {
+    // POST is a stranger on the internet finishing their onboarding; they are
+    // not signed into a Hootsuite account and must never need to be.
+    const getAt = session.indexOf('if (req.method === "GET")');
+    const gateAt = session.indexOf("await verifyGoogleAuth(req)");
+    expect(gateAt).toBeGreaterThan(getAt); // the check lives inside the GET branch
+  });
+
+  it("gates the seed record only for a caller presenting a dashboard token", () => {
+    // The same branch serves the client's prefill fetch; gating it wholesale
+    // would break every onboarding link.
+    expect(seed).toMatch(/if \(authed\) \{\s*\n\s*const gauth = await verifyGoogleAuth\(req\)/);
+  });
+
+  it("rejects rather than silently downgrading a token-holder who fails Google", () => {
+    // A silent downgrade would render the notes panel as "No notes." — read as
+    // missing data, not as a failed sign-in.
+    const i = seed.indexOf("if (authed) {");
+    expect(seed.slice(i, i + 260)).toContain("unauthorized_google");
+  });
+
+  it("sends the token on all three dashboard fetches, including the background poll", () => {
+    // A missed poll would 401 every 90 seconds behind the scenes.
+    expect((dash.match(/googleHeaders\(/g) || []).length).toBeGreaterThanOrEqual(4);
+    const poll = dash.slice(dash.indexOf("function pollUpdates()"));
+    expect(poll.slice(0, 600)).toMatch(/googleHeaders\(/);
+  });
+
+  it("resolves the gate before the first read, not after", () => {
+    // Loading first fires a guaranteed 401 and stacks the token card behind the
+    // sign-in card — two prompts, the wrong one on top.
+    expect(dash).toMatch(/initGoogleGate\(\)\.then\(function \(gateOn\) \{/);
+    expect(dash).toMatch(/if \(gateOn\) \{ _gPending = true; return; \}/);
+  });
+
+  it("tells the two 401s apart, so the wrong credential is not cleared", () => {
+    const af = dash.slice(dash.indexOf("function authedFetch(url)"));
+    expect(af.slice(0, 900)).toMatch(/unauthorized_google/);
+    expect(af.slice(0, 900)).toMatch(/reauthGoogle\(/);
   });
 });

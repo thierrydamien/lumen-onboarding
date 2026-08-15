@@ -24,6 +24,7 @@
 import { getStore } from "@netlify/blobs";
 import crypto from "node:crypto";
 import { rateLimit, tooMany, clientIp } from "../lib/ratelimit.js";
+import { verifyGoogleAuth } from "../lib/google-auth.js";
 
 const SESSION_STORE = "lumen-sessions";
 const SEED_STORE = "lumen-seeds";
@@ -75,6 +76,10 @@ export default async (req) => {
   if (!tokenMatches(req.headers.get("x-dashboard-token"), readToken)) {
     return json(401, { error: "unauthorized" });
   }
+  // Gate 2: Google Sign-In (dormant unless configured). This endpoint PERMANENTLY
+  // DELETES sessions, so it gets the same second lock as the reads.
+  const gauth = await verifyGoogleAuth(req);
+  if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
 
   const rl = await rateLimit(req, "session-admin", RL);
   if (!rl.ok) return tooMany(rl.retryAfter);
