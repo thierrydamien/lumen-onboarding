@@ -47,13 +47,24 @@ export function googleGateConfigured(env = process.env) {
 // + domain, ask Google whether it is genuine and report what it says. No
 // process.env, no Request object — trivially unit-testable with a fake
 // fetchImpl and canned tokeninfo responses.
-export async function verifyGoogleIdToken(idToken, { clientId, domain, fetchImpl = fetch } = {}) {
+export async function verifyGoogleIdToken(idToken, { clientId, domain, fetchImpl = fetch, timeoutMs = 5000 } = {}) {
   if (!idToken) return { ok: false, reason: "missing_token" };
   if (!clientId || !domain) return { ok: false, reason: "gate_misconfigured" };
 
   let info;
   try {
-    const r = await fetchImpl(`${TOKENINFO_URL}?id_token=${encodeURIComponent(idToken)}`);
+    // Bound the tokeninfo round trip. This function FAILS CLOSED (a throw below
+    // becomes a 401), so without a timeout a slow — not even down — tokeninfo
+    // would hang every gated request until the platform wall-clock killed it,
+    // taking the dashboard and all three write endpoints with it. Every other
+    // outbound call in this repo (parse-brief, preview-brief) is already bounded
+    // this way. AbortController is passed as a second arg the injected test fetch
+    // simply ignores.
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    let r;
+    try { r = await fetchImpl(`${TOKENINFO_URL}?id_token=${encodeURIComponent(idToken)}`, { signal: ctl.signal }); }
+    finally { clearTimeout(timer); }
     info = await r.json().catch(() => ({}));
     // tokeninfo returns 400 with {error, error_description} for an expired,
     // malformed, or otherwise invalid token — that IS the "not ok" case, not a

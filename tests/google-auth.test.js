@@ -153,3 +153,30 @@ describe("the gate's on/off switch", () => {
     expect(r.reason).toBe("missing_token");
   });
 });
+
+describe("the tokeninfo call is bounded", () => {
+  it("fails closed (401-worthy) when tokeninfo hangs past the timeout", async () => {
+    // A slow — not down — tokeninfo must not hang the request. The injected fetch
+    // here respects the AbortSignal the verifier passes, exactly as the real
+    // fetch does, and never resolves on its own.
+    const hangingFetch = (url, opts) => new Promise((_, reject) => {
+      if (opts && opts.signal) {
+        opts.signal.addEventListener("abort", () => reject(new Error("aborted")));
+      }
+    });
+    const r = await verifyGoogleIdToken("tok", {
+      clientId: CLIENT_ID, domain: DOMAIN, fetchImpl: hangingFetch, timeoutMs: 50,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("tokeninfo_unreachable");
+  });
+
+  it("passes an abort signal to the fetch", async () => {
+    let sawSignal = false;
+    await verifyGoogleIdToken("tok", {
+      clientId: CLIENT_ID, domain: DOMAIN,
+      fetchImpl: async (url, opts) => { sawSignal = !!(opts && opts.signal); return { ok: true, json: async () => goodPayload }; },
+    });
+    expect(sawSignal).toBe(true);
+  });
+});

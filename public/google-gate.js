@@ -27,6 +27,13 @@
 (function (global) {
   "use strict";
 
+  // Proof-of-life for the inline safety net in each page: the net reveals the
+  // page after a timeout ONLY when this stays false (the module was blocked or
+  // failed to parse and can never run the gate). If the module IS running it owns
+  // reveal/hide, and the net must not race it, or it would flash the internal
+  // form while the gate is still legitimately deciding.
+  global.__lumenGateLoaded = true;
+
   var KEY = "lumen_gid_token";
   var SKEW_MS = 120000; // treat a token as expired 2 min early: covers clock skew
                         // and stops a token dying mid-request
@@ -109,85 +116,134 @@
       accept(t);
     }
 
+    // Load + initialise Google Identity Services exactly once, and render the
+    // button. Idempotent and shared by the first sign-in AND reauth, so a reused
+    // token (which never loaded GIS) can still bring up a WORKING card later —
+    // the old reauth() called prompt() on a `google` that was never loaded and
+    // produced a card with no button, hit every time a reused token expired.
+    // Resolves true when GIS is ready, false when it could not load (with an
+    // error message already set). Times out rather than hanging forever on a
+    // firewall that black-holes the socket (fires neither onload nor onerror).
+    var gisReady = null; // memoised promise
+    function ensureGis() {
+      if (gisReady) return gisReady;
+      gisReady = new Promise(function (res) {
+        var done = false;
+        var finish = function (ok) { if (done) return; done = true; res(ok); };
+        // 8s: a real GIS load is well under this; past it we assume it is blocked
+        // and fall back to a card the user can act on, never a silent hang.
+        var to = setTimeout(function () { finish(false); }, 8000);
+        var s = document.createElement("script");
+        s.src = "https://accounts.google.com/gsi/client";
+        s.async = true; s.defer = true;
+        s.onload = function () { clearTimeout(to); finish(true); };
+        s.onerror = function () { clearTimeout(to); finish(false); };
+        document.head.appendChild(s);
+      }).then(function (loaded) {
+        if (!loaded || !global.google || !global.google.accounts || !global.google.accounts.id) {
+          return false;
+        }
+        global.google.accounts.id.initialize({
+          client_id: state.clientId,
+          callback: onCredential,
+          auto_select: true,
+          cancel_on_tap_outside: false,
+          // FedCM is the browser-native flow. The legacy One Tap rides on
+          // third-party cookies, which Chrome is removing — without this, silent
+          // re-auth degrades into the account picker.
+          use_fedcm_for_prompt: true,
+        });
+        var btn = $(opts.btnEl);
+        if (btn) global.google.accounts.id.renderButton(btn, { theme: "outline", size: "large", text: "signin_with" });
+        return true;
+      });
+      return gisReady;
+    }
+    // Bring up a WORKING sign-in card: ensure GIS first, then prompt. Used by the
+    // no-token path and by reauth, so both always get a rendered button.
+    function presentCard(msg, silent) {
+      return ensureGis().then(function (ready) {
+        if (!ready) {
+          showCard(msg);
+          setErr("Google sign-in could not load — an ad blocker or network policy may be blocking accounts.google.com. Allow it and reload, or ask IT.");
+          return;
+        }
+        try { global.google.accounts.id.prompt(); } catch (e) {}
+        if (silent) {
+          // Hold the card back briefly: if auto-reauthn signs the user in, accept()
+          // cancels this and no card ever appears.
+          cancelGrace();
+          graceTimer = setTimeout(function () { graceTimer = null; showCard(msg); }, SILENT_MS);
+        } else {
+          showCard(msg);
+        }
+      });
+    }
+
     return {
-      /** Attach the token to a headers object, if the gate is on and we have one. */
+      /** Attach the token to a headers object, if the gate is on and the token is
+       *  still valid. Re-checks expiry on EVERY call: a token can go stale in a
+       *  long-open tab, and sending a dead one just earns a 401. If it is stale we
+       *  drop it and send nothing — the server 401 then drives reauth. */
       headers: function (h) {
         h = h || {};
-        if (state.on && state.token) h["x-google-id-token"] = state.token;
+        if (state.on && state.token) {
+          if (msLeft(state.token) > SKEW_MS) h["x-google-id-token"] = state.token;
+          else { state.token = ""; clear(); }
+        }
         return h;
       },
       isOn: function () { return state.on; },
       /** Called on a server 401 that names the Google gate: the stored token is
-       *  no good, so bin it and ask again rather than retrying forever. */
+       *  no good, so bin it and bring up a working card rather than retrying. */
       reauth: function (msg) {
         state.token = ""; clear();
-        showCard(msg || "Your sign-in expired. Sign in again to continue.");
-        try { global.google.accounts.id.prompt(); } catch (e) {}
+        presentCard(msg || "Your sign-in expired. Sign in again to continue.", false);
       },
-      /** Resolves true when the gate is ON (page should stay locked until
-       *  onUnlock fires), false when it is not configured for this site. */
+      /** Resolves "unlocked" when a cached token let us in with no prompt, true
+       *  when the gate is ON and waiting for sign-in (page stays locked until
+       *  onUnlock fires), or false when the gate is not configured for this site. */
       init: function () {
-        return fetch("/.netlify/functions/app-config")
-          .then(function (r) { return r.json(); })
+        // Bound the config fetch: a cold Netlify function can take several seconds,
+        // and without a cap a hung one would leave the page in limbo.
+        var cfgP = new Promise(function (res, rej) {
+          var to = setTimeout(function () { rej(new Error("config_timeout")); }, 6000);
+          fetch("/.netlify/functions/app-config")
+            .then(function (r) { return r.json(); })
+            .then(function (c) { clearTimeout(to); res(c); })
+            .catch(function (e) { clearTimeout(to); rej(e); });
+        });
+        return cfgP
           .then(function (cfg) {
             if (!cfg || !cfg.googleAuth || !cfg.clientId) { hideCard(); return false; }
             state.on = true;
             state.clientId = cfg.clientId;
             state.domain = cfg.domain || "";
 
-            // THE FIX: a still-valid token from an earlier page view means no
-            // prompt, no Google round trip, no account picker.
+            // A still-valid token from an earlier page view: straight in, no
+            // prompt, no Google round trip. GIS is still loaded lazily in the
+            // background so reauth has a working button ready when the token
+            // eventually expires.
             var cached = load();
-            if (cached) { state.token = cached; hideCard(); return "unlocked"; }
+            if (cached) { state.token = cached; hideCard(); ensureGis(); return "unlocked"; }
 
-            // Lock the page, but hold the card back — see SILENT_MS.
+            // Gate on, no token. Keep the page hidden (onLock) and try to sign in
+            // silently before showing the card.
             opts.onLock && opts.onLock();
-            return new Promise(function (res) {
-              var s = document.createElement("script");
-              s.src = "https://accounts.google.com/gsi/client";
-              s.async = true; s.defer = true;
-              s.onload = res;
-              s.onerror = function () {
-                // Nothing silent can happen now, so stop waiting and say so.
-                showCard();
-                setErr("Could not reach Google to sign in. Check your connection and reload.");
-                res();
-              };
-              document.head.appendChild(s);
-            }).then(function () {
-              if (!global.google || !global.google.accounts || !global.google.accounts.id) {
-                showCard();
-                // The script can return 200 and still provide no API — an ad
-                // blocker or corporate proxy does exactly this. Without a message
-                // the rep gets a card with no button and no explanation.
-                setErr("Google sign-in could not load — an ad blocker or network policy may be blocking accounts.google.com. Allow it and reload, or ask IT.");
-                return true;
-              }
-              global.google.accounts.id.initialize({
-                client_id: state.clientId,
-                callback: onCredential,
-                auto_select: true,
-                cancel_on_tap_outside: false,
-                // FedCM is the browser-native flow. The legacy One Tap rides on
-                // third-party cookies, which Chrome is removing — without this,
-                // silent re-auth degrades into the account picker.
-                use_fedcm_for_prompt: true,
-              });
-              global.google.accounts.id.renderButton($(opts.btnEl), { theme: "outline", size: "large", text: "signin_with" });
-              global.google.accounts.id.prompt();
-              // If nothing arrived silently, surface the card. accept() cancels
-              // this, so a successful auto-sign-in shows no card at all. There is
-              // always exactly one outcome here, so the page can never stay
-              // hidden with nothing to act on.
-              graceTimer = setTimeout(function () { graceTimer = null; showCard(); }, SILENT_MS);
-              return true;
-            });
+            return presentCard(undefined, true).then(function () { return true; });
           })
           .catch(function () {
-            // Config unreachable: fail OPEN here. The server is the real lock, so
-            // the worst case is a clear 401 later rather than a blank page now.
-            hideCard();
-            return false;
+            // Config unreachable. Deliberately FAIL CLOSED for VISIBILITY: keep
+            // the page hidden and show a reload card rather than revealing the
+            // internal form. The earlier version called hideCard() here, which —
+            // combined with a slow config fetch racing the safety net — flashed
+            // the confidential form to anyone who opened the page. The server is
+            // still the real lock, so no ACTION is exposed; this only governs
+            // what a stranger can READ. A reload almost always clears it.
+            opts.onLock && opts.onLock();
+            showCard("Couldn't verify access. Please reload to try again.");
+            var btn = $(opts.btnEl); if (btn) btn.style.display = "none"; // no usable sign-in without config
+            return true;
           });
       },
     };

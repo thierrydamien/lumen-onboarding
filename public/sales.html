@@ -174,7 +174,18 @@
   // Safety net: if the gate script never runs (JS error, blocked bundle) the page
   // must not stay blank forever. The server is the real lock, so revealing here
   // costs nothing but a readable form.
-  setTimeout(function () { document.documentElement.classList.remove("gate-check"); }, 4000);
+  // Last resort: reveal the page ONLY if the gate module never executed at all
+  // (script blocked, parse error) — in which case it can never unlock the page
+  // and a permanent blank is worse than a readable form the server still blocks.
+  // If the module IS running, it owns reveal/hide and we must not race it: firing
+  // here mid-decision is exactly what flashed the internal form on a slow config
+  // fetch. 8s clears both the 6s config cap and the 8s GIS-load cap.
+  setTimeout(function () {
+    if (!window.__lumenGateLoaded) {
+      document.documentElement.classList.remove("gate-check");
+      document.documentElement.classList.remove("gate-locked");
+    }
+  }, 8000);
 </script>
   <div class="top">
     <div class="mark"><img src="/lumen-mark.png" alt=""/></div>

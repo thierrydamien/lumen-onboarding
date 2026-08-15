@@ -181,14 +181,20 @@ describe("a stranger cannot read the internal tools", () => {
       expect(setAt).toBeLessThan(s.indexOf('<div class="wrap">'));
     });
 
-    it(`${page}: cannot stay blank forever if the gate script never runs`, () => {
-      expect(s).toMatch(/setTimeout\(function \(\) \{ document\.documentElement\.classList\.remove\("gate-check"\); \}, 4000\)/);
+    it(`${page}: reveals as a last resort ONLY if the gate module never ran`, () => {
+      // The old net removed gate-check at 4s unconditionally, which flashed the
+      // form while a slow config fetch was still deciding. Now it fires at 8s and
+      // only when __lumenGateLoaded was never set — i.e. the module was blocked
+      // or failed to parse and can never unlock the page itself.
+      expect(s).toMatch(/if \(!window\.__lumenGateLoaded\)/);
+      expect(s).toMatch(/classList\.remove\("gate-locked"\)/);
+      expect(s).toMatch(/\}, 8000\)/);
     });
 
     it(`${page}: re-locks when the sign-in expires`, () => {
       // The module's reauth() shows the card, which fires the page's onLock and
       // hides the content again rather than leaving it readable behind the card.
-      expect(s).toMatch(/function reauthGoogle\(msg\) \{ GGATE\.reauth\(msg\); \}/);
+      expect(s).toMatch(/function reauthGoogle\(msg\) \{ (?:_gPending = true; )?GGATE\.reauth\(msg\); \}/);
       expect(s).toMatch(/onLock:\s*function \(\) \{[^}]*add\("gate-locked"\)/);
     });
   }

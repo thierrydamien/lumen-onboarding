@@ -346,7 +346,18 @@
 <body>
 <script>
   document.documentElement.className += " gate-check";
-  setTimeout(function () { document.documentElement.classList.remove("gate-check"); }, 4000);
+  // Last resort: reveal the page ONLY if the gate module never executed at all
+  // (script blocked, parse error) — in which case it can never unlock the page
+  // and a permanent blank is worse than a readable form the server still blocks.
+  // If the module IS running, it owns reveal/hide and we must not race it: firing
+  // here mid-decision is exactly what flashed the internal form on a slow config
+  // fetch. 8s clears both the 6s config cap and the 8s GIS-load cap.
+  setTimeout(function () {
+    if (!window.__lumenGateLoaded) {
+      document.documentElement.classList.remove("gate-check");
+      document.documentElement.classList.remove("gate-locked");
+    }
+  }, 8000);
 </script>
   <div class="bar">
     <div class="mark"><img src="/lumen-mark.png" alt=""/></div>
@@ -455,7 +466,10 @@
   });
   var _gPending = false;
   function googleHeaders(h) { return GGATE.headers(h); }
-  function reauthGoogle(msg) { GGATE.reauth(msg); }
+  // Arm the deferred-load flag before reauth: when the rep re-signs, onUnlock
+  // fires and re-runs load(), so the dashboard refreshes itself instead of
+  // sitting on the "couldn't load (401)" error until a manual Refresh.
+  function reauthGoogle(msg) { _gPending = true; GGATE.reauth(msg); }
   function initGoogleGate() { return GGATE.init(); }
 
   function authedFetch(url) {

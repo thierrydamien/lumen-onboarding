@@ -8,6 +8,7 @@
 // x-app-write-token the Sales page already caches for generating links.
 
 import { verifyGoogleAuth } from "../lib/google-auth.js";
+import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const MODEL = "claude-sonnet-4-6";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -42,6 +43,13 @@ export default async (req) => {
   // also spends money (a model call), so it is gated identically.
   const gauth = await verifyGoogleAuth(req);
   if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
+  // Per-IP cap. parse-brief already has one; this endpoint spends money on a
+  // Claude call and had NONE, so in the gate-dormant default posture it was the
+  // weakest-protected sensitive endpoint in the repo — a spoofed Origin was the
+  // only thing between a caller and unbounded paid model calls. Same bucket
+  // budget as parse-brief.
+  const rl = await rateLimit(req, "preview", { perMin: 60, perHour: 500 });
+  if (!rl.ok) return tooMany(rl.retryAfter);
 
   let body;
   try { body = await req.json(); } catch { return json(400, { error: "bad_request" }); }

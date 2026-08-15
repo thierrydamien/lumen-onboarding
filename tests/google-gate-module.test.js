@@ -104,7 +104,9 @@ describe("silent re-auth", () => {
   it("reuses a still-valid token instead of asking Google again", () => {
     const init = src.slice(src.indexOf("init: function"));
     expect(init).toMatch(/var cached = load\(\);/);
-    expect(init).toMatch(/if \(cached\) \{ state\.token = cached; hideCard\(\); return "unlocked"; \}/);
+    // Cached token: straight in with "unlocked", and GIS is warmed in the
+    // background so a later reauth has a working button (was the dead-card bug).
+    expect(init).toMatch(/if \(cached\) \{ state\.token = cached; hideCard\(\); ensureGis\(\); return "unlocked"; \}/);
   });
 
   it("uses FedCM, which works without third-party cookies", () => {
@@ -114,11 +116,20 @@ describe("silent re-auth", () => {
     expect(src).toMatch(/auto_select: true/);
   });
 
-  it("fails OPEN if the config endpoint is unreachable", () => {
-    // The server is the real lock, so the worst case is a clear 401 later rather
-    // than a blank page now.
-    const c = src.slice(src.indexOf(".catch(function () {"));
-    expect(c.slice(0, 300)).toMatch(/hideCard\(\);\s*\n\s*return false;/);
+  it("fails CLOSED for visibility if the config endpoint is unreachable", () => {
+    // CHANGED from fail-open: the old hideCard() here, racing a slow config fetch
+    // against the safety net, flashed the confidential form. Now the page stays
+    // hidden behind a reload card. The server is still the real lock, so no ACTION
+    // is exposed — this governs only what a stranger can READ.
+    const c = src.slice(src.indexOf("Config unreachable. Deliberately FAIL CLOSED"));
+    expect(c.slice(0, 900)).toMatch(/opts\.onLock && opts\.onLock\(\)/);
+    expect(c.slice(0, 900)).toMatch(/showCard\("Couldn't verify access/);
+    expect(c.slice(0, 900)).not.toMatch(/^\s*hideCard\(\);/m); // no hideCard CALL (the word appears in a comment)
+  });
+
+  it("bounds the config fetch so a hung one cannot leave the page in limbo", () => {
+    expect(src).toMatch(/config_timeout/);
+    expect(src).toMatch(/setTimeout\(function \(\) \{ rej\(new Error\("config_timeout"\)\); \}, 6000\)/);
   });
 
   it("explains itself when Google's script loads but provides no API", () => {
@@ -148,13 +159,15 @@ describe("silent sign-in shows no card at all", () => {
   });
 
   it("always reaches exactly one outcome, so the page cannot hang hidden", () => {
-    // Three terminal paths: silent success (accept), silence times out, or the
-    // script fails. Each must either unlock or show the card.
-    expect(src).toMatch(/graceTimer = setTimeout\(function \(\) \{ graceTimer = null; showCard\(\); \}, SILENT_MS\)/);
-    const onerr = src.slice(src.indexOf("s.onerror = function ()"));
-    expect(onerr.slice(0, 250)).toMatch(/showCard\(\)/);
-    const noApi = src.slice(src.indexOf("if (!global.google || !global.google.accounts"));
-    expect(noApi.slice(0, 200)).toMatch(/showCard\(\)/);
+    // presentCard: on silent success accept() cancels the grace timer (no card);
+    // on silence it shows the card; if GIS never loads it shows a card with an
+    // explanation. And ensureGis itself has an 8s cap so a black-holed script
+    // cannot hang the promise forever.
+    expect(src).toMatch(/graceTimer = setTimeout\(function \(\) \{ graceTimer = null; showCard\(msg\); \}, SILENT_MS\)/);
+    const ensure = src.slice(src.indexOf("function ensureGis()"));
+    expect(ensure.slice(0, 600)).toMatch(/setTimeout\(function \(\) \{ finish\(false\); \}, 8000\)/);
+    const present = src.slice(src.indexOf("function presentCard("));
+    expect(present.slice(0, 500)).toMatch(/ad blocker or network policy/);
   });
 
   it("waits long enough for auto-reauthn but not long enough to feel broken", () => {
