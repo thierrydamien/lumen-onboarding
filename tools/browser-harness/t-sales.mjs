@@ -148,4 +148,55 @@ console.log("\n--- 6. the happy path still works ---");
 console.log("  link shown                              :", await page.evaluate(() => document.getElementById("out").classList.contains("show")));
 console.log("  Generate re-enabled after the run       :", await page.evaluate(() => !document.getElementById("gen").disabled));
 
+console.log("\n--- 7. Google gate: OFF when the site is not configured ---");
+{
+  const ctx2 = await browser.newContext();
+  const p2 = await ctx2.newPage();
+  await p2.route("**/*", (route) => {
+    const u = route.request().url();
+    if (u.includes("functions/app-config")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ googleAuth: false, clientId: "", domain: "" }) });
+    if (u.includes("sales")) return route.fulfill({ status: 200, contentType: "text/html", body: readFileSync(new URL("../../public/sales.html", import.meta.url), "utf8") });
+    return route.fulfill({ status: 200, body: "" });
+  });
+  await p2.goto("http://localhost:9102/sales.html", { waitUntil: "domcontentloaded" });
+  await p2.waitForTimeout(700);
+  const st = await p2.evaluate(() => ({
+    gateShown: document.getElementById("gGate").classList.contains("show"),
+    canType: !document.getElementById("company").disabled,
+  }));
+  console.log("  gate hidden                            :", !st.gateShown);
+  console.log("  form usable, nothing changed for reps  :", st.canType);
+  await ctx2.close();
+}
+
+console.log("\n--- 8. Google gate: ON when configured ---");
+{
+  const ctx3 = await browser.newContext();
+  const p3 = await ctx3.newPage();
+  await p3.route("**/*", (route) => {
+    const u = route.request().url();
+    if (u.includes("functions/app-config")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ googleAuth: true, clientId: "test-client-id.apps.googleusercontent.com", domain: "hootsuite.com" }) });
+    if (u.includes("sales")) return route.fulfill({ status: 200, contentType: "text/html", body: readFileSync(new URL("../../public/sales.html", import.meta.url), "utf8") });
+    // accounts.google.com is unreachable here — that is deliberate, it exercises
+    // the "Google could not be reached" path rather than the happy path (which
+    // needs a real Workspace sign-in and cannot be simulated).
+    return route.fulfill({ status: 200, body: "" });
+  });
+  await p3.goto("http://localhost:9102/sales.html", { waitUntil: "domcontentloaded" });
+  await p3.waitForTimeout(1200);
+  const st = await p3.evaluate(() => {
+    const g = document.getElementById("gGate");
+    return {
+      shown: g.classList.contains("show"),
+      covers: getComputedStyle(g).position === "fixed" && getComputedStyle(g).display === "flex",
+      msg: (document.getElementById("gErr").textContent || "").trim(),
+      formStillInDom: !!document.getElementById("company"),
+    };
+  });
+  console.log("  gate shown over the page               :", st.shown && st.covers);
+  console.log("  explains itself when Google is blocked :", JSON.stringify(st.msg));
+  console.log("  (server-side check is the real lock; this card is the front door)");
+  await ctx3.close();
+}
+
 await browser.close();

@@ -11,6 +11,7 @@
 // which authenticates with DASHBOARD_TOKEN.
 
 import { getStore } from "@netlify/blobs";
+import { verifyGoogleAuth } from "../lib/google-auth.js";
 import crypto from "node:crypto"; // explicit import: globalThis.crypto only exists on Node >= 19; don't rely on it
 
 const STORE = "lumen-seeds";
@@ -69,6 +70,15 @@ export default async (req) => {
     const writeToken = process.env.SEED_WRITE_TOKEN;
     if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
       return json(401, { error: "unauthorized_write" });
+    }
+    // Google Sign-In gate. Dormant unless GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN
+    // are both set. Enforced HERE, server-side, on purpose: hiding the form until
+    // sign-in succeeds would be theatre, because anyone can post to this endpoint
+    // directly and the server is what decides whether a seed gets written.
+    const gauth = await verifyGoogleAuth(req);
+    if (!gauth.ok) {
+      console.warn("seed write rejected by Google gate:", gauth.reason);
+      return json(401, { error: "unauthorized_google", reason: gauth.reason });
     }
 
     const rawBody = await req.text();

@@ -318,6 +318,22 @@
     </div>
   </div>
 
+  <!-- Google Sign-In gate. Shown only when the site has GOOGLE_CLIENT_ID +
+       ALLOWED_EMAIL_DOMAIN configured; otherwise the page behaves exactly as
+       before. Covers the whole page because the form itself is what we do not
+       want a stray visitor reading (it names confidential note-taking). The
+       REAL enforcement is server-side in netlify/lib/google-auth.js — this card
+       is the friendly front door, not the lock. -->
+  <div class="gate" id="gGate">
+    <div class="gcard">
+      <div class="glogo"><img src="/lumen-mark.png" alt=""/></div>
+      <h2>Internal tool</h2>
+      <p id="gMsg">Sign in with your work Google account to generate client links.</p>
+      <div id="gBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+      <div class="gerr" id="gErr"></div>
+    </div>
+  </div>
+
   <!-- Write-token gate: styled card instead of window.prompt(). -->
   <div class="gate" id="wtGate">
     <form class="gcard" id="wtForm">
@@ -357,6 +373,104 @@
   // every fresh tab, which is exactly the friction that makes a sales tool go
   // unused. Trade-off: a shared machine keeps the token; rotating
   // SEED_WRITE_TOKEN on the server invalidates every stored copy at once.
+  // ---- Google Sign-In gate ----------------------------------------------
+  // Zero-typing auth for reps: the team's Gmail is federated through Okta, so a
+  // rep who is already signed into their work Google account passes this with
+  // one click (often none). Replaces nothing — the write token still applies if
+  // it is also configured — and stays completely dormant unless the site has
+  // GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN set.
+  //
+  // The ID token is held in MEMORY only, never localStorage: it expires roughly
+  // hourly, and a stale copy in storage would produce confusing 401s on the next
+  // day's first Generate. Google re-issues one silently on page load for an
+  // already-signed-in user, so there is nothing to persist.
+  var GOOGLE = { on: false, clientId: "", domain: "", token: "" };
+  function googleHeaders(h) {
+    if (GOOGLE.on && GOOGLE.token) h["x-google-id-token"] = GOOGLE.token;
+    return h;
+  }
+  function gErr(msg) { var e = $("gErr"); if (e) e.textContent = msg || ""; }
+
+  // Called by Google Identity Services with a credential (the ID token JWT).
+  function onGoogleCredential(resp) {
+    var t = resp && resp.credential;
+    if (!t) { gErr("Sign-in did not return a credential. Try again."); return; }
+    GOOGLE.token = t;
+    // The server re-verifies this properly; the page only needs to decide
+    // whether to show the form. Reading the unverified payload here is fine for
+    // that and ONLY that — it is never trusted for authorisation.
+    var email = "";
+    try { email = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).email || ""; } catch (e) {}
+    if (GOOGLE.domain && email && email.toLowerCase().indexOf("@" + GOOGLE.domain.toLowerCase()) === -1) {
+      // Google's "Internal" consent screen should prevent this, but if the app
+      // is ever switched to External this is the difference between a clear
+      // message and a mystified rep staring at a 401 from Generate.
+      gErr("That account is not a " + GOOGLE.domain + " address. Switch account and try again.");
+      GOOGLE.token = "";
+      return;
+    }
+    gErr("");
+    $("gGate").classList.remove("show");
+  }
+
+  async function initGoogleGate() {
+    var cfg;
+    try {
+      cfg = await (await fetch("/.netlify/functions/app-config")).json();
+    } catch (e) {
+      // Config unreachable: leave the gate OFF rather than locking reps out of a
+      // working tool over a transient failure. The server is still the real
+      // enforcement point, so a rep who gets through here simply gets a clear
+      // 401 from Generate instead of a silent dead end.
+      return;
+    }
+    if (!cfg || !cfg.googleAuth || !cfg.clientId) return; // not configured: unchanged behaviour
+    GOOGLE.on = true; GOOGLE.clientId = cfg.clientId; GOOGLE.domain = cfg.domain || "";
+    $("gGate").classList.add("show");
+    await new Promise(function (res) {
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true; s.defer = true;
+      s.onload = res;
+      s.onerror = function () { gErr("Could not reach Google to sign in. Check your connection and reload."); res(); };
+      document.head.appendChild(s);
+    });
+    // The script can "load" (200) and still not provide the API — an ad blocker
+    // or corporate proxy serving an empty body does exactly this. Without a
+    // message the rep gets a gate with no button and no explanation: a dead end
+    // with no way forward and nothing to report. Found by driving this path in
+    // the browser harness, where accounts.google.com is deliberately unreachable.
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      gErr("Google sign-in could not load — an ad blocker or network policy may be blocking accounts.google.com. Allow it and reload, or ask IT.");
+      return;
+    }
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE.clientId,
+      callback: onGoogleCredential,
+      auto_select: true,             // already signed in -> no click at all
+      cancel_on_tap_outside: false,
+    });
+    window.google.accounts.id.renderButton($("gBtn"), { theme: "outline", size: "large", text: "signin_with" });
+    window.google.accounts.id.prompt(); // One Tap, for the zero-click path
+  }
+
+  // A 401 can now mean two different things. Read the error code (from a CLONE,
+  // so the caller can still consume the body) and tell them apart: clearing the
+  // stored write token because the GOOGLE token expired would log the rep out of
+  // the wrong thing and prompt for the wrong secret.
+  async function is401Google(res) {
+    try { return (await res.clone().json()).error === "unauthorized_google"; }
+    catch (e) { return false; }
+  }
+  // ID tokens last about an hour, so a rep who leaves the tab open all morning
+  // WILL hit this. Re-show the gate rather than telling them to reload.
+  function reauthGoogle(msg) {
+    GOOGLE.token = "";
+    var m = $("gMsg"); if (m) m.textContent = msg || "Your sign-in expired. Sign in again to continue.";
+    $("gGate").classList.add("show");
+    try { window.google.accounts.id.prompt(); } catch (e) {}
+  }
+
   function writeToken() { return localStorage.getItem("sales_write_token") || ""; }
   var _wtResolve = null;
   function askWriteToken(msg) {
@@ -379,7 +493,7 @@
   function postSeed(seed) {
     return fetch(SEED_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-app-write-token": writeToken() },
+      headers: googleHeaders({ "Content-Type": "application/json", "x-app-write-token": writeToken() }),
       body: JSON.stringify({ seed: seed })
     });
   }
@@ -469,6 +583,11 @@
     btn.disabled = true; btn.textContent = "Generating…";
     try {
       var res = await postSeed(seed);
+      if (res.status === 401 && await is401Google(res)) {
+        reauthGoogle("Your sign-in expired. Sign in again, then click Generate link.");
+        $("formErr").textContent = "Sign-in expired — sign in again and click Generate link.";
+        return;
+      }
       if (res.status === 401) {
         // Server requires a write token: ask once (styled card), cache for the tab, retry.
         localStorage.removeItem("sales_write_token");
@@ -683,13 +802,17 @@
     var headers = { "Content-Type": "application/json" };
     var tok = writeToken(); if (tok) headers["x-app-write-token"] = tok;
     return fetch("/.netlify/functions/parse-brief", {
-      method: "POST", headers: headers, body: JSON.stringify(payload)
+      method: "POST", headers: googleHeaders(headers), body: JSON.stringify(payload)
     });
   }
   async function loadBrief(payload, readingMsg, sourceLabel) {
     briefMsg(readingMsg, "");
     try {
       var res = await postBrief(payload);
+      if (res.status === 401 && await is401Google(res)) {
+        reauthGoogle("Your sign-in expired. Sign in again, then load the brief.");
+        briefMsg("Sign-in expired — sign in again and retry.", "err"); return;
+      }
       // Ask once (same styled card as Generate), cache for the tab, retry.
       if (res.status === 401) {
         localStorage.removeItem("sales_write_token");
@@ -735,8 +858,12 @@
     try {
       var headers = { "Content-Type": "application/json" };
       var tok = localStorage.getItem("sales_write_token"); if (tok) headers["x-app-write-token"] = tok;
-      var res = await fetch("/.netlify/functions/preview-brief", { method: "POST", headers: headers, body: JSON.stringify({ brief: brief }) });
+      var res = await fetch("/.netlify/functions/preview-brief", { method: "POST", headers: googleHeaders(headers), body: JSON.stringify({ brief: brief }) });
       var data = await res.json().catch(function () { return {}; });
+      if (res.status === 401 && await is401Google(res)) {
+        reauthGoogle("Your sign-in expired. Sign in again, then preview.");
+        box.style.color = "#b42318"; box.textContent = "Sign-in expired — sign in again and retry."; return;
+      }
       if (res.status === 401) { box.style.color = "#b42318"; box.textContent = "Preview needs the sales token. Generate a link once to enter it, then try again."; return; }
       if (!res.ok || !data.ok) { box.style.color = "#b42318"; box.textContent = "Couldn't generate a preview right now. Try again in a moment."; return; }
       box.style.color = "#334155"; box.textContent = data.interpretation;
@@ -866,6 +993,10 @@
   // Autofocus the first field so a rep can start typing immediately. Desktop only —
   // on touch/narrow screens an autofocus pops the keyboard and hides the form.
   try { if (window.matchMedia("(min-width:620px)").matches && !$("company").value) $("company").focus(); } catch (e) {}
+
+  // Last: bring up the Google gate if this site has it configured. Fire-and-forget
+  // so a slow config fetch never delays the form for sites that don't use it.
+  initGoogleGate();
 </script>
 </body>
 </html>

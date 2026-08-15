@@ -7,6 +7,8 @@
 // same-origin Origin header, and (when SEED_WRITE_TOKEN is set) the same
 // x-app-write-token the Sales page already caches for generating links.
 
+import { verifyGoogleAuth } from "../lib/google-auth.js";
+
 const MODEL = "claude-sonnet-4-6";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -36,6 +38,10 @@ export default async (req) => {
   if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
     return json(401, { error: "unauthorized" });
   }
+  // Same Google gate as seed.js; dormant unless both env vars are set. This one
+  // also spends money (a model call), so it is gated identically.
+  const gauth = await verifyGoogleAuth(req);
+  if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
 
   let body;
   try { body = await req.json(); } catch { return json(400, { error: "bad_request" }); }

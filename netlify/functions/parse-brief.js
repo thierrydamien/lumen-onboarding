@@ -30,6 +30,7 @@
 
 import * as XLSX from "xlsx";
 import { rateLimit, tooMany } from "../lib/ratelimit.js";
+import { verifyGoogleAuth } from "../lib/google-auth.js";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 // Raw request cap. MAX_BYTES bounds the DECODED workbook, but without this the whole
@@ -254,6 +255,9 @@ export default async (req) => {
   if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
     return json(401, { error: "unauthorized" });
   }
+  // Same Google gate as seed.js; dormant unless both env vars are set.
+  const gauth = await verifyGoogleAuth(req);
+  if (!gauth.ok) return json(401, { error: "unauthorized_google", reason: gauth.reason });
   const rl = await rateLimit(req, "parse", { perMin: 60, perHour: 500 });
   if (!rl.ok) return tooMany(rl.retryAfter);
 
