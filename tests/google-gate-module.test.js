@@ -127,3 +127,41 @@ describe("silent re-auth", () => {
     expect(src).toMatch(/ad blocker or network policy/);
   });
 });
+
+// "Can it just never ask if I'm already logged into Gmail?"
+// Mostly yes — and the thing that made it feel otherwise was ours: the card was
+// shown BEFORE Google was even loaded, so a returning rep watched it appear and
+// vanish a second later when auto-select silently succeeded. No click was ever
+// needed, but it read as being asked every time.
+describe("silent sign-in shows no card at all", () => {
+  it("locks the page without showing a card while Google tries silently", () => {
+    const init = src.slice(src.indexOf("init: function"));
+    const beforeScript = init.slice(0, init.indexOf("accounts.google.com/gsi/client"));
+    // Locks (hides content) but must NOT call showCard() on this path.
+    expect(beforeScript).toMatch(/opts\.onLock && opts\.onLock\(\)/);
+    expect(beforeScript.slice(beforeScript.indexOf("var cached"))).not.toMatch(/showCard\(\)/);
+  });
+
+  it("cancels the pending card the moment a credential arrives", () => {
+    const acc = src.slice(src.indexOf("function accept(tok)"));
+    expect(acc.slice(0, 200)).toMatch(/cancelGrace\(\)/);
+  });
+
+  it("always reaches exactly one outcome, so the page cannot hang hidden", () => {
+    // Three terminal paths: silent success (accept), silence times out, or the
+    // script fails. Each must either unlock or show the card.
+    expect(src).toMatch(/graceTimer = setTimeout\(function \(\) \{ graceTimer = null; showCard\(\); \}, SILENT_MS\)/);
+    const onerr = src.slice(src.indexOf("s.onerror = function ()"));
+    expect(onerr.slice(0, 250)).toMatch(/showCard\(\)/);
+    const noApi = src.slice(src.indexOf("if (!global.google || !global.google.accounts"));
+    expect(noApi.slice(0, 200)).toMatch(/showCard\(\)/);
+  });
+
+  it("waits long enough for auto-reauthn but not long enough to feel broken", () => {
+    const m = src.match(/var SILENT_MS = (\d+)/);
+    expect(m).not.toBeNull();
+    const ms = Number(m[1]);
+    expect(ms).toBeGreaterThanOrEqual(1000); // FedCM needs room to resolve
+    expect(ms).toBeLessThanOrEqual(2500);    // beyond this a blank page reads as broken
+  });
+});

@@ -30,6 +30,12 @@
   var KEY = "lumen_gid_token";
   var SKEW_MS = 120000; // treat a token as expired 2 min early: covers clock skew
                         // and stops a token dying mid-request
+  // How long to let Google try to sign the user in SILENTLY before showing a
+  // card. auto_select / FedCM auto-reauthn resolve well inside this once the
+  // script is loaded; showing the card first meant a returning rep watched it
+  // appear and vanish, which reads as "it asked me again" even though no click
+  // was ever needed. During this window the page is hidden but no card is shown.
+  var SILENT_MS = 1500;
 
   // Read the (UNVERIFIED) payload. Used ONLY for the expiry timestamp and to show
   // which account is signed in — never for authorisation, which happens server
@@ -79,7 +85,11 @@
       opts.onUnlock && opts.onUnlock();
     };
 
+    var graceTimer = null;
+    function cancelGrace() { if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; } }
+
     function accept(tok) {
+      cancelGrace();          // signed in silently: the card is never shown
       state.token = tok;
       save(tok);
       hideCard();
@@ -130,19 +140,23 @@
             var cached = load();
             if (cached) { state.token = cached; hideCard(); return "unlocked"; }
 
-            showCard();
+            // Lock the page, but hold the card back — see SILENT_MS.
+            opts.onLock && opts.onLock();
             return new Promise(function (res) {
               var s = document.createElement("script");
               s.src = "https://accounts.google.com/gsi/client";
               s.async = true; s.defer = true;
               s.onload = res;
               s.onerror = function () {
+                // Nothing silent can happen now, so stop waiting and say so.
+                showCard();
                 setErr("Could not reach Google to sign in. Check your connection and reload.");
                 res();
               };
               document.head.appendChild(s);
             }).then(function () {
               if (!global.google || !global.google.accounts || !global.google.accounts.id) {
+                showCard();
                 // The script can return 200 and still provide no API — an ad
                 // blocker or corporate proxy does exactly this. Without a message
                 // the rep gets a card with no button and no explanation.
@@ -161,6 +175,11 @@
               });
               global.google.accounts.id.renderButton($(opts.btnEl), { theme: "outline", size: "large", text: "signin_with" });
               global.google.accounts.id.prompt();
+              // If nothing arrived silently, surface the card. accept() cancels
+              // this, so a successful auto-sign-in shows no card at all. There is
+              // always exactly one outcome here, so the page can never stay
+              // hidden with nothing to act on.
+              graceTimer = setTimeout(function () { graceTimer = null; showCard(); }, SILENT_MS);
               return true;
             });
           })
