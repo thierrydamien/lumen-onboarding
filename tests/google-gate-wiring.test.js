@@ -52,11 +52,15 @@ describe("the Sales page sends the token on every write", () => {
     }
   });
 
-  it("keeps the ID token in memory, never in storage", () => {
-    // Tokens expire in about an hour; a stale one in localStorage would produce
-    // confusing 401s on the next day's first click.
-    expect(sales).not.toMatch(/(local|session)Storage\.setItem\(\s*["'][^"']*google/i);
-    expect(sales).toMatch(/GOOGLE = \{ on: false/);
+  it("delegates the gate to the shared module rather than its own copy", () => {
+    // This used to assert the token was memory-only. That was CHANGED on purpose:
+    // memory-only meant a fresh sign-in on every page load, which is the friction
+    // that makes a tool go unused. It is now reused until it actually expires —
+    // see tests/google-gate-module.test.js for the expiry rules.
+    expect(sales).toMatch(/<script src="\/google-gate\.js"><\/script>/);
+    expect(sales).toMatch(/LumenGoogleGate\.create\(/);
+    // And no second, drifting copy of the logic left behind in the page.
+    expect(sales).not.toMatch(/accounts\.google\.com\/gsi\/client/);
   });
 
   it("tells a Google 401 apart from a write-token 401", () => {
@@ -68,11 +72,9 @@ describe("the Sales page sends the token on every write", () => {
     expect(sales).toMatch(/function reauthGoogle\(/);
   });
 
-  it("does not lock reps out when the config endpoint is unreachable", () => {
-    // The server is the real enforcement point, so failing open HERE only means a
-    // rep sees a clear 401 from Generate instead of a mystifying blank gate.
-    const init = sales.slice(sales.indexOf("async function initGoogleGate()"));
-    expect(init.slice(0, 900)).toMatch(/catch \(e\) \{[\s\S]*?return;/);
+  it("routes init through the shared module", () => {
+    // Fail-open-on-config-failure now lives in google-gate.js and is tested there.
+    expect(sales).toMatch(/function initGoogleGate\(\) \{ return GGATE\.init\(\); \}/);
   });
 
   it("is actually invoked on page load", () => {
@@ -137,8 +139,12 @@ describe("the dashboard's second lock does not reach the client", () => {
   it("resolves the gate before the first read, not after", () => {
     // Loading first fires a guaranteed 401 and stacks the token card behind the
     // sign-in card — two prompts, the wrong one on top.
-    expect(dash).toMatch(/initGoogleGate\(\)\.then\(function \(gateOn\) \{/);
-    expect(dash).toMatch(/if \(gateOn\) \{ _gPending = true; return; \}/);
+    expect(dash).toMatch(/initGoogleGate\(\)\.then\(function \(gate\) \{/);
+    // THREE outcomes, not two. "unlocked" (a reused, still-valid token) is truthy,
+    // so folding it in with "waiting for sign-in" left the dashboard permanently
+    // stuck on an empty table — caught by driving the page, not by reading it.
+    expect(dash).toMatch(/if \(gate === "unlocked"\) \{ load\(\); return; \}/);
+    expect(dash).toMatch(/if \(gate\) \{ _gPending = true; return; \}/);
   });
 
   it("tells the two 401s apart, so the wrong credential is not cleared", () => {
@@ -180,20 +186,21 @@ describe("a stranger cannot read the internal tools", () => {
     });
 
     it(`${page}: re-locks when the sign-in expires`, () => {
-      // reauth must hide the page again, not leave it readable behind the card.
-      const re = s.slice(s.indexOf("function reauthGoogle("));
-      expect(re.slice(0, 200)).toMatch(/lock(Form|Shell)\(\)/);
+      // The module's reauth() shows the card, which fires the page's onLock and
+      // hides the content again rather than leaving it readable behind the card.
+      expect(s).toMatch(/function reauthGoogle\(msg\) \{ GGATE\.reauth\(msg\); \}/);
+      expect(s).toMatch(/onLock:\s*function \(\) \{[^}]*add\("gate-locked"\)/);
     });
   }
 
   it("reveals only on an explicit allow — gate off, or signed in", () => {
-    const s = read("public/sales.html");
-    // Three call sites: config unreachable, gate not configured, sign-in success.
-    expect((s.match(/revealForm\(\)/g) || []).length).toBeGreaterThanOrEqual(4); // 1 def + 3 calls
-    // Bounded by the next function, not a guessed char count — a fixed window
-    // already cut this assertion short once.
-    const start = s.indexOf("function onGoogleCredential(");
-    const onCred = s.slice(start, s.indexOf("async function initGoogleGate()", start));
-    expect(onCred).toMatch(/revealForm\(\)/);
+    // hideCard() is the module's single unlock path, and it is the ONLY thing
+    // that calls onUnlock. Every route to a usable page goes through it.
+    const mod = read("public/google-gate.js");
+    const hide = mod.slice(mod.indexOf("var hideCard ="));
+    expect(hide.slice(0, 260)).toMatch(/onUnlock && opts\.onUnlock\(\)/);
+    for (const page of ["public/sales.html", "public/dashboard.html"]) {
+      expect(read(page), page).toMatch(/onUnlock:\s*function \(\) \{[^}]*remove\("gate-locked"\)/);
+    }
   });
 });
