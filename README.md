@@ -111,3 +111,4 @@ Three apps on one Netlify site, sharing one session store.
   42001 work before real client data goes in.
 - **Cost**: each ~15 min chat is roughly 15-25 Anthropic calls. The proxy caps
   model and max_tokens server-side so a tampered client cannot inflate spend.
+# Repo renamed thierrydamien/lumen-onboarding-v2 -> thierrydamien/lumen-onboarding on 2026-08-15.
