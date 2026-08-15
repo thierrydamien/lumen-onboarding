@@ -80,12 +80,21 @@ describe("theme-color follows the user's theme toggle", () => {
 });
 
 describe("font weights are all actually loaded", () => {
-  it("declares every weight the chat renders", () => {
+  it("declares a range covering every weight the chat renders", () => {
+    // This used to read the weight list out of the Google Fonts URL. The font is
+    // now self-hosted as a VARIABLE font, so the range lives in @font-face and
+    // one declaration covers everything — but the invariant is unchanged: a
+    // weight the browser cannot find gets synthesized (faux bold), which smeared
+    // the "Lumen" wordmark at 800, on the one word that is the brand.
     const app = readFileSync(new URL("../src/lumen.jsx", import.meta.url), "utf8");
-    const used = new Set((app.match(/fontWeight:(\d00)/g) || []).map((m) => m.split(":")[1]));
-    const declared = (chat.match(/wght@([\d;]+)/) || [, ""])[1].split(";");
-    // An undeclared weight is synthesized by the browser (faux bold), which
-    // smeared the "Lumen" wordmark — weight 800 on the one word that is the brand.
-    for (const w of used) expect(declared, `weight ${w} used but not loaded`).toContain(w);
+    const used = [...new Set((app.match(/fontWeight:(\d00)/g) || []).map((m) => Number(m.split(":")[1])))];
+    expect(used.length).toBeGreaterThan(0);
+    const m = chat.match(/font-weight: (\d+) (\d+)/);
+    expect(m, "no variable font-weight range declared").not.toBeNull();
+    const [lo, hi] = [Number(m[1]), Number(m[2])];
+    for (const w of used) {
+      expect(w, `weight ${w} used but outside the declared ${lo}-${hi} range`).toBeGreaterThanOrEqual(lo);
+      expect(w, `weight ${w} used but outside the declared ${lo}-${hi} range`).toBeLessThanOrEqual(hi);
+    }
   });
 });

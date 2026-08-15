@@ -9,9 +9,31 @@
 <!-- INTERNAL PAGE: session reads require DASHBOARD_TOKEN, but the page itself is
      ungated. Gate behind Netlify password protection or Identity before production.
      noindex is a hint to crawlers, not access control. -->
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/>
+<!-- Inter, served from this site rather than Google's font CDN.
+     WHY: every client's browser used to make two extra calls to Google before the
+     page could paint, handing Google their IP address. The one advantage that
+     used to justify that (a shared cross-site font cache) disappeared when
+     browsers partitioned their HTTP cache in 2020, so it bought nothing.
+     These are the exact woff2 files Google served, with Google's own
+     unicode-range split preserved: a typical client downloads only the 47 KB
+     latin file, and latin-ext (85 KB) is fetched ONLY if a page actually renders
+     Polish/Turkish/Czech characters — e.g. a client's brand name.
+     One @font-face per subset covers every weight because these are VARIABLE
+     fonts (verified by measuring 400/600/700/800 render distinctly), so the
+     wordmark's 800 costs nothing extra.
+     Licence: SIL OFL 1.1, see /fonts/OFL.txt. Regenerate with tools/get-fonts.sh. -->
+<style>
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url('/fonts/inter-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+</style>
 <style>
   :root {
     /* Mirror the client chat (Inter + Lumen purple + waveform mark) so the
