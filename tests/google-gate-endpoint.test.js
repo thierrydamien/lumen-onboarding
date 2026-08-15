@@ -10,7 +10,7 @@
 // without it every request 500s on a missing-environment error and the probe
 // says nothing at all — which is exactly what a first attempt at this did.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const CLIENT_ID = "313512206545-umn2k6012lgmkkckjhbcu8vuccthi61i.apps.googleusercontent.com";
 const ORIGIN = "https://lumen-onboarding-v2.netlify.app";
@@ -164,5 +164,47 @@ describe("the CLIENT chat page is never gated", () => {
     // ...and the client-safe filtering still holds: no notes, no preparedBy.
     expect(got.notes).toBeUndefined();
     expect(got.preparedBy).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE question to get right: with the gate configured, does a Google outage
+// take clients down with it? It must not. Reps losing access to an internal
+// tool for an hour is an inconvenience; a client mid-onboarding losing the
+// ability to save their answers is data loss, and they are a stranger on the
+// internet who cannot be told to "wait for Google".
+describe("a total Google outage, gate ON", () => {
+  const realFetch = globalThis.fetch;
+  beforeEach(() => {
+    written.length = 0;
+    stub(ON);
+    // Every call to Google fails, exactly as if accounts.google.com were down
+    // or blocked by a network policy.
+    vi.stubGlobal("fetch", async () => { throw new Error("ENOTFOUND oauth2.googleapis.com"); });
+  });
+  afterEach(() => { vi.stubGlobal("fetch", realFetch); });
+
+  it("a client can still SAVE their onboarding session", async () => {
+    const res = await session(new Request(ORIGIN + "/.netlify/functions/session", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: ORIGIN },
+      body: JSON.stringify({ session: { id: "cs_out", company: "ClientCo", status: "in_progress" } }),
+    }));
+    expect(res.status).not.toBe(401);
+    expect(written.length).toBeGreaterThan(0);
+  });
+
+  it("a client can still LOAD their seeded prefill", async () => {
+    const res = await seed(new Request(ORIGIN + "/.netlify/functions/seed?id=sd_x"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).seed.company).toBe("ClientCo");
+  });
+
+  it("but the dashboard is correctly locked out — it fails CLOSED", async () => {
+    const res = await session(new Request(ORIGIN + "/.netlify/functions/session", {
+      headers: { "x-dashboard-token": "dash-secret", "x-google-id-token": "GOOD" },
+    }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).reason).toBe("tokeninfo_unreachable");
   });
 });
