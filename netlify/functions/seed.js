@@ -12,6 +12,7 @@
 
 import { getStore } from "@netlify/blobs";
 import { verifyGoogleAuth } from "../lib/google-auth.js";
+import { tokenMatches } from "../lib/token-compare.js";
 import crypto from "node:crypto"; // explicit import: globalThis.crypto only exists on Node >= 19; don't rely on it
 
 const STORE = "lumen-seeds";
@@ -68,7 +69,7 @@ export default async (req) => {
     // production so the seed store (which holds consultant notes) can't be written
     // by anyone who merely spoofs the Origin header.
     const writeToken = process.env.SEED_WRITE_TOKEN;
-    if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
+    if (writeToken && !tokenMatches(req.headers.get("x-app-write-token"), writeToken)) {
       return json(401, { error: "unauthorized_write" });
     }
     // Google Sign-In gate. Dormant unless GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN
@@ -156,7 +157,7 @@ export default async (req) => {
     // only the client-safe subset.
     const expected = process.env.DASHBOARD_TOKEN;
     const provided = req.headers.get("x-dashboard-token");
-    const authed = !!expected && provided === expected;
+    const authed = !!expected && tokenMatches(provided, expected);
     const id = url.searchParams.get("id");
 
     // Google Sign-In as a second gate on the DASHBOARD's view of a seed.

@@ -8,6 +8,7 @@
 // x-app-write-token the Sales page already caches for generating links.
 
 import { verifyGoogleAuth } from "../lib/google-auth.js";
+import { tokenMatches } from "../lib/token-compare.js";
 import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
 const MODEL = "claude-sonnet-4-6";
@@ -36,7 +37,7 @@ export default async (req) => {
   }
   // Same write-token posture as seed.js: enforced only when configured.
   const writeToken = process.env.SEED_WRITE_TOKEN;
-  if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
+  if (writeToken && !tokenMatches(req.headers.get("x-app-write-token"), writeToken)) {
     return json(401, { error: "unauthorized" });
   }
   // Same Google gate as seed.js; dormant unless both env vars are set. This one

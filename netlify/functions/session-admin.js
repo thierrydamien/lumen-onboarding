@@ -22,7 +22,7 @@
 // the guard against a misclick, not a separate secret.
 
 import { getStore } from "@netlify/blobs";
-import crypto from "node:crypto";
+import { tokenMatches } from "../lib/token-compare.js";
 import { rateLimit, tooMany, clientIp } from "../lib/ratelimit.js";
 import { verifyGoogleAuth } from "../lib/google-auth.js";
 
@@ -48,15 +48,8 @@ const SEED_ID_RE = /^sd_[A-Za-z0-9-]{1,64}$/;
 
 export const config = { path: "/.netlify/functions/session-admin" };
 
-// Constant-time compare so a token cannot be recovered byte-by-byte from response
-// timing. Length is compared first because timingSafeEqual throws on a length
-// mismatch; leaking only the length of a long random secret is not useful.
-function tokenMatches(provided, expected) {
-  if (typeof provided !== "string" || typeof expected !== "string") return false;
-  const a = Buffer.from(provided), b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
+// tokenMatches moved to ../lib/token-compare.js and shared with seed.js /
+// session.js, which used to compare with plain === / !== instead.
 
 export default async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });

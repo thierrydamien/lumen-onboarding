@@ -29,6 +29,7 @@
 // carrying unpatched advisories) and make the server fetch Google on demand.
 
 import * as XLSX from "xlsx";
+import { tokenMatches } from "../lib/token-compare.js";
 import { rateLimit, tooMany } from "../lib/ratelimit.js";
 import { verifyGoogleAuth } from "../lib/google-auth.js";
 
@@ -252,7 +253,7 @@ export default async (req) => {
   // Same write-token posture as seed.js / preview-brief.js: enforced only when the
   // variable is configured, so nothing breaks until you opt in.
   const writeToken = process.env.SEED_WRITE_TOKEN;
-  if (writeToken && req.headers.get("x-app-write-token") !== writeToken) {
+  if (writeToken && !tokenMatches(req.headers.get("x-app-write-token"), writeToken)) {
     return json(401, { error: "unauthorized" });
   }
   // Same Google gate as seed.js; dormant unless both env vars are set.

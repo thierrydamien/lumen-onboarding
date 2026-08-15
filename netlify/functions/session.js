@@ -8,6 +8,7 @@
 
 import { getStore } from "@netlify/blobs";
 import { verifyGoogleAuth } from "../lib/google-auth.js";
+import { tokenMatches } from "../lib/token-compare.js";
 import crypto from "node:crypto"; // explicit import: globalThis.crypto only exists on Node >= 19
 import { rateLimit, tooMany } from "../lib/ratelimit.js";
 
@@ -60,7 +61,7 @@ export default async (req) => {
     // session, so the secret is the sole authority for this narrow write.
     if (body && typeof body.secret === "string" && body.id && typeof body.sheetUrl === "string") {
       const wbSecret = process.env.APPS_SCRIPT_SECRET;
-      if (!wbSecret || body.secret !== wbSecret) return json(401, { error: "unauthorized" });
+      if (!wbSecret || !tokenMatches(body.secret, wbSecret)) return json(401, { error: "unauthorized" });
       try {
         const prev = await store.get(body.id, { type: "json" }).catch(() => null);
         if (!prev) return json(404, { error: "not_found" });
@@ -173,7 +174,7 @@ export default async (req) => {
       return json(500, { error: "dashboard_token_not_configured" });
     }
     const provided = req.headers.get("x-dashboard-token");
-    if (provided !== expected) return json(401, { error: "unauthorized" });
+    if (!tokenMatches(provided, expected)) return json(401, { error: "unauthorized" });
     // Second, independent gate: Google Sign-In, dormant unless configured. Only
     // the GET branch is gated — the POST above is the CLIENT saving their own
     // onboarding session, and they are not (and must never need to be) signed

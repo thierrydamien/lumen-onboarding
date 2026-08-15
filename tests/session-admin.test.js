@@ -48,7 +48,11 @@ describe("auth", () => {
   });
 
   it("compares the token in constant time", () => {
-    expect(admin).toContain("timingSafeEqual");
+    // tokenMatches (crypto.timingSafeEqual) moved to netlify/lib/token-compare.js
+    // and is now shared with session.js and seed.js; this file just imports it.
+    // Full coverage of the comparator itself lives in tests/token-compare.test.js.
+    expect(admin).toMatch(/import \{ tokenMatches \} from "\.\.\/lib\/token-compare\.js"/);
+    expect(admin).toMatch(/tokenMatches\(req\.headers\.get\("x-dashboard-token"\), readToken\)/);
   });
 
   it("is rate limited", () => {
