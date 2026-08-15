@@ -3085,12 +3085,28 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     document.documentElement.dir = dir;
   }, [uiLang]);
 
+
   const { init, pop, chime } = useAudio();
   const dark = theme === "dark";
   const C = useMemo(() => dark
     ? {bg:"#0d1b2a",card:"#111f30",border:"#1e3048",muted:"#8aa4c1",text:"#c8d8e8",hi:"#1a2f4a",uBg:"#1e3a5f",uTx:"#d0e8ff",wTx:"#a89af0"}
     : {bg:"#F7F7FA",card:"#ffffff",border:"#E7E7EF",muted:"#64748b",text:"#1e293b",hi:"#F1F0F7",uBg:P,uTx:"#F2F7F8",wTx:LINK}
   , [dark]);
+
+  // Keep the mobile browser chrome in step with the theme. theme-color is a
+  // static tag, but this app's theme is a user TOGGLE, so a fixed value leaves a
+  // white status bar sitting above a dark chat (or vice versa) — most visible on
+  // the iPhone, where the bar is inches from the conversation. Reads C.bg so the
+  // chrome and the canvas can never disagree.
+  // MUST live below `dark`/`C`: as a dependency array is evaluated during render,
+  // placing this above their declarations put `dark` in the temporal dead zone and
+  // white-screened the whole app.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    let m = document.querySelector('meta[name="theme-color"]');
+    if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
+    m.content = C.bg;
+  }, [C]);
 
   // Follow new content, but don't yank a client who scrolled up to re-read: only
   // auto-scroll when they're already near the bottom, or when a send just kicked

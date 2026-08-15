@@ -3,12 +3,25 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<link rel="icon" href="/lumen-mark.png"/>
+<link rel="icon" href="/favicon-32.png" sizes="32x32"/>
+<!-- Home-screen icon. iOS composites a TRANSPARENT apple-touch-icon onto black,
+     so this one has the brand background baked in (tools/make-icons.mjs). The
+     chat is explicitly pause-and-resume-later, so clients DO save it. -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<!-- Short label under the home-screen icon; without it iOS uses the <title>,
+     which is personalised per client and far too long to render. -->
+<meta name="apple-mobile-web-app-title" content="Lumen"/>
+<!-- Initial value only: the app rewrites this when the client toggles dark mode. -->
+<meta name="theme-color" content="#F7F7FA"/>
 <!-- Preload Inter before the JS bundle parses so the client never sees the Arial
      fallback flash-then-reflow. display=swap keeps text visible while it loads. -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"/>
+<!-- 800 is for the "Lumen" wordmark in the header. Inter ships from Google as a
+     VARIABLE font — every weight resolves to the same woff2 — so declaring it
+     costs zero extra bytes, and without the declaration the browser fakes the
+     weight by smearing 700, on the one word that is the brand. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"/>
 <title>Lumen Onboarding</title>
 <style>
   #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#fff;font-family:'Inter',Arial,sans-serif}
