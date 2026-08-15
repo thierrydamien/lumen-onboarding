@@ -1,5 +1,5 @@
 import { open, start } from "./drive.mjs";
-import { docx, asFile } from "/home/user/lumen-onboarding-v2/tests/fixtures/make-files.mjs";
+import { docx, asFile } from "../../tests/fixtures/make-files.mjs";
 import * as XLSX from "/home/user/lumen-onboarding-v2/node_modules/xlsx/xlsx.mjs";
 import fs from "node:fs";
 

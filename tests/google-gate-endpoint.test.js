@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const CLIENT_ID = "313512206545-umn2k6012lgmkkckjhbcu8vuccthi61i.apps.googleusercontent.com";
-const ORIGIN = "https://lumen-onboarding-v2.netlify.app";
+const ORIGIN = "https://lumen-onboarding.netlify.app";
 
 const written = [];
 vi.mock("@netlify/blobs", () => ({
