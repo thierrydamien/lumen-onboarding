@@ -23,7 +23,11 @@ describe("the panel offset follows the real header height", () => {
 
   it("measures a real element rather than trusting a constant", () => {
     expect(src).toMatch(/const headerRef = useRef\(null\)/);
-    expect(src).toMatch(/<div ref=\{headerRef\}/);
+    // Any element carrying the ref, not specifically a div. This pinned
+    // `<div ref={headerRef}` and broke when the top bar became a <header> landmark —
+    // a pure tag change that altered nothing about measuring the real height, which
+    // is the behaviour under test.
+    expect(src).toMatch(/<[a-zA-Z]+ ref=\{headerRef\}/);
     expect(src).toMatch(/getBoundingClientRect\(\)\.height\) \|\| 56/);
   });
 

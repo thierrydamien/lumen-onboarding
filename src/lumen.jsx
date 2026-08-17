@@ -255,6 +255,14 @@ const UI_LANGS = [
 
 const I18N = {
   English: {
+    // Accessible names for icon-only controls and the document heading. These were
+    // hardcoded English, so a French or Arabic session announced them in English.
+    a11ySend:      "Send message",
+    a11ySoundOn:   "Turn sound on",
+    a11ySoundOff:  "Turn sound off",
+    a11yDarkMode:  "Switch to dark mode",
+    a11yLightMode: "Switch to light mode",
+    a11yPageTitle: "Lumen onboarding conversation",
     welcomeTitle:       "Welcome to Lumen Onboarding",
     welcomeTitleSeeded: "Welcome, {name}!",
     welcomeSub:         "We\u2019ll ask about your goals, markets, and team \u2014 then generate your Lumen setup brief.",
@@ -442,6 +450,12 @@ const I18N = {
     focusRepliesGroup: "Suggested replies",
   },
   French: {
+    a11ySend:      "Envoyer le message",
+    a11ySoundOn:   "Activer le son",
+    a11ySoundOff:  "D\u00e9sactiver le son",
+    a11yDarkMode:  "Passer en mode sombre",
+    a11yLightMode: "Passer en mode clair",
+    a11yPageTitle: "Conversation d\u2019int\u00e9gration Lumen",
     welcomeTitle:       "Bienvenue dans l'onboarding Lumen",
     welcomeTitleSeeded: "Bienvenue, {name} !",
     welcomeSub:         "Nous vous poserons des questions sur vos objectifs, vos marchés et votre équipe, puis nous générerons votre brief de configuration Lumen.",
@@ -629,6 +643,12 @@ const I18N = {
     focusRepliesGroup: "Réponses suggérées",
   },
   German: {
+    a11ySend:      "Nachricht senden",
+    a11ySoundOn:   "Ton einschalten",
+    a11ySoundOff:  "Ton ausschalten",
+    a11yDarkMode:  "Zum dunklen Modus wechseln",
+    a11yLightMode: "Zum hellen Modus wechseln",
+    a11yPageTitle: "Lumen-Onboarding-Gespr\u00e4ch",
     welcomeTitle:       "Willkommen beim Lumen-Onboarding",
     welcomeTitleSeeded: "Willkommen, {name}!",
     welcomeSub:         "Wir fragen nach Ihren Zielen, Märkten und Ihrem Team und erstellen anschließend Ihr Lumen-Setup-Briefing.",
@@ -816,6 +836,12 @@ const I18N = {
     focusRepliesGroup: "Vorgeschlagene Antworten",
   },
   Spanish: {
+    a11ySend:      "Enviar mensaje",
+    a11ySoundOn:   "Activar el sonido",
+    a11ySoundOff:  "Desactivar el sonido",
+    a11yDarkMode:  "Cambiar al modo oscuro",
+    a11yLightMode: "Cambiar al modo claro",
+    a11yPageTitle: "Conversaci\u00f3n de incorporaci\u00f3n a Lumen",
     welcomeTitle:       "Bienvenido al onboarding de Lumen",
     welcomeTitleSeeded: "¡Bienvenido, {name}!",
     welcomeSub:         "Le preguntaremos por sus objetivos, mercados y equipo, y luego generaremos su resumen de configuración de Lumen.",
@@ -1003,6 +1029,12 @@ const I18N = {
     focusRepliesGroup: "Respuestas sugeridas",
   },
   Italian: {
+    a11ySend:      "Invia messaggio",
+    a11ySoundOn:   "Attiva l\u2019audio",
+    a11ySoundOff:  "Disattiva l\u2019audio",
+    a11yDarkMode:  "Passa alla modalit\u00e0 scura",
+    a11yLightMode: "Passa alla modalit\u00e0 chiara",
+    a11yPageTitle: "Conversazione di onboarding Lumen",
     welcomeTitle:       "Benvenuto nell'onboarding di Lumen",
     welcomeTitleSeeded: "Benvenuto, {name}!",
     welcomeSub:         "Ti chiederemo i tuoi obiettivi, i mercati e il team, poi genereremo il tuo brief di configurazione Lumen.",
@@ -1190,6 +1222,12 @@ const I18N = {
     focusRepliesGroup: "Risposte suggerite",
   },
   Arabic: {
+    a11ySend:      "\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0631\u0633\u0627\u0644\u0629",
+    a11ySoundOn:   "\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0635\u0648\u062a",
+    a11ySoundOff:  "\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0635\u0648\u062a",
+    a11yDarkMode:  "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646",
+    a11yLightMode: "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0625\u0644\u0649 \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d",
+    a11yPageTitle: "\u0645\u062d\u0627\u062f\u062b\u0629 \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0641\u064a Lumen",
     welcomeTitle:       "مرحبًا بك في إعداد Lumen",
     welcomeTitleSeeded: "مرحبًا، {name}!",
     welcomeSub:         "سنسألك عن أهدافك وأسواقك وفريقك، ثم ننشئ ملخص إعداد Lumen الخاص بك.",
@@ -1394,16 +1432,22 @@ function L(key, lang, vars) {
 // placeholders, tooltips) follows the client's language, so a non-English chat
 // no longer renders an all-English form.
 const WI18N = {
-  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your priorities? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit", "cancelEdit":"Cancel editing", "moveUp":"Move up", "moveDown":"Move down", "removeItem":"Remove" },
-  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos priorités ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier", "cancelEdit":"Annuler la modification", "moveUp":"Monter", "moveDown":"Descendre", "removeItem":"Retirer" },
-  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Prioritäten? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten", "cancelEdit":"Bearbeitung abbrechen", "moveUp":"Nach oben", "moveDown":"Nach unten", "removeItem":"Entfernen" },
-  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus prioridades? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar", "cancelEdit":"Cancelar la edición", "moveUp":"Subir", "moveDown":"Bajar", "removeItem":"Quitar" },
-  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sulle tue priorità? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica", "cancelEdit":"Annulla modifica", "moveUp":"Sposta su", "moveDown":"Sposta giù", "removeItem":"Rimuovi" },
-  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أولوياتك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل", "cancelEdit":"إلغاء التعديل", "moveUp":"تحريك لأعلى", "moveDown":"تحريك لأسفل", "removeItem":"إزالة" },
+  English: { "confirm":"Confirm", "skip":"Skip", "add":"+ Add", "customValue":"Type a custom value…", "somethingElse":"Something else? Type it here…", "max":"max", "selected":"selected", "limitReached":"limit reached", "prioritiesHdr":"Your priorities — #1 is where we start", "confirmPriorities":"Confirm priorities", "objDetailsPh":"Anything else about your priorities? (optional)", "firstName":"First name", "lastName":"Last name", "roleDept":"Role / dept", "email":"Email", "invalidEmail":"Invalid email", "addUser":"+ Add user", "confirmUsers":"Confirm users", "topicName":"Topic name", "keywordsPh":"Keywords…", "dragPrioritize":"Drag to prioritize", "kept":"kept", "discarded":"discarded", "pending":"pending", "submitQueries":"Submit queries", "noQueries":"No queries", "importFile":"Or import a file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Paste your existing queries here…", "hintSelectAll":"Select all that apply.", "hintTeams":"Select all teams that will use Lumen.", "hintObjectives":"Pick up to 3, then set their priority — your #1 decides what we build first.", "hintTimezone":"Select your primary timezone.", "phMarket":"Type a market…", "phLanguage":"Type a language…", "phTeam":"Type a team…", "whyMarkets":"So results are scoped to the regions you actually operate in.", "whyTeams":"Helps us tailor dashboards to the people who'll use them.", "whyUsers":"Who should have access — just you for now is fine.", "whyQueries":"If you already track queries elsewhere, we can migrate them.", "whyTopics":"Topics are the subjects Lumen will monitor for you.", "topicHint":"All suggested topics start as kept. Tap ✕ to drop any that don't fit.", "confirmUsersHint":"Each person needs at least a first name and a valid email.", "submittedLbl":"✓ Submitted", "skippedLbl":"✓ Skipped", "editBtn":"Edit", "cancelEdit":"Cancel editing", "moveUp":"Move up", "moveDown":"Move down", "removeItem":"Remove", "topicNameLbl":"Topic name", "keywordsLbl":"Keywords Lumen will search for", "discardTopic":"Discard topic {name}", "restoreTopic":"Restore topic {name}", "a11yProgress":"Setup progress: {pct}% complete" },
+  French: { "confirm":"Confirmer", "skip":"Passer", "add":"+ Ajouter", "customValue":"Saisir une valeur personnalisée…", "somethingElse":"Autre chose ? Saisissez-le ici…", "max":"max", "selected":"sélectionné(s)", "limitReached":"limite atteinte", "prioritiesHdr":"Vos priorités — le n°1 est notre point de départ", "confirmPriorities":"Confirmer les priorités", "objDetailsPh":"Autre chose au sujet de vos priorités ? (facultatif)", "firstName":"Prénom", "lastName":"Nom", "roleDept":"Rôle / service", "email":"E-mail", "invalidEmail":"E-mail invalide", "addUser":"+ Ajouter un utilisateur", "confirmUsers":"Confirmer les utilisateurs", "topicName":"Nom du sujet", "keywordsPh":"Mots-clés…", "dragPrioritize":"Glissez pour classer par priorité", "kept":"conservés", "discarded":"écartés", "pending":"en attente", "submitQueries":"Envoyer les requêtes", "noQueries":"Aucune requête", "importFile":"Ou importer un fichier (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Collez vos requêtes existantes ici…", "hintSelectAll":"Sélectionnez toutes les options applicables.", "hintTeams":"Sélectionnez toutes les équipes qui utiliseront Lumen.", "hintObjectives":"Choisissez-en jusqu'à 3, puis définissez leur priorité : votre n°1 détermine ce que nous configurons en premier.", "hintTimezone":"Sélectionnez votre fuseau horaire principal.", "phMarket":"Saisir un marché…", "phLanguage":"Saisir une langue…", "phTeam":"Saisir une équipe…", "whyMarkets":"Pour que les résultats soient limités aux régions où vous opérez réellement.", "whyTeams":"Nous aide à adapter les tableaux de bord aux personnes qui les utiliseront.", "whyUsers":"Qui doit avoir accès — vous seul pour l'instant, c'est parfait.", "whyQueries":"Si vous suivez déjà des requêtes ailleurs, nous pouvons les migrer.", "whyTopics":"Les sujets sont les thèmes que Lumen surveillera pour vous.", "topicHint":"Tous les sujets suggérés sont conservés par défaut. Touchez ✕ pour écarter ceux qui ne conviennent pas.", "confirmUsersHint":"Chaque personne doit avoir au moins un prénom et un e-mail valide.", "submittedLbl":"✓ Envoyé", "skippedLbl":"✓ Passé", "editBtn":"Modifier", "cancelEdit":"Annuler la modification", "moveUp":"Monter", "moveDown":"Descendre", "removeItem":"Retirer", "topicNameLbl":"Nom du sujet", "keywordsLbl":"Mots-clés recherchés par Lumen", "discardTopic":"Écarter le sujet {name}", "restoreTopic":"Rétablir le sujet {name}", "a11yProgress":"Progression : {pct}% terminé" },
+  German: { "confirm":"Bestätigen", "skip":"Überspringen", "add":"+ Hinzufügen", "customValue":"Eigenen Wert eingeben…", "somethingElse":"Etwas anderes? Hier eingeben…", "max":"max.", "selected":"ausgewählt", "limitReached":"Limit erreicht", "prioritiesHdr":"Ihre Prioritäten — Nr. 1 ist unser Ausgangspunkt", "confirmPriorities":"Prioritäten bestätigen", "objDetailsPh":"Sonst noch etwas zu Ihren Prioritäten? (optional)", "firstName":"Vorname", "lastName":"Nachname", "roleDept":"Rolle / Abteilung", "email":"E-Mail", "invalidEmail":"Ungültige E-Mail", "addUser":"+ Benutzer hinzufügen", "confirmUsers":"Benutzer bestätigen", "topicName":"Themenname", "keywordsPh":"Schlüsselwörter…", "dragPrioritize":"Zum Priorisieren ziehen", "kept":"behalten", "discarded":"verworfen", "pending":"offen", "submitQueries":"Abfragen senden", "noQueries":"Keine Abfragen", "importFile":"Oder eine Datei importieren (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Fügen Sie hier Ihre bestehenden Abfragen ein…", "hintSelectAll":"Wählen Sie alles Zutreffende aus.", "hintTeams":"Wählen Sie alle Teams aus, die Lumen nutzen werden.", "hintObjectives":"Wählen Sie bis zu 3 aus und legen Sie die Priorität fest — Ihre Nr. 1 bestimmt, was wir zuerst einrichten.", "hintTimezone":"Wählen Sie Ihre primäre Zeitzone.", "phMarket":"Markt eingeben…", "phLanguage":"Sprache eingeben…", "phTeam":"Team eingeben…", "whyMarkets":"Damit die Ergebnisse auf die Regionen beschränkt sind, in denen Sie tatsächlich tätig sind.", "whyTeams":"Hilft uns, die Dashboards auf die Personen zuzuschneiden, die sie nutzen.", "whyUsers":"Wer Zugriff haben soll — vorerst reicht es völlig, wenn nur Sie Zugriff haben.", "whyQueries":"Wenn Sie Abfragen bereits anderswo verfolgen, können wir sie migrieren.", "whyTopics":"Themen sind die Bereiche, die Lumen für Sie überwacht.", "topicHint":"Alle vorgeschlagenen Themen sind zunächst behalten. Tippen Sie auf ✕, um unpassende zu verwerfen.", "confirmUsersHint":"Jede Person braucht mindestens einen Vornamen und eine gültige E-Mail.", "submittedLbl":"✓ Übermittelt", "skippedLbl":"✓ Übersprungen", "editBtn":"Bearbeiten", "cancelEdit":"Bearbeitung abbrechen", "moveUp":"Nach oben", "moveDown":"Nach unten", "removeItem":"Entfernen", "topicNameLbl":"Themenname", "keywordsLbl":"Schlüsselwörter, nach denen Lumen sucht", "discardTopic":"Thema {name} verwerfen", "restoreTopic":"Thema {name} wiederherstellen", "a11yProgress":"Fortschritt: {pct}% abgeschlossen" },
+  Spanish: { "confirm":"Confirmar", "skip":"Omitir", "add":"+ Añadir", "customValue":"Escriba un valor personalizado…", "somethingElse":"¿Algo más? Escríbalo aquí…", "max":"máx.", "selected":"seleccionado(s)", "limitReached":"límite alcanzado", "prioritiesHdr":"Sus prioridades: el n.º 1 es donde empezamos", "confirmPriorities":"Confirmar prioridades", "objDetailsPh":"¿Algo más sobre sus prioridades? (opcional)", "firstName":"Nombre", "lastName":"Apellidos", "roleDept":"Rol / departamento", "email":"Correo electrónico", "invalidEmail":"Correo no válido", "addUser":"+ Añadir usuario", "confirmUsers":"Confirmar usuarios", "topicName":"Nombre del tema", "keywordsPh":"Palabras clave…", "dragPrioritize":"Arrastre para priorizar", "kept":"conservados", "discarded":"descartados", "pending":"pendientes", "submitQueries":"Enviar consultas", "noQueries":"Sin consultas", "importFile":"O importe un archivo (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Pegue aquí sus consultas existentes…", "hintSelectAll":"Seleccione todo lo que corresponda.", "hintTeams":"Seleccione todos los equipos que usarán Lumen.", "hintObjectives":"Elija hasta 3 y ordene su prioridad: su n.º 1 decide qué configuramos primero.", "hintTimezone":"Seleccione su zona horaria principal.", "phMarket":"Escriba un mercado…", "phLanguage":"Escriba un idioma…", "phTeam":"Escriba un equipo…", "whyMarkets":"Para que los resultados se limiten a las regiones donde realmente opera.", "whyTeams":"Nos ayuda a adaptar los paneles a las personas que los usarán.", "whyUsers":"Quién debe tener acceso: por ahora, con usted basta.", "whyQueries":"Si ya sigue consultas en otro sitio, podemos migrarlas.", "whyTopics":"Los temas son los asuntos que Lumen monitorizará para usted.", "topicHint":"Todos los temas sugeridos empiezan como conservados. Toque ✕ para descartar los que no encajen.", "confirmUsersHint":"Cada persona necesita al menos un nombre y un correo válido.", "submittedLbl":"✓ Enviado", "skippedLbl":"✓ Omitido", "editBtn":"Editar", "cancelEdit":"Cancelar la edición", "moveUp":"Subir", "moveDown":"Bajar", "removeItem":"Quitar", "topicNameLbl":"Nombre del tema", "keywordsLbl":"Palabras clave que buscará Lumen", "discardTopic":"Descartar el tema {name}", "restoreTopic":"Restaurar el tema {name}", "a11yProgress":"Progreso: {pct}% completado" },
+  Italian: { "confirm":"Conferma", "skip":"Salta", "add":"+ Aggiungi", "customValue":"Inserisci un valore personalizzato…", "somethingElse":"Qualcos'altro? Scrivilo qui…", "max":"max", "selected":"selezionato/i", "limitReached":"limite raggiunto", "prioritiesHdr":"Le tue priorità — la n.1 è il punto di partenza", "confirmPriorities":"Conferma priorità", "objDetailsPh":"Altro sulle tue priorità? (facoltativo)", "firstName":"Nome", "lastName":"Cognome", "roleDept":"Ruolo / reparto", "email":"E-mail", "invalidEmail":"E-mail non valida", "addUser":"+ Aggiungi utente", "confirmUsers":"Conferma utenti", "topicName":"Nome dell'argomento", "keywordsPh":"Parole chiave…", "dragPrioritize":"Trascina per dare priorità", "kept":"mantenuti", "discarded":"scartati", "pending":"in sospeso", "submitQueries":"Invia query", "noQueries":"Nessuna query", "importFile":"Oppure importa un file (.txt, .csv, .xlsx, .docx)", "pasteQueries":"Incolla qui le tue query esistenti…", "hintSelectAll":"Seleziona tutte le opzioni pertinenti.", "hintTeams":"Seleziona tutti i team che useranno Lumen.", "hintObjectives":"Scegline fino a 3, poi imposta la priorità: la n.1 decide cosa configuriamo per primo.", "hintTimezone":"Seleziona il tuo fuso orario principale.", "phMarket":"Inserisci un mercato…", "phLanguage":"Inserisci una lingua…", "phTeam":"Inserisci un team…", "whyMarkets":"Così i risultati sono limitati alle aree in cui operi davvero.", "whyTeams":"Ci aiuta ad adattare le dashboard alle persone che le useranno.", "whyUsers":"Chi deve avere accesso — per ora solo tu va benissimo.", "whyQueries":"Se monitori già delle query altrove, possiamo migrarle.", "whyTopics":"Gli argomenti sono i temi che Lumen monitorerà per te.", "topicHint":"Tutti gli argomenti suggeriti partono come mantenuti. Tocca ✕ per scartare quelli che non servono.", "confirmUsersHint":"Ogni persona deve avere almeno un nome e un'e-mail valida.", "submittedLbl":"✓ Inviato", "skippedLbl":"✓ Saltato", "editBtn":"Modifica", "cancelEdit":"Annulla modifica", "moveUp":"Sposta su", "moveDown":"Sposta giù", "removeItem":"Rimuovi", "topicNameLbl":"Nome dell'argomento", "keywordsLbl":"Parole chiave cercate da Lumen", "discardTopic":"Scarta l'argomento {name}", "restoreTopic":"Ripristina l'argomento {name}", "a11yProgress":"Avanzamento: {pct}% completato" },
+  Arabic: { "confirm":"تأكيد", "skip":"تخطّي", "add":"+ إضافة", "customValue":"أدخل قيمة مخصّصة…", "somethingElse":"شيء آخر؟ اكتبه هنا…", "max":"حد أقصى", "selected":"محدد", "limitReached":"تم بلوغ الحد", "prioritiesHdr":"أولوياتك — رقم 1 هو نقطة البداية", "confirmPriorities":"تأكيد الأولويات", "objDetailsPh":"أي شيء آخر بخصوص أولوياتك؟ (اختياري)", "firstName":"الاسم الأول", "lastName":"اسم العائلة", "roleDept":"الدور / القسم", "email":"البريد الإلكتروني", "invalidEmail":"بريد إلكتروني غير صالح", "addUser":"+ إضافة مستخدم", "confirmUsers":"تأكيد المستخدمين", "topicName":"اسم الموضوع", "keywordsPh":"الكلمات المفتاحية…", "dragPrioritize":"اسحب لترتيب الأولوية", "kept":"محتفظ بها", "discarded":"مستبعدة", "pending":"قيد الانتظار", "submitQueries":"إرسال الاستعلامات", "noQueries":"لا توجد استعلامات", "importFile":"أو استورد ملفًا (‎.txt، ‎.csv، ‎.xlsx، ‎.docx)", "pasteQueries":"الصق استعلاماتك الحالية هنا…", "hintSelectAll":"اختر كل ما ينطبق.", "hintTeams":"اختر جميع الفرق التي ستستخدم Lumen.", "hintObjectives":"اختر ما يصل إلى 3، ثم رتّب أولوياتها — رقم 1 يحدد ما نُعدّه أولًا.", "hintTimezone":"اختر منطقتك الزمنية الأساسية.", "phMarket":"أدخل سوقًا…", "phLanguage":"أدخل لغة…", "phTeam":"أدخل فريقًا…", "whyMarkets":"لكي تقتصر النتائج على المناطق التي تعمل فيها فعليًا.", "whyTeams":"يساعدنا على تخصيص لوحات المعلومات للأشخاص الذين سيستخدمونها.", "whyUsers":"من ينبغي أن يملك حق الوصول — الاكتفاء بك وحدك الآن أمر جيد.", "whyQueries":"إذا كنت تتابع استعلامات في مكان آخر، يمكننا نقلها.", "whyTopics":"المواضيع هي ما سيراقبه Lumen نيابةً عنك.", "topicHint":"جميع المواضيع المقترحة محتفظ بها افتراضيًا. اضغط ✕ لاستبعاد ما لا يناسبك.", "confirmUsersHint":"كل شخص يحتاج على الأقل إلى اسم أول وبريد إلكتروني صالح.", "submittedLbl":"✓ تم الإرسال", "skippedLbl":"✓ تم التخطي", "editBtn":"تعديل", "cancelEdit":"إلغاء التعديل", "moveUp":"تحريك لأعلى", "moveDown":"تحريك لأسفل", "removeItem":"إزالة", "topicNameLbl":"اسم الموضوع", "keywordsLbl":"الكلمات المفتاحية التي سيبحث عنها Lumen", "discardTopic":"استبعاد الموضوع {name}", "restoreTopic":"استعادة الموضوع {name}", "a11yProgress":"تقدّم الإعداد: {pct}% مكتمل" },
 };
-function WL(key, lang) {
+// `vars` mirrors L() and QN(): TopicCards needs "Discard topic {name}" localised,
+// and without substitution here the literal {name} reached the aria-label. Function
+// replacement for the same reason L() uses it — a topic name is client-entered text,
+// so a $-sequence in it must be inserted literally, not read as a replacement pattern.
+function WL(key, lang, vars) {
   const dict = WI18N[lang] || WI18N.English;
-  return (dict[key] != null ? dict[key] : WI18N.English[key]) || "";
+  let s = (dict[key] != null ? dict[key] : WI18N.English[key]) || "";
+  if (vars) for (const k in vars) s = s.replace(new RegExp("\\{" + k + "\\}", "g"), () => String(vars[k]));
+  return s;
 }
 
 // QUERIES-widget file-import feedback (shown in the expert flow). Parametrized:
@@ -1947,7 +1991,7 @@ function LumenMark({ size=32 }) {
   </div>;
 }
 function Spinner({ dark=false }) {
-  const faint = dark ? "rgba(100,116,139,0.25)" : "rgba(255,255,255,0.3)", solid = dark ? "#64748b" : "white";
+  const faint = dark ? "rgba(100,116,139,0.25)" : "rgba(255,255,255,0.3)", solid = dark ? "#556377" : "white";
   return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{animation:"spin 0.8s linear infinite"}}><circle cx="9" cy="9" r="7" stroke={faint} strokeWidth="2"/><path d="M9 2a7 7 0 0 1 7 7" stroke={solid} strokeWidth="2" strokeLinecap="round"/></svg>;
 }
 
@@ -1961,7 +2005,7 @@ function BootScreen({ label = "Setting up your session…" }) {
   return <div style={{height:VH_FULL,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:"'Inter', Arial, sans-serif",background:"#fff"}}>
     <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
     <LumenMark size={56}/>
-    <div style={{display:"flex",alignItems:"center",gap:9,color:"#64748b",fontSize:13}}><Spinner dark/> {label}</div>
+    <div style={{display:"flex",alignItems:"center",gap:9,color:"#556377",fontSize:13}}><Spinner dark/> {label}</div>
   </div>;
 }
 function Ic({ d, size=15 }) {
@@ -2013,11 +2057,14 @@ function TypingIndicator({ lang, doc=false }) {
   const label = L(keys[step] || "thinking", lang);
   return <div style={{display:"flex",alignItems:"center",gap:12,minHeight:28}}>{v && <>
     <div style={{display:"flex",gap:4}}>{[0,1,2].map(d => <div key={d} style={{width:6,height:6,borderRadius:"50%",background:P,animation:"bounce 1.4s infinite ease-in-out both",animationDelay:`${d*0.16}s`}}/>)}</div>
-    <span key={step} style={{fontSize:13,color:"#64748b",animation:REDUCE_MOTION?"none":"slideUpFade .3s ease-out"}}>{label}</span>
+    <span key={step} style={{fontSize:13,color:"#556377",animation:REDUCE_MOTION?"none":"slideUpFade .3s ease-out"}}>{label}</span>
   </>}</div>;
 }
 export function Stepper({ progress, dark, compact, lang }) {
-  const inactive = dark?"#2d4a6a":"#E7E7EF", muted = dark?"#8aa4c1":"#64748b", F = A, circleBg = dark?"#111f30":"#ffffff";
+  // The stepper was a row of plain divs: no role, no value, so a screen reader got
+  // no sense of position or completeness from the one element that carries both.
+
+  const inactive = dark?"#2d4a6a":"#E7E7EF", muted = dark?"#8aa4c1":"#556377", F = A, circleBg = dark?"#111f30":"#ffffff";
   // Onboarding is linear, but the model's `collected` map can arrive
   // non-monotonic (e.g. "channels" marked done before "topics"), which drew
   // checkmarks with gaps — a step 4 tick with step 3 still open. Derive a single
@@ -2047,7 +2094,8 @@ export function Stepper({ progress, dark, compact, lang }) {
     const modelPct = Math.min(100, Math.max(0, Math.round(Number(progress.percent) || 0)));
     const pct = Math.max(sectionPct, modelPct);
     const label = L(SECTION_LABEL_KEYS[SECTION_KEYS[frontier]], lang) || "";
-    return <div style={{width:"100%"}}>
+    return <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
+      aria-label={WL("a11yProgress",lang,{pct})} style={{width:"100%"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
         <span style={{fontSize:12,fontWeight:700,color:dark?"#c8d8e8":P}}>{L("stepN",lang,{n:frontier+1,total})}{label?" · ":""}<span style={{color:muted,fontWeight:600}}>{label}</span></span>
         <span style={{fontSize:11,color:muted}}>{pct}%</span>
@@ -2055,7 +2103,16 @@ export function Stepper({ progress, dark, compact, lang }) {
       <div style={{height:4,background:inactive,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:F,borderRadius:2,transition:"width 0.4s"}}/></div>
     </div>;
   }
-  return <div style={{display:"flex",alignItems:"flex-start",width:"100%"}}>{SECTION_KEYS.map((key,i) => {
+  // Same progress semantics on the desktop six-dot variant. It was a row of plain
+  // divs: no role, no value, so the one element carrying both position and
+  // completeness told a screen reader nothing. pct is recomputed here because the
+  // compact branch above declares its own inside that block.
+  const deskDone = SECTION_KEYS.reduce((n,_,i)=> isDone(i)?n+1:n, 0);
+  const deskPct = Math.max(Math.round((deskDone/SECTION_KEYS.length)*100),
+                           Math.min(100, Math.max(0, Math.round(Number(progress.percent) || 0))));
+  return <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={deskPct}
+    aria-label={WL("a11yProgress",lang,{pct:deskPct})}
+    style={{display:"flex",alignItems:"flex-start",width:"100%"}}>{SECTION_KEYS.map((key,i) => {
     const done = isDone(i), cur = isCur(i);
     return <div key={key} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
       {i < SECTION_KEYS.length-1 && <div style={{position:"absolute",top:11,insetInlineStart:"50%",width:"100%",height:2,background:done?F:inactive,zIndex:0,transition:"background 0.4s"}}/>}
@@ -2133,8 +2190,8 @@ export function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, h
   const toggle = o => { if (sel.includes(o)) setSel(s=>s.filter(x=>x!==o)); else if (!atLim) setSel(s=>[...s,o]); };
   const addC = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
-    <div role="group" style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}
+    {hint && <div style={{fontSize:12,color:"#556377",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
+    <div role="group" style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#556377",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}
     {/* Custom values (typed via Add) must be VISIBLE like any preset chip — before
         this, they went straight into `sel` but rendered nowhere: the input just
         cleared, with no way to spot a typo or remove the entry. Shown selected,
@@ -2144,10 +2201,10 @@ export function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, h
       <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||WL("customValue",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
       <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
     </div>
-    {max<99 && <div style={{fontSize:11,color:atLim?"#dc2626":"#64748b",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>}
+    {max<99 && <div style={{fontSize:11,color:atLim?"#dc2626":"#556377",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>}
     <div style={{display:"flex",gap:8}}>
       <button onClick={()=>sel.length>0&&onSubmit(sel)} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirm",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
 }
@@ -2162,27 +2219,27 @@ export function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initial
   const move   = (i,dir) => setSel(s => { const n=[...s], j=i+dir; if (j<0||j>=n.length) return s; [n[i],n[j]]=[n[j],n[i]]; return n; });
   const addC   = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#64748b",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span></div>}
-    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#64748b",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}</div>
+    {hint && <div style={{fontSize:12,color:"#556377",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span></div>}
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#556377",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}</div>
     <div style={{display:"flex",gap:6,marginBottom:10}}>
       <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={WL("somethingElse",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
       <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
     </div>
     {sel.length>0 && <div style={{background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#64748b",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>{WL("prioritiesHdr",lang)}</div>
+      <div style={{fontSize:11,fontWeight:700,color:"#556377",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>{WL("prioritiesHdr",lang)}</div>
       {sel.map((o,i) => <div key={o} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",margin:"0 -4px",borderRadius:8,borderTop:i>0?"1px solid #eef1f5":"none",background:i===0?`${A}12`:"transparent"}}>
         <span style={{width:22,height:22,borderRadius:"50%",background:i===0?A:P,color:"white",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
         <span style={{flex:1,fontSize:13,color:"#1e293b",fontWeight:i===0?700:400}}>{optLabel(o,lang)}</span>
-        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={`${WL("moveUp",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===0?"default":"pointer",color:i===0?"#cbd5e1":"#64748b",fontSize:13,lineHeight:1,flexShrink:0}}>▲</button>
-        <button onClick={()=>move(i,1)} disabled={i===sel.length-1} aria-label={`${WL("moveDown",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===sel.length-1?"default":"pointer",color:i===sel.length-1?"#cbd5e1":"#64748b",fontSize:13,lineHeight:1,flexShrink:0}}>▼</button>
+        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={`${WL("moveUp",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===0?"default":"pointer",color:i===0?"#cbd5e1":"#556377",fontSize:13,lineHeight:1,flexShrink:0}}>▲</button>
+        <button onClick={()=>move(i,1)} disabled={i===sel.length-1} aria-label={`${WL("moveDown",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===sel.length-1?"default":"pointer",color:i===sel.length-1?"#cbd5e1":"#556377",fontSize:13,lineHeight:1,flexShrink:0}}>▼</button>
         <button onClick={()=>toggle(o)} aria-label={`${WL("removeItem",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid transparent",borderRadius:8,width:38,height:38,color:"#ef4444",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
       </div>)}
     </div>}
     <textarea value={details} onChange={e=>setDetails(e.target.value)} rows={2} placeholder={WL("objDetailsPh",lang)} style={{width:"100%",background:"white",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
-    <div style={{fontSize:11,color:atLim?"#dc2626":"#64748b",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>
+    <div style={{fontSize:11,color:atLim?"#dc2626":"#556377",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>
     <div style={{display:"flex",gap:8}}>
       <button onClick={()=>sel.length>0&&onSubmit({ranked:sel,details:details.trim()})} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirmPriorities",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
 }
@@ -2217,7 +2274,7 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
           {errors[`${i}-email`] && <div style={{fontSize:10,color:"#ef4444",marginTop:3}}>{errors[`${i}-email`]}</div>}
         </div>
       </div>
-      <div style={{display:"flex",gap:6,alignItems:"center"}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#64748b"}}>{a}</button>)}
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#556377"}}>{a}</button>)}
         {/* Remove a row. The fully-empty guard above already stops an untouched extra row
             from blocking Confirm, but a row the client STARTED and thought better of does
             count as filled: it then failed validation with no way to get rid of it, so
@@ -2234,11 +2291,20 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
         silent why strands non-technical clients (tooltips don't exist on touch). */}
     {!valid && <div style={{fontSize:11,color:"#92400e",marginTop:6}}>{WL("confirmUsersHint",lang)}</div>}
     <div style={{display:"flex",gap:8,marginTop:4}}>
-      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 14px",color:"#64748b",cursor:"pointer",fontSize:12}}>{WL("addUser",lang)}</button>
+      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 14px",color:"#556377",cursor:"pointer",fontSize:12}}>{WL("addUser",lang)}</button>
       <button onClick={()=>valid&&onSubmit(filled)} disabled={!valid} style={{background:valid?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 20px",fontSize:13,fontWeight:600,cursor:valid?"pointer":"default"}}>{WL("confirmUsers",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
+}
+
+// Size a textarea to its content. Needed because the topic-card keywords field
+// holds a Boolean query of unpredictable length and must never clip: a fixed-row
+// textarea would just move the clipping from horizontal to vertical.
+function autoGrow(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
 }
 
 function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
@@ -2261,8 +2327,8 @@ function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
   const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || (navigator.maxTouchPoints||0) > 0);
   const kept = cards.filter(c=>c.status==="kept");
   return <div style={{marginTop:8}}>
-    <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>{WL("topicHint",lang)}</div>
-    <div style={{fontSize:11,color:"#64748b",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+    <div style={{fontSize:12,color:"#556377",marginBottom:6}}>{WL("topicHint",lang)}</div>
+    <div style={{fontSize:11,color:"#556377",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
       <span>{kept.length} {WL("kept",lang)} · {cards.filter(c=>c.status==="discarded").length} {WL("discarded",lang)}</span>
       {!isTouch && <span>☰ {WL("dragPrioritize",lang)}</span>}
     </div>
@@ -2271,25 +2337,53 @@ function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
       onDragOver={e=>e.preventDefault()}
       onDrop={e=>{e.preventDefault();if(dragIdx===null||dragIdx===i)return;const nc=[...cards];const[dc]=nc.splice(dragIdx,1);nc.splice(i,0,dc);setCards(nc);setDragIdx(null);}}
       style={{background:c.status==="kept"?"#f0fdf4":c.status==="discarded"?"#fef2f2":"#f8f9fa",border:`1px solid ${c.status==="kept"?"#bbf7d0":c.status==="discarded"?"#fecaca":"#e2e8f0"}`,borderRadius:10,padding:"12px 14px",marginBottom:8,opacity:c.status==="discarded"?0.5:1,display:"flex",alignItems:"center",gap:8}}>
-      <div style={{cursor:"grab",padding:"0 8px",color:"#64748b",userSelect:"none"}}>☰</div>
-      <div style={{flex:1}}>
-        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder={WL("topicName",lang)} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
-        <input value={c.keywords} onChange={e=>upd(i,"keywords",e.target.value)} placeholder={WL("keywordsPh",lang)} disabled={c.status==="discarded"} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
-        <div style={{fontSize:11,color:"#64748b",fontStyle:"italic"}}>{c.rationale}</div>
+      {/* Position, not just a grab handle. "Drag to prioritize" was on screen while
+          the resulting order was invisible — unlike RankedSelector, which numbers
+          its priorities. Kept cards are numbered in order; a discarded card has no
+          position to show. */}
+      <div style={{cursor:"grab",padding:"0 6px",color:"#556377",userSelect:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:22}}>
+        <span style={{fontSize:12,fontWeight:700,color:c.status==="kept"?"#166534":"#94a3b8"}}>
+          {c.status==="kept" ? kept.indexOf(c)+1 : "—"}
+        </span>
+        {!isTouch && <span style={{fontSize:11,opacity:0.7}}>☰</span>}
       </div>
-      <div style={{display:"flex",gap:6,flexShrink:0}}>
-        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label="Move topic up" style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===0?"#cbd5e1":"#64748b",cursor:i===0?"default":"pointer",fontSize:12}}>▲</button>
-        <button onClick={()=>move(i,1)} disabled={i===cards.length-1} aria-label="Move topic down" style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===cards.length-1?"#cbd5e1":"#64748b",cursor:i===cards.length-1?"default":"pointer",fontSize:12}}>▼</button>
-        {/* ✓/✕ SET a state rather than toggling through a third "pending" limbo:
-            with default-kept there are only two outcomes (kept / discarded), which
-            is also exactly what Confirm submits — no card can silently vanish. */}
-        <button onClick={()=>setSt(i,"kept")} aria-pressed={c.status==="kept"} aria-label={`Keep topic ${c.name||i+1}`} style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="kept"?"#bbf7d0":"#e2e8f0"}`,background:c.status==="kept"?"#dcfce7":"transparent",color:c.status==="kept"?"#166534":"#64748b",cursor:"pointer",fontSize:16}}>✓</button>
-        <button onClick={()=>setSt(i,c.status==="discarded"?"kept":"discarded")} aria-pressed={c.status==="discarded"} aria-label={`Discard topic ${c.name||i+1}`} style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="discarded"?"#fecaca":"#e2e8f0"}`,background:c.status==="discarded"?"#fee2e2":"transparent",color:c.status==="discarded"?"#991b1b":"#64748b",cursor:"pointer",fontSize:16}}>✕</button>
+      <div style={{flex:1,minWidth:0}}>
+        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"#556377",marginBottom:2}}>{WL("topicNameLbl",lang)}</label>
+        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder={WL("topicName",lang)} aria-label={WL("topicNameLbl",lang)} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
+        {/* The rationale is the JUDGEMENT input — it is the only thing that lets a
+            client decide whether a topic is right — so it sits directly under the
+            name rather than last, and is no longer 11px italic. Italic is also wrong
+            for Arabic, which has no italic form: browsers synthesise a slant that
+            reads as broken rendering. */}
+        {c.rationale && <div style={{fontSize:12,color:"#556377",marginBottom:8,lineHeight:1.45}}>{c.rationale}</div>}
+        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"#556377",marginBottom:2}}>{WL("keywordsLbl",lang)}</label>
+        {/* A TEXTAREA, not an input. This holds the Boolean query Lumen will actually
+            search with, and it is the one field the prose asks the client to check
+            ("which of these is wrong?"). Measured in a browser: a real query rendered
+            406px of content inside a 326px single-line input, and a category card 472px
+            — clipped mid-expression, with no wrap, no expand and no title, so the
+            client confirmed a string they could not read. Auto-grows to fit, wraps on
+            pre-wrap, and carries a real label so the accessible name is not the
+            placeholder. */}
+        <textarea value={c.keywords} onChange={e=>{upd(i,"keywords",e.target.value);autoGrow(e.target);}} ref={el=>el&&autoGrow(el)}
+          placeholder={WL("keywordsPh",lang)} disabled={c.status==="discarded"} rows={2} aria-label={WL("keywordsLbl",lang)}
+          style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6,resize:"none",overflow:"hidden",whiteSpace:"pre-wrap",lineHeight:1.5,fontFamily:"inherit",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{display:"flex",gap:6,flexShrink:0,alignSelf:"flex-start"}}>
+        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={WL("moveUp",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===0?"#cbd5e1":"#556377",cursor:i===0?"default":"pointer",fontSize:12}}>▲</button>
+        <button onClick={()=>move(i,1)} disabled={i===cards.length-1} aria-label={WL("moveDown",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===cards.length-1?"#cbd5e1":"#556377",cursor:i===cards.length-1?"default":"pointer",fontSize:12}}>▼</button>
+        {/* ONE toggle, not a ✓/✕ pair. There are only two outcomes (kept / discarded)
+            and this control already switched between them in both directions, so the
+            separate ✓ could never do anything on arrival — every card seeds as kept.
+            It was a fifth control per card that was dead on sight. */}
+        <button onClick={()=>setSt(i,c.status==="discarded"?"kept":"discarded")} aria-pressed={c.status==="discarded"}
+          aria-label={WL(c.status==="discarded"?"restoreTopic":"discardTopic",lang,{name:c.name||i+1})}
+          style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="discarded"?"#fecaca":"#e2e8f0"}`,background:c.status==="discarded"?"#fee2e2":"transparent",color:c.status==="discarded"?"#991b1b":"#556377",cursor:"pointer",fontSize:16}}>{c.status==="discarded"?"↺":"✕"}</button>
       </div>
     </div>)}
     <div style={{display:"flex",gap:8,marginTop:4}}>
       <button onClick={()=>kept.length>0&&onConfirm(kept)} disabled={kept.length===0} style={{background:kept.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:kept.length>0?"pointer":"default"}}>{WL("confirm",lang)} ({kept.length})</button>
-      <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{WL("skip",lang)}</button>
+      <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>
     </div>
   </div>;
 }
@@ -2540,7 +2634,7 @@ export function QueriesWidget({ onSubmit, initialData, lang }) {
           and this widget is the ONLY path that preserves a client's original query
           syntax verbatim, so that text is the one thing here that cannot be
           reconstructed later. Clearing the box re-enables it. */}
-      <button onClick={()=>!text.trim()&&onSubmit("__skip__")} disabled={!!text.trim()} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:text.trim()?"#cbd5e1":"#64748b",cursor:text.trim()?"default":"pointer"}}>{WL("noQueries",lang)}</button>
+      <button onClick={()=>!text.trim()&&onSubmit("__skip__")} disabled={!!text.trim()} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:text.trim()?"#cbd5e1":"#556377",cursor:text.trim()?"default":"pointer"}}>{WL("noQueries",lang)}</button>
       <button onClick={()=>fileRef.current?.click()} style={{display:"inline-flex",alignItems:"center",gap:6,background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"8px 4px"}}><Ic d={IC.clip} size={12}/><span style={{textDecoration:"underline"}}>{WL("importFile",lang)}</span></button>
     </div>
   </div>;
@@ -2554,8 +2648,8 @@ function Section({ title, badge, defaultOpen=true, children }) {
   return <div style={{marginBottom:18}}>
     <h3 style={{margin:0}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:"0 0 6px",borderBottom:`2px solid ${P}20`,marginBottom:open?12:0,font:"inherit"}}>
-        <span style={{fontSize:12,fontWeight:700,color:P,textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"#64748b",background:"#f1f5f9",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
-        <span aria-hidden="true" style={{fontSize:11,color:"#64748b",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",display:"inline-block"}}>▶</span>
+        <span style={{fontSize:12,fontWeight:700,color:P,textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"#556377",background:"#f1f5f9",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
+        <span aria-hidden="true" style={{fontSize:11,color:"#556377",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",display:"inline-block"}}>▶</span>
       </button>
     </h3>
     {open && children}
@@ -2574,11 +2668,11 @@ function PasteImport({ label, placeholder, onImport, lang }) {
   };
   if (!open) return <button onClick={()=>setOpen(true)} style={{background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"6px 0",textDecoration:"underline",marginLeft:10}}>{label}</button>;
   return <div style={{border:`1px solid ${LINK}`,borderRadius:8,padding:"10px 12px",margin:"8px 0",background:"#faf8ff"}}>
-    <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{placeholder}</div>
+    <div style={{fontSize:11,color:"#556377",marginBottom:6}}>{placeholder}</div>
     <textarea value={text} onChange={e=>setText(e.target.value)} rows={5} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
     <div style={{display:"flex",gap:8}}>
       <button onClick={run} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{L("expImport",lang)}</button>
-      <button onClick={()=>{setText("");setOpen(false);}} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:7,padding:"6px 12px",fontSize:12,color:"#64748b",cursor:"pointer"}}>{L("expCancel",lang)}</button>
+      <button onClick={()=>{setText("");setOpen(false);}} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:7,padding:"6px 12px",fontSize:12,color:"#556377",cursor:"pointer"}}>{L("expCancel",lang)}</button>
     </div>
   </div>;
 }
@@ -2608,11 +2702,11 @@ class ModalBoundary extends Component {
       <div style={{background:"white",borderRadius:16,maxWidth:440,padding:"28px 28px 22px",boxShadow:"0 16px 48px rgba(0,0,0,0.2)",textAlign:"center"}}>
         <div style={{fontSize:28,marginBottom:10}}>⚠️</div>
         <div style={{fontWeight:700,fontSize:15,color:"#1e293b",marginBottom:8}}>Something went wrong opening your brief</div>
-        <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>Your answers are safe. Close this and try again — if it happens twice, let your Lumen contact know.</div>
+        <div style={{fontSize:12,color:"#556377",marginBottom:16}}>Your answers are safe. Close this and try again — if it happens twice, let your Lumen contact know.</div>
         {/* J7: the raw technical error is for developers, not the client — a
             "TypeError: ..." string in front of an enterprise buyer erodes trust.
             Show it only in DEV; clients see just the reassuring line above. */}
-        {DEV && <div style={{fontSize:10,color:"#64748b",marginBottom:16,fontFamily:"monospace"}}>{String(this.state.err?.message||this.state.err)}</div>}
+        {DEV && <div style={{fontSize:10,color:"#556377",marginBottom:16,fontFamily:"monospace"}}>{String(this.state.err?.message||this.state.err)}</div>}
         <button onClick={()=>{this.setState({err:null});this.props.onClose?.();}} style={{background:P,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Close</button>
       </div>
     </div>;
@@ -2699,8 +2793,8 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   const gaps = reqChecks.filter(c=>!c[1]).map(c=>L(c[0],uiLang));
   const ready = gaps.length===0;
   const fld = (label,val,set,multi,req) => <div style={{marginBottom:12}}>
-    <div style={{fontSize:11,fontWeight:600,color:"#64748b",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-      {label}<span style={{fontSize:10,padding:"1px 6px",borderRadius:4,fontWeight:600,background:req?"#fef2f2":"#f1f5f9",color:req?"#dc2626":"#64748b"}}>{req?L("expRequired",uiLang):L("expOptional",uiLang)}</span>
+    <div style={{fontSize:11,fontWeight:600,color:"#556377",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+      {label}<span style={{fontSize:10,padding:"1px 6px",borderRadius:4,fontWeight:600,background:req?"#fef2f2":"#f1f5f9",color:req?"#dc2626":"#556377"}}>{req?L("expRequired",uiLang):L("expOptional",uiLang)}</span>
     </div>
     {multi
       ? <textarea value={val} onChange={e=>set(e.target.value)} rows={2} aria-label={label} style={{width:"100%",border:`1px solid ${req&&!val?"#fca5a5":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
@@ -2743,13 +2837,13 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16,animation:REDUCE_MOTION?"none":"fadeIn .18s ease-out"}}>
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={L("expTitle",uiLang)} tabIndex={-1} style={{background:"white",borderRadius:T.radius.lg,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:T.shadow.modal,outline:"none",animation:REDUCE_MOTION?"none":"modalPop .2s ease-out"}}>
       <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div><h2 style={{fontWeight:700,fontSize:16,color:"#1e293b",margin:0}}>{L("expTitle",uiLang)}</h2><div style={{fontSize:12,color:"#64748b",marginTop:2}}>{L("expSubtitle",uiLang)}</div></div>
+        <div><h2 style={{fontWeight:700,fontSize:16,color:"#1e293b",margin:0}}>{L("expTitle",uiLang)}</h2><div style={{fontSize:12,color:"#556377",marginTop:2}}>{L("expSubtitle",uiLang)}</div></div>
         {/* Not closeable mid-send. sendErr renders ONLY inside this modal, so closing
             it while the send is in flight threw away the one surface the failure had:
             the client saw the dialog vanish, no error anywhere, and reasonably assumed
             the brief had gone. It had not. Verified in a browser with every write
             failing — the page carried no trace of the failure at all. */}
-        <button onClick={onClose} disabled={sending} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:sending?"default":"pointer",color:sending?"#cbd5e1":"#64748b"}}>✕</button>
+        <button onClick={onClose} disabled={sending} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:sending?"default":"pointer",color:sending?"#cbd5e1":"#556377"}}>✕</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,padding:"12px 14px",borderRadius:10,background:ready?"#f0fdf4":"#fffbeb",border:`1px solid ${ready?"#bbf7d0":"#fde68a"}`}}>
@@ -2762,13 +2856,19 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{ready?L("expReady",uiLang):L("expAlmost",uiLang)}</div>
-            <div style={{fontSize:11,color:"#64748b",margin:"1px 0 2px"}}>{topics.length} {L(topics.length!==1?"expTopics":"expTopic",uiLang)} · {chans.length} {L(chans.length!==1?"expChannels":"expChannel",uiLang)} · {reports.length+alerts.length} {L((reports.length+alerts.length)!==1?"expReports":"expReport",uiLang)} · {users.length} {L(users.length!==1?"expUsers":"expUser",uiLang)}</div>
+            <div style={{fontSize:11,color:"#556377",margin:"1px 0 2px"}}>{topics.length} {L(topics.length!==1?"expTopics":"expTopic",uiLang)} · {chans.length} {L(chans.length!==1?"expChannels":"expChannel",uiLang)} · {reports.length+alerts.length} {L((reports.length+alerts.length)!==1?"expReports":"expReport",uiLang)} · {users.length} {L(users.length!==1?"expUsers":"expUser",uiLang)}</div>
             {ready
               ? <div style={{fontSize:12,color:"#166534"}}>{L("expReadyDesc",uiLang)}</div>
               : <div style={{fontSize:12,color:"#92400e"}}>{L("expStillNeeded",uiLang,{gaps:gaps.join(", ")})}</div>}
           </div>
         </div>
-        <Section title={L("expSecBusiness",uiLang)} defaultOpen={!co.name||!co.email||!mkts.trim()||!langs.trim()||!objs.trim()}>
+        {/* Non-empty sections now default OPEN. They used to open only when EMPTY or
+            unconfirmed, so the happy path showed "Everything you've shared, in one
+            place" above four COLLAPSED rows and a percentage — the client confirmed a
+            send from memory, with the evidence that might have changed their mind one
+            click away. Reversed: show the content, let them collapse what they have
+            already checked. */}
+        <Section title={L("expSecBusiness",uiLang)} defaultOpen={true}>
           {fld(L("expFldName",uiLang),co.name,v=>setCo(c=>({...c,name:v})),false,true)}
           {fld(L("expFldEmail",uiLang),co.email,v=>setCo(c=>({...c,email:v})),false,true)}
           {fld(L("expFldIndustry",uiLang),co.industry,v=>setCo(c=>({...c,industry:v})),false,false)}
@@ -2781,8 +2881,8 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           {fld(L("expFldTeams",uiLang),teams,setTeams,false,false)}
           {fld(L("expFldContact",uiLang),co.contact,v=>setCo(c=>({...c,contact:v})),false,false)}
         </Section>
-        <Section title={L("expSecTeam",uiLang)} badge={users.length} defaultOpen={users.length===0}>
-          {users.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoUsers",uiLang)}</div>}
+        <Section title={L("expSecTeam",uiLang)} badge={users.length} defaultOpen={true}>
+          {users.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoUsers",uiLang)}</div>}
           {users.map((u,i) => <div key={i} style={{background:"#f8f9fa",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:6,marginBottom:6}}>
               {/* Human names, not raw keys: "firstName" as a placeholder is unreadable
@@ -2790,14 +2890,14 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               {[["firstName",L("expUFirst",uiLang)],["lastName",L("expULast",uiLang)],["email",L("expUEmail",uiLang)],["role",L("expURole",uiLang)]].map(([k,lb]) => <input key={k} value={u[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setUsers(us=>us.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",gap:4}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>setUsers(us=>us.map((x,j)=>j===i?{...x,access:a}:x))} aria-pressed={u.access===a} style={{padding:"3px 8px",borderRadius:5,fontSize:10,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#64748b"}}>{a}</button>)}</div>
+              <div style={{display:"flex",gap:4}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>setUsers(us=>us.map((x,j)=>j===i?{...x,access:a}:x))} aria-pressed={u.access===a} style={{padding:"3px 8px",borderRadius:5,fontSize:10,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#556377"}}>{a}</button>)}</div>
               <button onClick={()=>setUsers(us=>us.filter((_,j)=>j!==i))} aria-label={L("expRemoveUser",uiLang,{name:u.firstName||u.email||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12}}>✕</button>
             </div>
           </div>)}
           {addBtn(L("expAddUser",uiLang), ()=>setUsers(u=>[...u,emptyUser()]))}
         </Section>
-        <Section title={L("expSecTrack",uiLang)} badge={topics.length} defaultOpen={topics.length===0||unconfirmed>0}>
-          {topics.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoTopics",uiLang)}</div>}
+        <Section title={L("expSecTrack",uiLang)} badge={topics.length} defaultOpen={true}>
+          {topics.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoTopics",uiLang)}</div>}
           {unconfirmed>0 && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:7,padding:"7px 10px",marginBottom:10,display:"flex",gap:6}}><span>⚠</span><span>{L(unconfirmed!==1?"expUnconfirmedMany":"expUnconfirmedOne",uiLang,{n:unconfirmed})}</span></div>}
           {topics.map((tp,i) => { const guess = !tp.confirmed; return <div key={tp.id} style={{background:guess?"#fffbeb":"#f0fdf4",border:`1px solid ${guess?"#fde68a":"#bbf7d0"}`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:6}}>
@@ -2805,21 +2905,21 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               {guess
                 ? <div style={{display:"flex",gap:6}}>
                     <button onClick={()=>confirmTopic(i,true)} style={{background:P,color:"#fff",border:"none",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{L("expConfirm",uiLang)}</button>
-                    <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:6,padding:"4px 9px",fontSize:11,color:"#64748b",cursor:"pointer"}}>{L("expDrop",uiLang)}</button>
+                    <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:6,padding:"4px 9px",fontSize:11,color:"#556377",cursor:"pointer"}}>{L("expDrop",uiLang)}</button>
                   </div>
                 : <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} aria-label={L("expRemoveTopic",uiLang,{name:tp.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>}
             </div>
             <div>
               <input value={tp.name||""} placeholder={L("expTopicName",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,name:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid #e2e8f0",fontSize:13,fontWeight:600,outline:"none",background:"transparent",marginBottom:6,padding:"2px 0"}}/>
               <input value={tp.keywords||""} placeholder={L("expKeywords",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,keywords:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid #e2e8f0",fontSize:12,outline:"none",background:"transparent",padding:"2px 0",marginBottom:6}}/>
-              <input value={tp.rationale||tp.comments||""} placeholder={L("expRationale",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,rationale:e.target.value,comments:e.target.value}:x))} style={{width:"100%",border:"none",fontSize:11,outline:"none",background:"transparent",padding:"2px 0",color:"#64748b",fontStyle:"italic"}}/>
+              <input value={tp.rationale||tp.comments||""} placeholder={L("expRationale",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,rationale:e.target.value,comments:e.target.value}:x))} style={{width:"100%",border:"none",fontSize:11,outline:"none",background:"transparent",padding:"2px 0",color:"#556377",fontStyle:"italic"}}/>
             </div>
           </div>; })}
           {addBtn(L("expAddTopic",uiLang), ()=>setTopics(ts=>[...ts,emptyTopic()]))}
           <PasteImport label={L("expPasteLabel",uiLang)} placeholder={L("expPasteTopicPh",uiLang)} lang={uiLang} onImport={lines=>setTopics(ts=>[...ts,...lines.map((l,i)=>{ const p=l.split("|").map(s=>s.trim()); return {name:p[0]||"",keywords:p[1]||"",rationale:p[2]||"",comments:p[2]||"Imported from client list",id:Date.now()+i,confirmed:true}; })])}/>
         </Section>
-        <Section title={L("expSecLook",uiLang)} badge={chans.length} defaultOpen={false}>
-          {chans.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoChannels",uiLang)}</div>}
+        <Section title={L("expSecLook",uiLang)} badge={chans.length} defaultOpen={chans.length>0}>
+          {chans.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoChannels",uiLang)}</div>}
           {/* flexWrap + a minimum basis: four fields forced into one row collapse to
               ~55px each inside the modal on a phone — unreadable and uneditable. */}
           {chans.map((ch,i) => <div key={ch.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
@@ -2829,9 +2929,9 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           {addBtn(L("expAddChannel",uiLang), ()=>setChans(cs=>[...cs,{...emptyChan(),id:Date.now()}]))}
           <PasteImport label={L("expPasteLabel",uiLang)} placeholder={L("expPasteChannelPh",uiLang)} lang={uiLang} onImport={lines=>setChans(cs=>[...cs,...lines.map((l,i)=>{ const u=l.match(URL_RE)?.[0]||""; const author=l.replace(u,"").replace(/[|,]/g," ").trim(); return {author:author||"",type:guessChanType(u),url:u,owned:"",id:Date.now()+i}; })])}/>
         </Section>
-        <Section title={L("expSecReports",uiLang)} badge={reports.length+alerts.length} defaultOpen={false}>
-          <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:6}}>{L("expReportsHdr",uiLang)}</div>
-          {reports.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoReports",uiLang)}</div>}
+        <Section title={L("expSecReports",uiLang)} badge={reports.length+alerts.length} defaultOpen={reports.length+alerts.length>0}>
+          <div style={{fontSize:11,fontWeight:700,color:"#556377",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:6}}>{L("expReportsHdr",uiLang)}</div>
+          {reports.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoReports",uiLang)}</div>}
           {reports.map((r,i) => <div key={r.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
             {/* Dashboard vs Report: the assistant pre-classifies each item (kind); this
                 lets the client see and correct it before it writes to the sheet's
@@ -2845,8 +2945,8 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
             <button onClick={()=>setReports(rs=>rs.filter((_,j)=>j!==i))} aria-label={L("expRemoveReport",uiLang,{name:r.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
           </div>)}
           {addBtn(L("expAddReport",uiLang), ()=>setReports(rs=>[...rs,{...emptyReport(),id:Date.now()}]))}
-          <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.04em",margin:"14px 0 6px"}}>{L("expAlertsHdr",uiLang)}</div>
-          {alerts.length===0 && <div style={{fontSize:12,color:"#64748b",fontStyle:"italic",marginBottom:8}}>{L("expNoAlerts",uiLang)}</div>}
+          <div style={{fontSize:11,fontWeight:700,color:"#556377",textTransform:"uppercase",letterSpacing:"0.04em",margin:"14px 0 6px"}}>{L("expAlertsHdr",uiLang)}</div>
+          {alerts.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoAlerts",uiLang)}</div>}
           {alerts.map((a,i) => <div key={a.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
             {[["name",L("expAlName",uiLang)],["type",L("expType",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={a[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setAlerts(as=>as.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
             <button onClick={()=>setAlerts(as=>as.filter((_,j)=>j!==i))} aria-label={L("expRemoveAlert",uiLang,{name:a.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
@@ -2866,22 +2966,32 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               <div style={{fontWeight:700,fontSize:13,color:"#92400e",marginBottom:2}}>{L("expIncompleteTitle",uiLang)}</div>
               <div style={{fontSize:12,color:"#92400e",lineHeight:1.5}}>{L("expIncompleteBody",uiLang)}</div>
             </div>
+            {/* WEIGHTS INVERTED. "Send it anyway" used to be the full-purple primary
+                while "Keep going" — the outcome that produces a usable brief — was a
+                ghost button, so the incomplete path had the strongest affordance in the
+                modal. Now Keep going is primary and Send it anyway is the quiet escape
+                it was always meant to be. It stays fully enabled and clearly labelled:
+                a client who really must stop is never trapped, they just are not nudged.
+                Download is repeated here too — it used to vanish on this step, so the one
+                moment a send could fail was the one moment the client could not keep a
+                copy of their own answers. */}
             <div style={{display:"flex",gap:10,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
-              {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
-              <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:sending?"default":"pointer"}}>{L("expKeepGoing",uiLang)}</button>
-              <button onClick={()=>doSend()} disabled={sending} style={{display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{sending?L("expSending",uiLang):<><Ic d={IC.send} size={13}/>{L("expSendAnyway",uiLang)}</>}</button>
+              {sendErr && <div role="alert" style={{fontSize:11,color:"#b91c1c",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={()=>onExport(merged,realUsers)} disabled={sending} style={{background:"transparent",border:"none",color:"#556377",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:sending?"default":"pointer"}}>{L("expDownload",uiLang)}</button>
+              <button onClick={()=>doSend()} disabled={sending} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#556377",cursor:sending?"default":"pointer"}}>{sending?L("expSending",uiLang):L("expSendAnyway",uiLang)}</button>
+              <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{L("expKeepGoing",uiLang)}</button>
             </div>
           </div>
         ) : (
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
             <div style={{fontSize:11,color:ready?"#16a34a":"#92400e",flex:"1 1 180px",minWidth:0}}>{ready?L("expFooterReady",uiLang):`${L("expStillNeeded",uiLang,{gaps:gaps.slice(0,3).join(", ")})}${gaps.length>3?` ${L("expMore",uiLang,{n:gaps.length-3})}`:""}`}</div>
             <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-              {sendErr && <div style={{fontSize:11,color:"#dc2626",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
-              <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#64748b",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
+              {sendErr && <div role="alert" style={{fontSize:11,color:"#b91c1c",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#556377",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
               {/* Download stays a quiet text link so it never reads as "download = done"
                   beside Send, but it is available whether or not the brief is complete —
                   a stuck client can always keep a copy of their own answers. */}
-              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,realUsers)} style={{background:"transparent",border:"none",color:"#64748b",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
+              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,realUsers)} style={{background:"transparent",border:"none",color:"#556377",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
               {/* Ready: submit directly. Not ready: enabled but amber, opening the confirm
                   step rather than dead-ending, so a stuck client is never trapped. */}
               <button onClick={()=>{ if (sending) return; if (ready) doSend(); else setConfirmSend(true); }} disabled={sending} style={ready
@@ -2995,6 +3105,17 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   const [sheetLink,setSheetLink] = useState(null);
   const [ww,setWw] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
   useEffect(() => { const f = () => setWw(window.innerWidth); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  // showPanel is seeded from innerWidth at MOUNT and was never revisited, so shrinking
+  // the window with the panel open stranded content off-screen with no way back to it.
+  // Measured going 1280 -> 768: the 320px panel stayed display:block, the message column
+  // was pushed to left:-96 (left:-156 on the finish-card variant), 10 elements sat off
+  // the left edge, and there was no horizontal scroll to reach them —
+  // documentElement.scrollWidth === clientWidth — so the stepper's own "About you" label
+  // was cut in half and unreachable. A fresh load at 768 renders fine, which is why this
+  // only ever appeared on a resize. Close it on the way down; deliberately NOT reopened
+  // on the way back up, because above the breakpoint the panel is the client's own toggle
+  // and reopening it would override a deliberate close.
+  useEffect(() => { if (ww < SIDE_COL_MIN) setShowPanel(false); }, [ww]);
   // The captured-answers panel is position:fixed and has to start BELOW the header. Its
   // top used to be the literal 56, which is only the header's minHeight: on mobile the
   // header is height:auto with flexWrap, so a longer wordmark/tagline (any non-English
@@ -3093,9 +3214,17 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
 
   const { init, pop, chime } = useAudio();
   const dark = theme === "dark";
+  // muted was #556377, which failed AA on every surface it is actually used on.
+  // Measured, worst case first: 3.80 on the finish card's gradient, 4.20 on the
+  // panel's #F1F0F7, 4.34 on the modal's slate-100, 4.45 on the page bg, 4.76 on
+  // white — seven distinct text roles, all near-misses against the 4.5 floor for
+  // text under 18.66px, and all the same token. #556377 is the first step down the
+  // same ramp that clears every one of them (min 4.88, on the gradient) without
+  // touching a brand colour. Not darkened further on purpose: this is still the
+  // SECONDARY text role and has to stay visibly lighter than text (#1e293b).
   const C = useMemo(() => dark
     ? {bg:"#0d1b2a",card:"#111f30",border:"#1e3048",muted:"#8aa4c1",text:"#c8d8e8",hi:"#1a2f4a",uBg:"#1e3a5f",uTx:"#d0e8ff",wTx:"#a89af0"}
-    : {bg:"#F7F7FA",card:"#ffffff",border:"#E7E7EF",muted:"#64748b",text:"#1e293b",hi:"#F1F0F7",uBg:P,uTx:"#F2F7F8",wTx:LINK}
+    : {bg:"#F7F7FA",card:"#ffffff",border:"#E7E7EF",muted:"#556377",text:"#1e293b",hi:"#F1F0F7",uBg:P,uTx:"#F2F7F8",wTx:LINK}
   , [dark]);
 
   // Keep the mobile browser chrome in step with the theme. theme-color is a
@@ -3111,7 +3240,12 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     let m = document.querySelector('meta[name="theme-color"]');
     if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
     m.content = C.bg;
-  }, [C]);
+    // Also expose the theme as an attribute. Everything else here themes through
+    // inline styles from C, which a stylesheet cannot reach — so the one thing that
+    // MUST live in CSS (::placeholder, which has no inline equivalent) had no way to
+    // know the theme. Writing it here keeps the attribute and C from disagreeing.
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  }, [C, dark]);
 
   // Follow new content, but don't yank a client who scrolled up to re-read: only
   // auto-scroll when they're already near the bottom, or when a send just kicked
@@ -4164,7 +4298,23 @@ a{transition:color var(--dur-base) var(--ease-out),opacity var(--dur-base) var(-
    is load-bearing rather than lazy. Inter has no Arabic glyphs; Geeza Pro (macOS) and
    Noto Sans Arabic (Android/Linux, and Windows via Noto) do. */
 [dir="rtl"]{font-family:'Inter','Geeza Pro','Noto Sans Arabic',Tahoma,Arial,sans-serif !important}
+/* Arabic script has no italic form. Where the UI asks for italic — widget hints, the
+   WHY line, "You chose", topic rationales, the review modal's empty states — the
+   browser SYNTHESISES an oblique by shearing the glyphs, which in Arabic reads as
+   broken rendering rather than emphasis. font-synthesis-style is the property built
+   for this: it declines the fake slant and leaves the text upright. One rule instead
+   of a conditional at eight separate call sites, and it covers any added later. */
+[dir="rtl"],[dir="rtl"] *{font-synthesis-style:none}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #6D28D9 !important;outline-offset:2px !important}
+/* Placeholder contrast. There was no ::placeholder rule anywhere, so every field
+   fell back to Chrome's UA default — measured #757575, which is 4.31:1 on the page
+   background and fails AA for text under 18.66px. It is the composer's own
+   placeholder ("Answer above — or just type it here"), so it is real instruction
+   text, not decoration. #556377 is the same token the muted role now uses (4.88:1
+   worst case). opacity:1 is required: Firefox applies a default placeholder opacity
+   that would quietly undo the colour. */
+::placeholder{color:#556377;opacity:1}
+[data-theme="dark"] ::placeholder{color:#8aa4c1;opacity:1}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 /* Form controls don't inherit font-family by default — textareas fall back to the
    UA monospace, so the composer/paste boxes rendered in a typewriter font instead
@@ -4175,11 +4325,11 @@ input,textarea,select,button{font-family:inherit}
 
       {showExport && <ModalBoundary onClose={()=>setShowExport(false)}><ExportModal cdata={cdata} wState={wState||{}} messages={messages} onClose={()=>setShowExport(false)} onExport={(merged,users)=>{doExport(merged,users,messages,uiLang);}} onSend={handleSend} sending={sending} sendErr={sendErr} sent={sent} sheetLink={sheetLink} uiLang={uiLang}/></ModalBoundary>}
 
-      {showPanel && started && <div style={{position:"fixed",top:headerH,...(uiLang==="Arabic"?{left:0,borderRight:`1px solid ${C.border}`}:{right:0,borderLeft:`1px solid ${C.border}`}),bottom:0,width:mob?"100%":320,background:C.card,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":`${uiLang==="Arabic"?"4px":"-4px"} 0 16px rgba(0,0,0,0.08)`}}>
+      {showPanel && started && <aside aria-label={L("panelTitle",uiLang)} style={{position:"fixed",top:headerH,...(uiLang==="Arabic"?{left:0,borderRight:`1px solid ${C.border}`}:{right:0,borderLeft:`1px solid ${C.border}`}),bottom:0,width:mob?"100%":320,background:C.card,zIndex:500,overflowY:"auto",padding:"16px 18px",boxShadow:sideCol?"none":`${uiLang==="Arabic"?"4px":"-4px"} 0 16px rgba(0,0,0,0.08)`}}>
         {/* Header: a LABELLED "Hide" control, not a lone ✕. The faint ✕ read as
             decoration and clients did not realise the panel could be closed. */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontWeight:700,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:7}}><span style={{color:LINK,display:"inline-flex"}}><Ic d={panelGlyph} size={14}/></span>{L("panelTitle",uiLang)}</div>
+          <h2 style={{fontWeight:700,fontSize:14,color:C.text,display:"flex",alignItems:"center",gap:7,margin:0}}><span style={{color:LINK,display:"inline-flex"}}><Ic d={panelGlyph} size={14}/></span>{L("panelTitle",uiLang)}</h2>
           <button onClick={()=>setShowPanel(false)} aria-label={L("panelHide",uiLang)} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.hi,border:`1px solid ${C.border}`,borderRadius:999,color:C.muted,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 11px"}}>
             {L("panelHide",uiLang)}<span aria-hidden="true" style={{fontSize:13,lineHeight:1}}>{uiLang==="Arabic"?"‹":"›"}</span>
           </button>
@@ -4225,10 +4375,10 @@ input,textarea,select,button{font-family:inherit}
                 itself as "a conversation, not a form." */}
           </>;
         })()}
-      </div>}
+      </aside>}
 
       {/* Header */}
-      <div ref={headerRef} style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:mob?"8px 12px":"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:56,height:mob?"auto":56,flexWrap:mob?"wrap":"nowrap",gap:mob?6:0,flexShrink:0}}>
+      <header ref={headerRef} style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:mob?"8px 12px":"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:56,height:mob?"auto":56,flexWrap:mob?"wrap":"nowrap",gap:mob?6:0,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <LumenMark size={32}/>
           <div>
@@ -4260,13 +4410,17 @@ input,textarea,select,button{font-family:inherit}
             <Ic d={panelGlyph}/>
             {!showPanel && capturedN>0 && <span aria-hidden="true" style={{position:"absolute",top:-5,insetInlineEnd:-5,minWidth:17,height:17,padding:"0 4px",borderRadius:999,background:A,color:"white",fontSize:10,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,border:`2px solid ${C.card}`,boxSizing:"border-box"}}>{capturedN}</span>}
           </button>}
-          <button onClick={()=>{init();setSound(s=>!s);}} aria-label={sound?"Turn sound off":"Turn sound on"} title={sound?"Sound on":"Sound off"} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={sound?IC.sound:IC.mute}/></button>
-          <button onClick={()=>setTheme(th=>th==="dark"?"light":"dark")} aria-label={dark?"Switch to light mode":"Switch to dark mode"} title={dark?"Light mode":"Dark mode"} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={dark?IC.sun:IC.moon}/></button>
+          <button onClick={()=>{init();setSound(s=>!s);}} aria-label={L(sound?"a11ySoundOff":"a11ySoundOn",uiLang)} title={L(sound?"a11ySoundOff":"a11ySoundOn",uiLang)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={sound?IC.sound:IC.mute}/></button>
+          <button onClick={()=>setTheme(th=>th==="dark"?"light":"dark")} aria-label={L(dark?"a11yLightMode":"a11yDarkMode",uiLang)} title={L(dark?"a11yLightMode":"a11yDarkMode",uiLang)} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:"50%",width:32,height:32,cursor:"pointer",color:C.muted,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><Ic d={dark?IC.sun:IC.moon}/></button>
         </div>
-      </div>
+      </header>
 
       {/* Stepper */}
-      {started && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
+      {/* Hidden once sent. On reload the persisted receipt rendered UNDER a stepper
+          reading "Step 1 of 6 - About you - 0%", which flatly contradicts the finish
+          card directly below it saying the brief is with the onboarding team. There is
+          no progress left to report at that point. */}
+      {started && !sent && <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 24px",flexShrink:0}}>
         {/* Same translate as the message column and the composer below. The outer
             bar stays full-width (it carries the background and border); only this
             centred block moves, so the stepper keeps sitting directly above the
@@ -4290,7 +4444,24 @@ input,textarea,select,button{font-family:inherit}
         {(messages.filter(m=>m.role==="assistant").slice(-1)[0]?.content)||""}
       </div>
       {/* Messages */}
-      <div ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
+      {/* The conversation is the main content. Once the chat started there were ZERO
+          landmarks and ZERO headings on the page — no main, no h1 — so a screen-reader
+          user had no way to jump between the transcript, the stepper, the captured
+          panel and the composer. The h1 is visually hidden because the header lockup
+          already carries the brand visually; it exists so the document has a top-level
+          heading at all. */}
+      <h1 style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0 0 0 0)",whiteSpace:"nowrap",margin:0}}>{L("a11yPageTitle",uiLang)}</h1>
+      {/* A short conversation used to sit pinned to the TOP of a tall column: at
+          1280x720 the opening turn left ~350px of empty canvas between the quick
+          replies and the composer, which reads as a rendering fault rather than a new
+          chat. Chat convention anchors the newest content near the input.
+          Done with an auto-margin spacer, NOT justify-content:flex-end. On a scroll
+          container flex-end makes overflowing content unreachable at the start edge in
+          several engines — you cannot scroll back to the first message. margin-top:auto
+          on a leading spacer absorbs the slack when there is any and collapses to 0
+          when the content overflows, so scrolling stays intact. */}
+      <main ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",display:"flex",flexDirection:"column",minHeight:0,transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
+        <div aria-hidden="true" style={{marginTop:"auto"}}/>
 
         {!started && !saved && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"18px 24px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
@@ -4383,7 +4554,7 @@ input,textarea,select,button{font-family:inherit}
                 <p style={{color:"#92400e",fontSize:13,margin:0,maxWidth:340,lineHeight:1.5}}>{L("eraseWarn",uiLang)}</p>
                 <div style={{display:"flex",gap:12}}>
                   <button onClick={()=>setConfirmFresh(false)} style={{background:P,color:"white",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("keepBtn",uiLang)}</button>
-                  <button onClick={()=>{setConfirmFresh(false);const keep=sidRef.current;lsClearDraft(seedId);srvClearDraft(seedId);resetSession();sidRef.current=keep;}} style={{background:"transparent",border:"1px solid #fca5a5",color:"#dc2626",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("eraseBtn",uiLang)}</button>
+                  <button onClick={()=>{setConfirmFresh(false);const keep=sidRef.current;lsClearDraft(seedId);srvClearDraft(seedId);resetSession();sidRef.current=keep;}} style={{background:"transparent",border:"1px solid #fca5a5",color:"#b91c1c",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:600}}>{L("eraseBtn",uiLang)}</button>
                 </div>
               </div>
             )}
@@ -4416,13 +4587,19 @@ input,textarea,select,button{font-family:inherit}
             {m.role==="assistant" && <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>}
             <div style={{maxWidth:m.role==="assistant"?"min(88%, 580px)":"78%"}}>
               {m.content && <div>
-                <div style={{background:m.role==="user"?(m.isWidget?C.hi:C.uBg):(dark?C.card:"#F5F3FB"),border:`1px solid ${m.role==="user"?(m.isWidget?P:C.border):(dark?C.border:"#E5E0F3")}`,color:m.role==="user"?(m.isWidget?C.wTx:C.uTx):C.text,borderRadius:uiLang==="Arabic"?14:(m.role==="assistant"?"4px 14px 14px 14px":"14px 4px 14px 14px"),padding:"11px 15px",fontSize:14,lineHeight:1.7,boxShadow:m.role==="assistant"?"0 1px 3px rgba(1,43,58,0.06)":"none"}}>
+                <div style={{background:m.role==="user"?(m.isWidget?C.hi:C.uBg):(dark?C.card:"#F5F3FB"),border:`1px solid ${m.role==="user"?(m.isWidget?P:C.border):(dark?C.border:"#E5E0F3")}`,color:m.role==="user"?(m.isWidget?C.wTx:C.uTx):C.text,/* The tail belongs on the speaker's own side, so in RTL the two shapes SWAP
+                   rather than flatten. Arabic used to get a uniform 14, which dropped the
+                   asymmetry that distinguishes assistant from client at a glance — the one
+                   cue that survives when you cannot read the language. */
+                borderRadius:uiLang==="Arabic"
+                  ?(m.role==="assistant"?"14px 4px 14px 14px":"4px 14px 14px 14px")
+                  :(m.role==="assistant"?"4px 14px 14px 14px":"14px 4px 14px 14px"),padding:"11px 15px",fontSize:14,lineHeight:1.7,boxShadow:m.role==="assistant"?"0 1px 3px rgba(1,43,58,0.06)":"none"}}>
                   {m.isAttachment
                     ? <div><div style={{display:"flex",alignItems:"center",gap:8}}><Ic d={IC.clip} size={15}/><span style={{wordBreak:"break-word",fontWeight:600}}>{m.content}</span></div>{m.attachTrunc && <div style={{fontSize:11,opacity:0.85,marginTop:4}}>{AT("trunc",uiLang)}</div>}</div>
                     : <MsgText text={m.content}/>}
                 </div>
                 <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:m.role==="user"?"flex-end":"flex-start",marginTop:4}}>
-                  {canEdit && <button onClick={()=>{setInput(L("editPrefill",uiLang,{quote:m.content}));setTimeout(()=>taRef.current?.focus(),50);}} title={L("editTitle",uiLang)} style={{background:"transparent",border:"none",color:"#64748b",cursor:"pointer",fontSize:11,padding:"2px 6px",borderRadius:4,opacity:0.85}}>✎ {L("editLabel",uiLang)}</button>}
+                  {canEdit && <button onClick={()=>{setInput(L("editPrefill",uiLang,{quote:m.content}));setTimeout(()=>taRef.current?.focus(),50);}} title={L("editTitle",uiLang)} style={{background:"transparent",border:"none",color:"#556377",cursor:"pointer",fontSize:11,padding:"2px 6px",borderRadius:4,opacity:0.85}}>✎ {L("editLabel",uiLang)}</button>}
                 </div>
               </div>}
               {m.role==="assistant" && m.quickReplies?.length>0 && (()=>{
@@ -4476,7 +4653,7 @@ input,textarea,select,button{font-family:inherit}
           </div>
         </div>}
 
-        {retryMsg && !loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
+        {retryMsg && !loading && <div role="alert" style={{display:"flex",justifyContent:"flex-start",marginBottom:18,animation:"slideUpFade 0.3s ease-out forwards"}}>
           <div style={{flexShrink:0,marginInlineEnd:10,marginTop:2}}><OwlAvatar/></div>
           <div style={{background:dark?"#3a2f1a":"#fffbeb",border:`1px solid ${dark?"#5c4a24":"#fde68a"}`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{flexShrink:0}}><path d="M1 1l22 22 M16.72 11.06A10.94 10.94 0 0 1 19 12.55 M5 12.55a10.94 10.94 0 0 1 5.17-2.39 M10.71 5.05A16 16 0 0 1 22.58 9 M1.42 9a15.91 15.91 0 0 1 4.7-2.88 M8.53 16.11a6 6 0 0 1 6.95 0 M12 20h.01"/></svg>
@@ -4500,7 +4677,7 @@ input,textarea,select,button{font-family:inherit}
         {(done || sent) && !loading && <FinishCard C={C} cdata={cdata} setShowExport={setShowExport} linkCopied={linkCopied} setLinkCopied={setLinkCopied} sent={sent} sheetLink={sheetLink} onSeeProserv={onSeeProserv} lang={uiLang}/>}
 
         <div ref={botRef}/>
-      </div>
+      </main>
 
       {/* Input */}
       {started && <div style={{background:C.card,borderTop:`1px solid ${C.border}`,padding:"12px 16px",paddingBottom:"calc(12px + env(safe-area-inset-bottom, 0px))",flexShrink:0}}>
@@ -4517,7 +4694,7 @@ input,textarea,select,button{font-family:inherit}
               onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg();}}}
               aria-label={L("phReply",uiLang)} placeholder={!mob&&awaitingWidget?L("phAnswerAbove",uiLang):L("phReply",uiLang)} rows={1}
               style={{flex:1,background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"11px 14px",fontSize:mob?16:14,resize:"none",outline:"none",color:C.text}}/>
-            <button onClick={()=>sendMsg()} aria-label="Send message" disabled={!input.trim()&&!loading}
+            <button onClick={()=>sendMsg()} aria-label={L("a11ySend",uiLang)} disabled={!input.trim()&&!loading}
               style={{background:A,color:"white",border:"none",borderRadius:12,width:44,height:44,cursor:input.trim()||loading?"pointer":"default",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",opacity:input.trim()||loading?1:0.4,boxShadow:input.trim()&&!loading?"0 4px 14px rgba(126,72,236,0.35)":"none"}}>
               {loading?<Spinner/>:<span style={{fontSize:18}}>↑</span>}
             </button>
