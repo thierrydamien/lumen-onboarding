@@ -5,8 +5,14 @@ against commit `8d725b7` and 162 tests. It is now three lineages out of date and
 every item on its backlog has since been closed, so it has been replaced wholesale
 rather than amended. **Do not act on a copy of the older version.**
 
-Current state: `3a5c6d6`, **502 tests** across 45 files, build and function bundle
+Current state: `4277407`, **564 tests** across 48 files, build and function bundle
 clean. Every source file in the repo is named by at least one test.
+
+Since the rewrite above, a design critique of the client chat was run and acted on:
+`.impeccable/critique/` holds the snapshot (scored 24/40) and is the backlog for
+what is left of it. `PRODUCT.md` at the repo root is the confirmed product record
+that Impeccable commands read — most importantly that success is **brief quality,
+not completion**, which reorders most design tradeoffs.
 
 ---
 
@@ -24,13 +30,28 @@ Three things about this repo will waste your time if you learn them the hard way
    `tests/google-gate-endpoint.test.js` and `tests/keep-warm.test.js` all do, and
    the defects they found were invisible to inspection.
 
-3. **Prove every regression test fails when you revert its fix.** This is not
+3. **The browser pane does not composite, so it lies about anything animated.** This
+   has faked a failure three times in three different disguises: a CSS transition
+   frozen at zero progress reporting collapsed values forever; `scrollIntoView`
+   with `behavior:"smooth"` leaving `scrollTop` at 0 (`auto` moved it to 1226), which
+   is indistinguishable from a blocked scroll; and a `transition: 0.15s` on `color`
+   still reporting the light value after a theme flip. `resize_window` also fires no
+   `resize` event, so the app never learns the viewport changed. **Inject
+   `*{transition:none!important;animation:none!important}` before measuring anything
+   visual, and dispatch `new Event("resize")` by hand.** Where a claim can only be
+   seen with those out of the way, instrument the MECHANISM instead of the pixels —
+   patching `Element.prototype.scrollIntoView` to count calls is what finally settled
+   the auto-scroll bug after the pixel measurement had confounded it.
+
+4. **Prove every regression test fails when you revert its fix.** This is not
    ceremony. Tests in this repo have passed against broken code four separate
    times: a `[^)]*` that could not cross a `)`, an assertion that matched an
    explanatory comment about the old behaviour, a whole-file search that matched
    the word "anthropic" in a header comment at character 15, and a lazy regex
    that wandered across HTML element boundaries. Each looked fine and asserted
-   nothing.
+   nothing. A related failure mode: a test that pins an identifier or a tag name
+   rather than a behaviour. Three have broken on pure renames or a `<div>` becoming a
+   `<header>`, none of which changed anything the test existed to check.
 
 ---
 
@@ -39,7 +60,7 @@ Three things about this repo will waste your time if you learn them the hard way
 ### Unit / source tests
 
 ```bash
-npm test                 # 502 tests
+npm test                 # 564 tests
 npm run build            # vite build
 npx esbuild netlify/functions/*.js --bundle --platform=node --format=esm \
   --outdir=/tmp/fnck --external:@netlify/blobs   # function bundle check
@@ -92,8 +113,8 @@ far fewer runs, which keeps the API bill down.
 
 | Area | How |
 |---|---|
-| Client chat (`src/lumen.jsx`, 4,926 lines) | 27 test files + 16 browser drivers |
-| Sales link generator | 6 test files + browser harness |
+| Client chat (`src/lumen.jsx`, 5,258 lines) | 30 test files + 16 browser drivers |
+| Sales link generator | 7 test files + browser harness |
 | Dashboard | 8 test files + browser driver |
 | Team hub (`index.html`) | link/redirect and semantics tests |
 | Netlify functions | per-function tests; `seed`, `session`, `chat` heavily |
@@ -153,6 +174,14 @@ Do not "fix" these without talking to the owner first.
   flaky request resolves in ~600ms; the rotating "thinking" copy stops it looking
   frozen.
 - **Mobile welcome screen needs ~1.2 screens of scroll.** Normal web behaviour.
+- **The widget palette is one CSS variable per DISTINCT light value**, not per
+  semantic role, and several look like near-duplicates (`--wc-subtle`,
+  `--wc-subtle-2`, `--wc-subtle-3`). Merging them would change light-mode pixels,
+  which the dark-mode refactor was explicitly not allowed to do. Leave them.
+- **The floating scrollbar renders ~200px inside the content area**, because the
+  scroll container is the translated message column. Fixing it means moving which
+  element scrolls, and that interacts with the auto-scroll follow behaviour in
+  `msgRef`. Deliberately not attempted in the same pass.
 - **Inter, and the Hootsuite mint/cherry palette, are deliberate.** Automated
   design tooling flags them as generic. They are brand constraints and they keep
   the Sales page and the chat reading as one product. Defend, don't change.
