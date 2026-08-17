@@ -35,12 +35,31 @@ export async function rateLimit(req, bucket, { perMin, perHour }) {
   const key = bucket + ":" + clientIp(req);
   let rec;
   try { rec = await store.get(key, { type: "json" }); } catch { return { ok: true }; }
-  rec = rec || { mStart: now, mCount: 0, hStart: now, hCount: 0 };
+  // Anything that is not the exact shape we wrote is treated as absent. Without
+  // this a malformed record is permanently self-sustaining, and it fails BOTH
+  // ways — neither of which is the fail-open this module promises:
+  //   - non-numeric mStart/hStart: `now - mStart` is NaN, so `>= MIN_MS` is never
+  //     true, the window never rolls, and that IP is locked out of the endpoint
+  //     for good.
+  //   - an array: `rec.mCount++` sets a non-index property, which JSON drops on
+  //     write, so the counter never persists and the limit is bypassed for good.
+  //   - a string or number: `rec.mCount++` throws a TypeError straight out of
+  //     here, past the two storage catches above.
+  // Measured, all four shapes, before and after. Cheap to check and every failure
+  // it prevents is silent.
+  const usable = rec && typeof rec === "object" && !Array.isArray(rec)
+    && Number.isFinite(rec.mStart) && Number.isFinite(rec.hStart)
+    && Number.isFinite(rec.mCount) && Number.isFinite(rec.hCount);
+  if (!usable) rec = { mStart: now, mCount: 0, hStart: now, hCount: 0 };
   if (now - rec.mStart >= MIN_MS) { rec.mStart = now; rec.mCount = 0; }
   if (now - rec.hStart >= HOUR_MS) { rec.hStart = now; rec.hCount = 0; }
   rec.mCount++; rec.hCount++;
   const overMin = rec.mCount > perMin, overHour = rec.hCount > perHour;
-  try { await store.setJSON(key, rec); } catch { /* best effort; a lost write resets a bucket */ }
+  // Best effort. Note that if writes fail PERSISTENTLY the counter never advances,
+  // so the limiter stops limiting altogether rather than merely losing a bucket.
+  // That is consistent with the fail-open posture above, but it is worth knowing:
+  // a Blobs write outage disables this control silently while reads still succeed.
+  try { await store.setJSON(key, rec); } catch { /* see above */ }
   if (overMin || overHour) {
     const secs = overHour ? Math.ceil((rec.hStart + HOUR_MS - now) / 1000)
                           : Math.ceil((rec.mStart + MIN_MS - now) / 1000);

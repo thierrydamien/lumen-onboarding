@@ -276,7 +276,14 @@ async function rateLimit(ip, seeded) {
   const key = (seeded ? "s:" : "a:") + ip;
   let rec;
   try { rec = await store.get(key, { type: "json" }); } catch { return { ok: true }; }
-  rec = rec || { mStart: now, mCount: 0, hStart: now, hCount: 0 };
+  // Same shape guard as ../lib/ratelimit.js, and it matters more here: this is the
+  // path every client turn goes through, so a malformed record whose mStart is not
+  // a number means the minute window never rolls and that IP can never send another
+  // message — the onboarding just stops, mid-conversation, with a 429.
+  const usable = rec && typeof rec === "object" && !Array.isArray(rec)
+    && Number.isFinite(rec.mStart) && Number.isFinite(rec.hStart)
+    && Number.isFinite(rec.mCount) && Number.isFinite(rec.hCount);
+  if (!usable) rec = { mStart: now, mCount: 0, hStart: now, hCount: 0 };
   if (now - rec.mStart >= 60000)   { rec.mStart = now; rec.mCount = 0; }     // minute window rolled
   if (now - rec.hStart >= 3600000) { rec.hStart = now; rec.hCount = 0; }     // hour window rolled
   rec.mCount++; rec.hCount++;

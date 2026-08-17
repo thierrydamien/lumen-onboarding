@@ -51,7 +51,7 @@
 
   h1{font-size:21px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em}
   .sub{color:var(--muted);font-size:13.5px;margin:0 0 30px;max-width:56ch}
-  .eyebrow{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  .eyebrow{font-size:10px;line-height:1.55;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--faint);display:flex;align-items:center;gap:10px;margin:0 0 12px}
   .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
 
@@ -69,7 +69,8 @@
   .who{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     color:var(--muted);background:var(--bg);border:1px solid var(--line);
     border-radius:999px;padding:2px 8px;white-space:nowrap}
-  .d{font-size:13px;color:var(--muted);margin:5px 0 0}
+  /* display:block because these are <span>s — a <p> here is invalid inside <span class="txt">. */
+  .d{display:block;font-size:13px;color:var(--muted);margin:5px 0 0}
   .go{color:var(--purple);font-weight:700}
 
   /* The client's own step: real, but not somewhere the team can navigate to. */
@@ -102,16 +103,17 @@
     <span class="mode">Internal</span>
   </header>
 
+  <main>
   <h1>Onboarding Assistant</h1>
   <p class="sub">Everything behind Lumen client onboarding. Start at step one to set a new client up.</p>
 
-  <p class="eyebrow">Setting up a client</p>
+  <h2 class="eyebrow">Setting up a client</h2>
 
   <a class="card" href="/sales">
     <span class="num">1</span>
     <span class="txt">
       <span class="t">Create their link <span class="who">Sales &amp; CS</span></span>
-      <p class="d">Add the client's details, attach or paste their brief, and generate the personalised link to send them.</p>
+      <span class="d">Add the client's details, attach or paste their brief, and generate the personalised link to send them.</span>
     </span>
   </a>
 
@@ -124,20 +126,21 @@
     <span class="num">2</span>
     <span class="txt">
       <span class="t">Review what came back <span class="who">Proserv</span></span>
-      <p class="d">Every session and its requirements document, who has stalled and needs a nudge, and the time saved across the team. Asks for the Proserv access token.</p>
+      <span class="d">Every session and its requirements document, who has stalled and needs a nudge, and the time saved across the team. Asks for the Proserv access token.</span>
     </span>
   </a>
 
   <div class="util">
-    <p class="eyebrow">Demo &amp; testing</p>
+    <h2 class="eyebrow">Demo &amp; testing</h2>
     <a class="card quiet" href="/chat">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
       <span class="txt">
         <span class="t">Open the assistant with no client attached</span>
-        <p class="d">Nothing is pre-filled and any brief it produces is not tied to a client, so it is for showing the experience or trying a change. Real clients always get their own link from step one.</p>
+        <span class="d">Nothing is pre-filled and any brief it produces is not tied to a client, so it is for showing the experience or trying a change. Real clients always get their own link from step one.</span>
       </span>
     </a>
   </div>
+  </main>
 </div>
 </body>
 </html>
