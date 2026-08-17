@@ -28,3 +28,36 @@
   from = "/dashboard"
   to = "/dashboard.html"
   status = 200
+
+# Response headers. The site had none at all.
+#
+# frame-ancestors / X-Frame-Options: nothing in this repo embeds anything (checked
+# — there is not one iframe), so DENY costs nothing. It is worth having because
+# /dashboard reaches session-admin, which PERMANENTLY DELETES sessions, and a rep
+# sitting on that page has a live Google session. An attacker cannot read the
+# response cross-origin, but clickjacking does not need to read: it needs the rep
+# to click. Both headers are sent because X-Frame-Options still covers browsers
+# that predate frame-ancestors.
+#
+# Referrer-Policy: this one is specific to how this app works. The client's link
+# IS the secret — /chat?s=<seedId> is the only thing standing between a stranger
+# and that client's session — so the full URL must never travel in a Referer
+# header. The two outbound links a client can reach already carry
+# rel="noopener noreferrer" (verified), and modern browsers default to
+# strict-origin-when-cross-origin anyway; setting it explicitly closes the gap on
+# older ones, which defaulted to no-referrer-when-downgrade and sent the whole URL,
+# query string included, to any https destination.
+#
+# Deliberately NOT a full Content-Security-Policy. Both internal pages carry large
+# inline <script> blocks, so any workable policy needs 'unsafe-inline', which gives
+# up most of what a CSP is for. Doing it properly means nonces or lifting those
+# scripts out to files, and that is a change worth testing on its own rather than
+# smuggling in beside a header block. The only external origin either page needs is
+# https://accounts.google.com (Sign-In); fonts are self-hosted.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
