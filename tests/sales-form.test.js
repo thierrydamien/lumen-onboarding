@@ -21,6 +21,18 @@ import { readFileSync } from "node:fs";
 
 const sales = readFileSync(new URL("../public/sales.html", import.meta.url), "utf8");
 
+// Slice generate() to its actual end rather than a magic character count. Both
+// assertions below used to take a fixed window (1600 / 2400 chars) and broke the
+// moment a guard was added at the top of the function — the code they check had
+// simply moved to char 1624 and 2549. A test that fails on unrelated edits above
+// it is noise, and the natural response to noise is to weaken the assertion.
+const generateFn = (() => {
+  const from = sales.indexOf("async function generate()");
+  const rest = sales.slice(from);
+  const end = rest.indexOf("\n  function fillExample");
+  return end === -1 ? rest : rest.slice(0, end);
+})();
+
 describe("Generate is never a dead control", () => {
   it("does not disable itself on an incomplete form", () => {
     // checkValid still REPORTS completeness (callers use the boolean); what it
@@ -30,17 +42,14 @@ describe("Generate is never a dead control", () => {
   });
 
   it("still validates, names the field, and moves focus to it", () => {
-    const gen = sales.slice(sales.indexOf("async function generate()"));
-    const body = gen.slice(0, 1600);
-    expect(body).toContain('classList.add("invalid")');
-    expect(body).toContain("Your name is required.");
-    expect(body).toMatch(/\$\(firstBad\)\.focus\(\)/);
-    expect(body).toMatch(/scrollIntoView/);
+    expect(generateFn).toContain('classList.add("invalid")');
+    expect(generateFn).toContain("Your name is required.");
+    expect(generateFn).toMatch(/\$\(firstBad\)\.focus\(\)/);
+    expect(generateFn).toMatch(/scrollIntoView/);
   });
 
   it("reserves disabled for the in-flight state, so a double-click can't double-post", () => {
-    const gen = sales.slice(sales.indexOf("async function generate()"));
-    expect(gen.slice(0, 2400)).toMatch(/btn\.disabled = true;\s*btn\.textContent = "Generating/);
+    expect(generateFn).toMatch(/btn\.disabled = true;\s*btn\.textContent = "Generating/);
   });
 
   it("lets Enter reach the same validation instead of silently doing nothing", () => {

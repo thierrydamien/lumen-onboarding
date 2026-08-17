@@ -103,7 +103,9 @@
   .btn.copied { background:#0a7d3f; }
   .btn.alt { background:#fff; color:var(--purple); border:1px solid #d9cbf7; box-shadow:none; }
   .actions { margin-top:20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .linklike { background:none; border:none; color:var(--muted); text-decoration:underline; font-size:12px; cursor:pointer; padding:0; font-weight:400; }
+  /* min-height 24px meets WCAG 2.5.8 (Target Size, Minimum). These render at 15px
+     on their text alone, which is a small tap target on a phone. */
+  .linklike { background:none; border:none; color:var(--muted); text-decoration:underline; font-size:12px; cursor:pointer; padding:0; font-weight:400; display:inline-flex; align-items:center; min-height:24px; }
 
   /* Error state (a required field left empty on Generate): a clear rose ring, kept
      distinct from the purple "Required" marker so "must fill" and "you missed one"
@@ -113,8 +115,22 @@
   .formerr { color:var(--rose); font-size:12.5px; margin-top:12px; min-height:16px; }
 
   /* Generated link: revealed below the button, no separate rail. */
-  .out { margin-top:20px; border:1px solid var(--border); border-radius:12px; background:#f8fafb; max-height:0; opacity:0; overflow:hidden; padding:0 16px; transition:max-height .3s ease, opacity .3s ease, padding .3s ease; }
-  .out.show { max-height:480px; opacity:1; padding:16px; }
+  /* visibility, not just max-height/opacity. Collapsing with max-height alone leaves
+     the panel display:block and visible to the a11y tree, so on a FRESH load a screen
+     reader read out "✓ Link ready … Copy … Email to client" before any link existed,
+     and a keyboard user hit four dead tab stops on invisible controls. visibility
+     also transitions, so it flips in at once on show and only after the collapse
+     finishes on hide, leaving the animation unchanged. */
+  /* visibility, not just max-height/opacity. Collapsing with max-height alone leaves
+     the panel display:block and visible to the a11y tree, so on a FRESH load a screen
+     reader read out "✓ Link ready … Copy … Email to client" before any link existed,
+     and a keyboard user hit four dead tab stops on invisible controls.
+     visibility is switched with `0s` duration and a DELAY rather than interpolated:
+     no delay on show (visible at once, so the reveal is never gated on the
+     transition running), and a .3s delay on hide so the collapse still plays out
+     before the panel leaves the a11y tree. */
+  .out { margin-top:20px; border:1px solid var(--border); border-radius:12px; background:#f8fafb; max-height:0; opacity:0; overflow:hidden; padding:0 16px; visibility:hidden; transition:max-height .3s ease, opacity .3s ease, padding .3s ease, visibility 0s linear .3s; }
+  .out.show { max-height:480px; opacity:1; padding:16px; visibility:visible; transition:max-height .3s ease, opacity .3s ease, padding .3s ease, visibility 0s linear 0s; }
   .done { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#0a7d3f; background:#e8f7ee; border-radius:999px; padding:4px 11px; margin-bottom:12px; }
   .linkbox { display:flex; gap:8px; margin:4px 0 6px; }
   .linkbox input { background:#fff; font-size:12px; }
@@ -222,8 +238,11 @@
         <p style="font-size:12px;color:#64748b;margin:0 0 10px;line-height:1.5;">Upload a filled media brief (or paste a link to one) to pre-fill the fields below and give the assistant a head start, so the client doesn't repeat what they already told you.</p>
         <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
           <a class="linklike" href="/media-brief-template.xlsx" download="Media Brief Template.xlsx">↓ Download the media brief template</a>
-          <label class="btn alt" for="briefFile" style="cursor:pointer;">Upload completed brief</label>
-          <input id="briefFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;"/>
+          <!-- A real <button>, not a <label for>. A label is not focusable and the
+               input is display:none, so the styled label was mouse-only: there was no
+               keyboard path to the file picker at all. The button forwards the click. -->
+          <button type="button" class="btn alt" id="briefFileBtn">Upload completed brief</button>
+          <input id="briefFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;" tabindex="-1" aria-hidden="true"/>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">
           <input id="briefUrl" type="url" placeholder="…or paste a Google Sheet link" style="flex:1;min-width:240px;"/>
@@ -325,7 +344,9 @@
       </div>
       <div class="formerr" id="formErr"></div>
 
-      <div class="out" id="out">
+      <!-- Starts inert in the markup, not only via JS, so the panel is out of the tab
+           order and the a11y tree from first paint rather than from first script run. -->
+      <div class="out" id="out" inert aria-hidden="true">
         <div class="done">✓ Link ready</div>
         <!-- WHO this link is for. The URL is an opaque id by design, so without
              this line a rep juggling two clients in two tabs could email the
@@ -343,7 +364,11 @@
         <div class="hint" id="noEmailNote" style="display:none;margin-top:8px;">No client email on file, so the draft opens with an empty To field for you to fill in.</div>
         <div class="dupnote" id="dupNote" style="display:none;"></div>
         <div class="hint" id="expiryNote" style="margin-top:10px;"></div>
-        <div class="hint" style="margin-top:6px;">Your internal notes are never part of the link so they stay private to the team. The client just opens it to start their onboarding.</div>
+        <!-- This used to promise "your internal notes are never part of the link".
+             There is no internal notes field any more: the only free-text box is the
+             brief, which the assistant reads back to the client. A rep who trusted
+             the old line could have typed something confidential into it. -->
+        <div class="hint" style="margin-top:6px;">The product, service package and your name stay internal to the team. The client just opens the link to start their onboarding.</div>
       </div>
     </div>
   </div>
@@ -366,9 +391,9 @@
 
   <!-- Write-token gate: styled card instead of window.prompt(). -->
   <div class="gate" id="wtGate">
-    <form class="gcard" id="wtForm">
+    <form class="gcard" id="wtForm" role="dialog" aria-modal="true" aria-labelledby="wtTitle">
       <div class="glogo"><img src="/lumen-mark.png" alt=""/></div>
-      <h2>Sales write token</h2>
+      <h2 id="wtTitle">Sales write token</h2>
       <p id="wtMsg">Enter the Sales write token to generate client links.</p>
       <input id="wtInput" type="password" autocomplete="current-password" placeholder="Write token" aria-label="Sales write token"/>
       <div class="gerr" id="wtErr"></div>
@@ -384,6 +409,25 @@
   var CHAT_BASE = location.origin + "/chat";
 
   var $ = function (id) { return document.getElementById(id); };
+
+  // Show/hide the generated-link panel. `inert` is what actually takes it out of the
+  // tab order and the accessibility tree; the CSS collapse alone left four focusable
+  // controls and a "✓ Link ready" heading exposed over a client's stale link. Done in
+  // JS rather than by transitioning `visibility` so it does not depend on the
+  // animation ticking, and routed through one helper so no call site can forget it.
+  function showOut(on) {
+    var el = $("out");
+    el.classList.toggle("show", !!on);
+    if (on) { el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); return; }
+    // Generate auto-selects the link, so focus is usually INSIDE the panel when an
+    // edit retracts it. inert does not blur an element that already holds focus, so
+    // move focus out first or it is stranded in a region nothing can tab back into.
+    if (el.contains(document.activeElement)) {
+      try { document.activeElement.blur(); } catch (e) {}
+    }
+    el.setAttribute("inert", "");
+    el.setAttribute("aria-hidden", "true");
+  }
 
   // HTML-escape any value before it goes into innerHTML (duplicate heads-up below).
   function esc(s) {
@@ -430,14 +474,40 @@
 
   function writeToken() { return localStorage.getItem("sales_write_token") || ""; }
   var _wtResolve = null;
+  var _wtReturnFocus = null;
   function askWriteToken(msg) {
     $("wtMsg").textContent = msg || "Enter the Sales write token to generate client links.";
     $("wtErr").textContent = ""; $("wtInput").value = "";
+    _wtReturnFocus = document.activeElement;
     $("wtGate").classList.add("show");
     setTimeout(function () { $("wtInput").focus(); }, 50);
     return new Promise(function (resolve) { _wtResolve = resolve; });
   }
-  function _wtClose(val) { $("wtGate").classList.remove("show"); var r = _wtResolve; _wtResolve = null; if (r) r(val); }
+  function _wtClose(val) {
+    $("wtGate").classList.remove("show");
+    var r = _wtResolve; _wtResolve = null;
+    // Put focus back where it was, or it lands on <body> and a keyboard user
+    // restarts from the top of the page.
+    try { if (_wtReturnFocus && _wtReturnFocus.focus) _wtReturnFocus.focus(); } catch (e) {}
+    _wtReturnFocus = null;
+    if (r) r(val);
+  }
+  // Make the gate behave like a dialog rather than a div that happens to cover the
+  // page: Escape and a backdrop click both cancel, and Tab cycles inside it instead
+  // of walking out into the 21 controls behind, which are unreachable by mouse.
+  $("wtGate").addEventListener("mousedown", function (e) {
+    if (e.target === $("wtGate")) _wtClose(false); // backdrop only, never the card
+  });
+  document.addEventListener("keydown", function (e) {
+    if (!$("wtGate").classList.contains("show")) return;
+    if (e.key === "Escape") { e.preventDefault(); _wtClose(false); return; }
+    if (e.key !== "Tab") return;
+    var f = [...$("wtForm").querySelectorAll("input,button")].filter(function (el) { return !el.disabled; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
   $("wtForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var t = $("wtInput").value.trim();
@@ -497,8 +567,18 @@
     return !!($("company").value.trim() && $("preparedBy").value.trim() && $("pkgProduct").value && $("pkgTier").value);
   }
 
+  // The button's idle label is captured ONCE, at load. Reading it inside generate()
+  // meant a second overlapping call captured "Generating…" as the label to restore,
+  // so the button read "Generating…" for the rest of the session even while idle.
+  var GEN_IDLE_LABEL = $("gen").textContent;
   var _genSeq = 0;
+  var _generating = false;
   async function generate() {
+    // One generate at a time. The button is disabled while in flight, but the Enter
+    // key handler calls generate() directly and never saw that, so an impatient rep
+    // minted a seed record per keypress — each one real client data in the store, a
+    // stray dashboard row, and a false hit for the duplicate-client scan.
+    if (_generating) return;
     var myGen = ++_genSeq;
     $("formErr").textContent = "";
     var company = $("company").value.trim();
@@ -536,7 +616,8 @@
       preparedBy: preparedBy,
       package: pkg
     };
-    var btn = $("gen"), label = btn.textContent;
+    var btn = $("gen");
+    _generating = true;
     btn.disabled = true; btn.textContent = "Generating…";
     try {
       var res = await postSeed(seed);
@@ -556,10 +637,17 @@
       // Don't reveal a stale link: bail if a newer Generate started, or if the form
       // was edited during the round trip (the on-edit "clear link" invariant is a
       // no-op while the panel is still hidden, so it can't catch this case).
+      // pkgCode() MUST be in here. It is the one field that scopes the whole client
+      // conversation (topic/channel/dashboard allowances), so a link generated under
+      // one package and revealed under another is the most expensive stale link we
+      // can hand out: the on-screen allowance panel actively confirms the wrong
+      // numbers while the seed carries the old ones.
       var changed = $("company").value.trim() !== seed.company || $("contactName").value.trim() !== seed.contactName
         || $("email").value.trim() !== seed.email || $("industry").value.trim() !== seed.industry
         || $("briefText").value.trim() !== seed.brief
-        || $("language").value !== seed.language || $("preparedBy").value.trim() !== seed.preparedBy;
+        || $("language").value !== seed.language || $("preparedBy").value.trim() !== seed.preparedBy
+        || $("notes").value.trim() !== seed.notes
+        || pkgCode() !== seed.package;
       if (myGen !== _genSeq || changed) { $("formErr").textContent = "Details changed — click Generate again for an updated link."; return; }
       $("link").value = CHAT_BASE + "?s=" + encodeURIComponent(data.id);
       // Echo who the link is for, from the seed actually sent. esc() everything:
@@ -571,12 +659,13 @@
       setExpiryNote(data.expiresAt);
       setDupNote(company, data.duplicates);
       $("noEmailNote").style.display = seed.email ? "none" : ""; // heads-up if the email draft will open with a blank To
-      $("out").classList.add("show");
+      showOut(true);
       setTimeout(function () { try { $("link").select(); } catch (e) {} }, 350); // auto-select after the reveal
     } catch (e) {
       $("formErr").textContent = "Could not reach the server to generate the link. Please try again.";
     } finally {
-      btn.disabled = false; btn.textContent = label;
+      _generating = false;
+      btn.disabled = false; btn.textContent = GEN_IDLE_LABEL;
     }
   }
 
@@ -591,7 +680,7 @@
     // form a new rep is most likely to get wrong.
     $("notes").value = "Why they bought: lost share to Samsung in EMEA, board is watching.\nSensitivities: don't dwell on the Brandwatch migration, it was a difficult switch.";
     $("pkgProduct").value = "analyze"; $("pkgTier").value = "advanced";
-    $("out").classList.remove("show"); // programmatic fill doesn't fire input events, so clear any stale link here too
+    showOut(false); // programmatic fill doesn't fire input events, so clear any stale link here too
     $("company").classList.remove("invalid"); $("contactName").classList.remove("invalid"); $("preparedBy").classList.remove("invalid"); $("pkgProduct").classList.remove("invalid"); $("pkgTier").classList.remove("invalid");
     $("err_company").textContent = ""; $("err_contactName").textContent = ""; $("err_preparedBy").textContent = ""; $("err_email").textContent = ""; $("err_pkg").textContent = ""; $("formErr").textContent = "";
     $("briefUrl").value = ""; if ($("briefStatus")) $("briefStatus").style.display = "none"; if ($("briefPreview")) $("briefPreview").style.display = "none"; // example populates the brief box directly
@@ -737,17 +826,61 @@
     fetch_failed: "Couldn't reach that sheet. Try again, or download and upload it.",
     rate_limited: "Too many briefs read in a short time. Wait a minute and try again."
   };
+  // An import REPLACES the four client fields. That's right for the normal flow
+  // (import first, then review), but a rep who had already typed them by hand lost
+  // that work with no warning and no way back — note the original code deliberately
+  // APPENDED the brief text to preserve typing, then clobbered these four outright.
+  // So: keep replacing, but snapshot first and offer Undo whenever a field that
+  // actually held something different was overwritten.
+  var FORM_FIELDS = ["company", "contactName", "email", "industry"];
+  var _preImport = null;
+  function undoImport() {
+    if (!_preImport) return;
+    FORM_FIELDS.forEach(function (id) { $(id).value = _preImport[id]; });
+    $("briefText").value = _preImport.briefText;
+    _preImport = null;
+    showOut(false);
+    briefMsg("Reverted to what you had before the import.", "");
+    checkValid();
+  }
   function applyBriefData(data, sourceLabel) {
+    var snap = { briefText: $("briefText").value };
+    FORM_FIELDS.forEach(function (id) { snap[id] = $(id).value; });
+
+    var replaced = [];
     if (data.form) {
-      if (data.form.company) $("company").value = data.form.company;
-      if (data.form.contactName) $("contactName").value = data.form.contactName;
-      if (data.form.email) $("email").value = data.form.email;
-      if (data.form.industry) $("industry").value = data.form.industry;
+      FORM_FIELDS.forEach(function (id) {
+        var incoming = data.form[id];
+        if (!incoming) return;
+        var had = $(id).value.trim();
+        if (had && had !== String(incoming).trim()) replaced.push(id);
+        $(id).value = incoming;
+      });
     }
     if (data.brief) { var curB = $("briefText").value.trim(); $("briefText").value = curB ? (curB + "\n" + data.brief) : data.brief; }
-    $("out").classList.remove("show"); // any previously generated link is now stale
+    showOut(false); // any previously generated link is now stale
     var n = data.filledCount || 0;
     briefMsg("Loaded " + n + " field" + (n === 1 ? "" : "s") + " from " + sourceLabel + ". Review the details below, then generate the link.", "ok");
+
+    // Name what was overwritten, and let them take it back. Silence here meant a rep
+    // who pasted the wrong sheet link had no idea their own typing was gone.
+    if (replaced.length) {
+      _preImport = snap;
+      var LABELS = { company: "Company", contactName: "Contact name", email: "Contact email", industry: "Industry" };
+      var names = replaced.map(function (id) { return LABELS[id]; }).join(", ");
+      var note = document.createElement("div");
+      note.style.cssText = "margin-top:7px;font-size:11.5px;color:#92400e;";
+      note.appendChild(document.createTextNode("Replaced what you had in: " + names + ". "));
+      var undo = document.createElement("button");
+      undo.type = "button"; undo.className = "linklike"; undo.id = "briefUndo";
+      undo.style.color = "#92400e"; undo.textContent = "Undo";
+      undo.addEventListener("click", undoImport);
+      note.appendChild(undo);
+      $("briefStatus").appendChild(note);
+    } else {
+      _preImport = null;
+    }
+
     ["company", "contactName", "email"].forEach(function (id) { $(id).classList.remove("invalid"); });
     ["err_company", "err_contactName", "err_email"].forEach(function (id) { if ($(id)) $(id).textContent = ""; });
     checkValid();
@@ -783,6 +916,7 @@
       briefMsg("Couldn't reach the server to read that brief. Try again.", "err");
     }
   }
+  $("briefFileBtn").addEventListener("click", function () { $("briefFile").click(); });
   $("briefFile").addEventListener("change", function () {
     var file = this.files && this.files[0];
     this.value = ""; // let the rep re-upload the same filename
@@ -864,7 +998,7 @@
     ["err_company", "err_contactName", "err_email", "formErr"].forEach(function (id) { if ($(id)) $(id).textContent = ""; });
     if ($("briefStatus")) $("briefStatus").style.display = "none"; // drop any imported-brief status for the next client
     if ($("briefPreview")) $("briefPreview").style.display = "none";
-    $("out").classList.remove("show");
+    showOut(false);
     setBriefOpen(false); // box is empty again; back to the quiet default
     checkValid();
     try { $("company").focus(); $("company").scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
@@ -899,7 +1033,7 @@
       t.value = (cur ? cur + "\n" : "") + add;
       t.focus();
       try { t.setSelectionRange(t.value.length, t.value.length); } catch (e) {}
-      $("out").classList.remove("show");
+      showOut(false);
     });
   });
 
@@ -908,8 +1042,8 @@
   ["company", "contactName", "email", "industry", "briefText", "notes", "language", "preparedBy", "pkgProduct", "pkgTier"].forEach(function (id) {
     var el = $(id);
     if (!el) return;
-    el.addEventListener("input", function () { $("out").classList.remove("show"); });
-    el.addEventListener("change", function () { $("out").classList.remove("show"); });
+    el.addEventListener("input", function () { showOut(false); });
+    el.addEventListener("change", function () { showOut(false); });
   });
 
   // Clear a field's error as it's corrected and keep Generate's enabled state

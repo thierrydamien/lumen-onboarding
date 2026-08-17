@@ -69,6 +69,47 @@ await page.evaluate(() => { window.__ctl.replies = [
 ]; });
 ```
 
+## The Sales page (`sales-stub.js`)
+
+`public/sales.html` is a plain static page, so it needs no build — copy it, inject
+the stub, serve it. It found nine defects on its first pass, including a link that
+could be generated under one service package and revealed under another.
+
+Copy `google-gate.js` across too. Without it the page throws
+`LumenGoogleGate is not defined` and Generate silently does nothing — which reads
+exactly like the bug you are hunting.
+
+```bash
+rm -rf /tmp/s && mkdir -p /tmp/s
+cp public/sales.html /tmp/s/index.html
+cp public/*.png public/media-brief-template.xlsx public/google-gate.js /tmp/s/
+cp -R public/fonts /tmp/s/
+cp tools/browser-harness/sales-stub.js /tmp/s/stub.js
+node -e 'const fs=require("fs");let h=fs.readFileSync("/tmp/s/index.html","utf8");
+h=h.replace("<script>\n  // The client chat lives at",
+  "<script src=\"/stub.js\"></script>\n<script>\n  // The client chat lives at");
+fs.writeFileSync("/tmp/s/index.html",h);'
+(cd /tmp/s && python3 -m http.server 9200 &)
+```
+
+Its `window.__ctl` covers the three endpoints the page calls:
+
+| field | values |
+|---|---|
+| `seed` | `ok` `slow` `http500` `http401` `http403` `badjson` `noid` `network` |
+| `parseBrief` | `ok` `slow` `http401` `err:<code>` |
+| `previewBrief` | `ok` `slow` `http401` `http500` |
+| `duplicates` | what the seed POST reports back, to drive the duplicate-client note |
+| `seedBodies` | the exact seed objects POSTed — this is how the wrong-package bug was caught |
+
+**Read state from `classList`, not from computed style.** The panel reveal is a
+CSS transition, and a browser pane that is not compositing (hidden, backgrounded)
+freezes transitions at zero progress, so `getComputedStyle` reports the collapsed
+values forever while the class is correctly applied. That cost an hour and looks
+exactly like a cascade bug that isn't one. It is also why the link panel now uses
+`inert` rather than transitioned `visibility` — the a11y state must not depend on
+an animation running.
+
 ## Still worth writing
 
 Composer height after rotation, stepper alignment while the chat column
