@@ -2190,21 +2190,21 @@ export function ChipSelector({ options, max=99, onSubmit, onSkip, placeholder, h
   const toggle = o => { if (sel.includes(o)) setSel(s=>s.filter(x=>x!==o)); else if (!atLim) setSel(s=>[...s,o]); };
   const addC = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#556377",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
-    <div role="group" style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#556377",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}
+    {hint && <div style={{fontSize:12,color:"var(--wc-muted)",marginBottom:10}}>{hint}{max<99&&<span style={{marginLeft:6,background:"var(--wc-accent-soft)",color:"var(--wc-heading)",borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span>}</div>}
+    <div role="group" style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?"var(--wc-accent)":"var(--wc-border)",color:sel.includes(o)?"var(--wc-on-accent)":atLim&&!sel.includes(o)?"var(--wc-disabled)":"var(--wc-muted)",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}
     {/* Custom values (typed via Add) must be VISIBLE like any preset chip — before
         this, they went straight into `sel` but rendered nowhere: the input just
         cleared, with no way to spot a typo or remove the entry. Shown selected,
         with an explicit ✕ affordance (tapping removes, same as toggling off). */}
-    {sel.filter(v=>!options.includes(v)).map(v => <button key={"custom-"+v} onClick={()=>toggle(v)} aria-pressed={true} aria-label={`${WL("removeItem",lang)}: ${v}`} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:"pointer",border:`1px solid ${P}`,background:P,color:"white",transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6}}>{v}<span aria-hidden="true" style={{opacity:0.75,fontSize:11}}>✕</span></button>)}</div>
+    {sel.filter(v=>!options.includes(v)).map(v => <button key={"custom-"+v} onClick={()=>toggle(v)} aria-pressed={true} aria-label={`${WL("removeItem",lang)}: ${v}`} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:"pointer",border:`1px solid ${P}`,background:P,color:"var(--wc-on-accent)",transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6}}>{v}<span aria-hidden="true" style={{opacity:0.75,fontSize:11}}>✕</span></button>)}</div>
     <div style={{display:"flex",gap:6,marginBottom:10}}>
-      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||WL("customValue",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
-      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
+      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={placeholder||WL("customValue",lang)} style={{flex:1,background:"var(--wc-surface)",border:"1px solid var(--wc-accent-line)",borderRadius:8,padding:"7px 11px",fontSize:12,color:"var(--wc-text)",outline:"none"}}/>
+      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:custom.trim()&&!atLim?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
     </div>
-    {max<99 && <div style={{fontSize:11,color:atLim?"#dc2626":"#556377",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>}
+    {max<99 && <div style={{fontSize:11,color:atLim?"var(--wc-err-strong)":"var(--wc-muted)",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>}
     <div style={{display:"flex",gap:8}}>
-      <button onClick={()=>sel.length>0&&onSubmit(sel)} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirm",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>sel.length>0&&onSubmit(sel)} disabled={sel.length===0} style={{background:sel.length>0?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:sel.length>0?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirm",lang)}</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"8px 16px",fontSize:13,color:"var(--wc-muted)",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
 }
@@ -2219,27 +2219,27 @@ export function RankedSelector({ options, max=3, onSubmit, onSkip, hint, initial
   const move   = (i,dir) => setSel(s => { const n=[...s], j=i+dir; if (j<0||j>=n.length) return s; [n[i],n[j]]=[n[j],n[i]]; return n; });
   const addC   = () => { const v=custom.trim(); if (v&&!sel.includes(v)&&!atLim) { setSel(s=>[...s,v]); setCustom(""); } };
   return <div style={{marginTop:8}}>
-    {hint && <div style={{fontSize:12,color:"#556377",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"#ede9fe",color:P,borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span></div>}
-    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?P:"#e2e8f0",color:sel.includes(o)?"white":atLim&&!sel.includes(o)?"#cbd5e1":"#556377",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}</div>
+    {hint && <div style={{fontSize:12,color:"var(--wc-muted)",marginBottom:10}}>{hint}<span style={{marginLeft:6,background:"var(--wc-accent-soft)",color:"var(--wc-heading)",borderRadius:6,padding:"1px 7px",fontSize:11,fontWeight:600}}>{WL("max",lang)} {max}</span></div>}
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>{options.map(o => <button key={o} onClick={()=>toggle(o)} disabled={atLim&&!sel.includes(o)} aria-pressed={sel.includes(o)} style={{padding:"9px 14px",minHeight:38,borderRadius:20,fontSize:12,cursor:atLim&&!sel.includes(o)?"default":"pointer",border:"1px solid",background:sel.includes(o)?P:"transparent",borderColor:sel.includes(o)?"var(--wc-accent)":"var(--wc-border)",color:sel.includes(o)?"var(--wc-on-accent)":atLim&&!sel.includes(o)?"var(--wc-disabled)":"var(--wc-muted)",transition:"all 0.15s"}}>{optLabel(o,lang)}</button>)}</div>
     <div style={{display:"flex",gap:6,marginBottom:10}}>
-      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={WL("somethingElse",lang)} style={{flex:1,background:"white",border:"1px solid #c4b5fd",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none"}}/>
-      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
+      <input value={custom} onChange={e=>setCustom(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addC()} placeholder={WL("somethingElse",lang)} style={{flex:1,background:"var(--wc-surface)",border:"1px solid var(--wc-accent-line)",borderRadius:8,padding:"7px 11px",fontSize:12,color:"var(--wc-text)",outline:"none"}}/>
+      <button onClick={addC} disabled={!custom.trim()||atLim} style={{background:custom.trim()&&!atLim?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:custom.trim()&&!atLim?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"7px 14px",cursor:custom.trim()&&!atLim?"pointer":"default",fontSize:12,fontWeight:600}}>{WL("add",lang)}</button>
     </div>
-    {sel.length>0 && <div style={{background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#556377",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>{WL("prioritiesHdr",lang)}</div>
-      {sel.map((o,i) => <div key={o} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",margin:"0 -4px",borderRadius:8,borderTop:i>0?"1px solid #eef1f5":"none",background:i===0?`${A}12`:"transparent"}}>
-        <span style={{width:22,height:22,borderRadius:"50%",background:i===0?A:P,color:"white",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
-        <span style={{flex:1,fontSize:13,color:"#1e293b",fontWeight:i===0?700:400}}>{optLabel(o,lang)}</span>
-        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={`${WL("moveUp",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===0?"default":"pointer",color:i===0?"#cbd5e1":"#556377",fontSize:13,lineHeight:1,flexShrink:0}}>▲</button>
-        <button onClick={()=>move(i,1)} disabled={i===sel.length-1} aria-label={`${WL("moveDown",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,width:38,height:38,cursor:i===sel.length-1?"default":"pointer",color:i===sel.length-1?"#cbd5e1":"#556377",fontSize:13,lineHeight:1,flexShrink:0}}>▼</button>
-        <button onClick={()=>toggle(o)} aria-label={`${WL("removeItem",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid transparent",borderRadius:8,width:38,height:38,color:"#ef4444",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
+    {sel.length>0 && <div style={{background:"var(--wc-subtle)",border:"1px solid var(--wc-border)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
+      <div style={{fontSize:11,fontWeight:700,color:"var(--wc-muted)",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.04em"}}>{WL("prioritiesHdr",lang)}</div>
+      {sel.map((o,i) => <div key={o} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",margin:"0 -4px",borderRadius:8,borderTop:i>0?"1px solid var(--wc-subtle-2)":"none",background:i===0?`${A}12`:"transparent"}}>
+        <span style={{width:22,height:22,borderRadius:"50%",background:i===0?A:P,color:"var(--wc-on-accent)",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
+        <span style={{flex:1,fontSize:13,color:"var(--wc-text)",fontWeight:i===0?700:400}}>{optLabel(o,lang)}</span>
+        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={`${WL("moveUp",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,width:38,height:38,cursor:i===0?"default":"pointer",color:i===0?"var(--wc-disabled)":"var(--wc-muted)",fontSize:13,lineHeight:1,flexShrink:0}}>▲</button>
+        <button onClick={()=>move(i,1)} disabled={i===sel.length-1} aria-label={`${WL("moveDown",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,width:38,height:38,cursor:i===sel.length-1?"default":"pointer",color:i===sel.length-1?"var(--wc-disabled)":"var(--wc-muted)",fontSize:13,lineHeight:1,flexShrink:0}}>▼</button>
+        <button onClick={()=>toggle(o)} aria-label={`${WL("removeItem",lang)}: ${optLabel(o,lang)}`} style={{background:"transparent",border:"1px solid transparent",borderRadius:8,width:38,height:38,color:"var(--wc-err)",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
       </div>)}
     </div>}
-    <textarea value={details} onChange={e=>setDetails(e.target.value)} rows={2} placeholder={WL("objDetailsPh",lang)} style={{width:"100%",background:"white",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 11px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
-    <div style={{fontSize:11,color:atLim?"#dc2626":"#556377",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>
+    <textarea value={details} onChange={e=>setDetails(e.target.value)} rows={2} placeholder={WL("objDetailsPh",lang)} style={{width:"100%",background:"var(--wc-surface)",border:"1px solid var(--wc-border)",borderRadius:8,padding:"7px 11px",fontSize:12,color:"var(--wc-text)",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:10}}/>
+    <div style={{fontSize:11,color:atLim?"var(--wc-err-strong)":"var(--wc-muted)",marginBottom:10}}>{sel.length}/{max} {WL("selected",lang)}{atLim?" — "+WL("limitReached",lang):""}</div>
     <div style={{display:"flex",gap:8}}>
-      <button onClick={()=>sel.length>0&&onSubmit({ranked:sel,details:details.trim()})} disabled={sel.length===0} style={{background:sel.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirmPriorities",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>sel.length>0&&onSubmit({ranked:sel,details:details.trim()})} disabled={sel.length===0} style={{background:sel.length>0?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:sel.length>0?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:sel.length>0?"pointer":"default"}}>{WL("confirmPriorities",lang)}</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"8px 16px",fontSize:13,color:"var(--wc-muted)",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
 }
@@ -2263,18 +2263,18 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
   // name field should say so instead of just greying out Confirm.
   const nameMissing = (u) => !u.firstName && !!(u.lastName||u.email||u.role);
   return <div style={{marginTop:8}}>
-    {users.map((u,i) => <div key={i} style={{background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
+    {users.map((u,i) => <div key={i} style={{background:"var(--wc-subtle)",border:"1px solid var(--wc-border)",borderRadius:10,padding:"12px 14px",marginBottom:8}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8,marginBottom:8}}>
-        {[["firstName",WL("firstName",lang)],["lastName",WL("lastName",lang)],["role",WL("roleDept",lang)]].map(([k,ph]) => <input key={k} value={u[k]} onChange={e=>upd(i,k,e.target.value)} placeholder={ph} aria-label={ph} style={{background:"white",border:`1px solid ${k==="firstName"&&nameMissing(u)?"#ef4444":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>)}
+        {[["firstName",WL("firstName",lang)],["lastName",WL("lastName",lang)],["role",WL("roleDept",lang)]].map(([k,ph]) => <input key={k} value={u[k]} onChange={e=>upd(i,k,e.target.value)} placeholder={ph} aria-label={ph} style={{background:"var(--wc-surface)",border:`1px solid ${k==="firstName"&&nameMissing(u)?"var(--wc-err)":"var(--wc-border)"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"var(--wc-text)",outline:"none"}}/>)}
         <div>
           {/* Re-validate on change too (not only blur): a client who types an email
               and reaches straight for Confirm never blurs, so the old blur-only
               check left the button dead with zero visible explanation. */}
-          <input value={u.email} onChange={e=>{upd(i,"email",e.target.value);if(errors[`${i}-email`])vEmail(i,e.target.value);}} onBlur={e=>vEmail(i,e.target.value)} placeholder={WL("email",lang)} aria-label={WL("email",lang)} style={{background:"white",border:`1px solid ${errors[`${i}-email`]?"#ef4444":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",width:"100%"}}/>
-          {errors[`${i}-email`] && <div style={{fontSize:10,color:"#ef4444",marginTop:3}}>{errors[`${i}-email`]}</div>}
+          <input value={u.email} onChange={e=>{upd(i,"email",e.target.value);if(errors[`${i}-email`])vEmail(i,e.target.value);}} onBlur={e=>vEmail(i,e.target.value)} placeholder={WL("email",lang)} aria-label={WL("email",lang)} style={{background:"var(--wc-surface)",border:`1px solid ${errors[`${i}-email`]?"var(--wc-err)":"var(--wc-border)"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"var(--wc-text)",outline:"none",width:"100%"}}/>
+          {errors[`${i}-email`] && <div style={{fontSize:10,color:"var(--wc-err)",marginTop:3}}>{errors[`${i}-email`]}</div>}
         </div>
       </div>
-      <div style={{display:"flex",gap:6,alignItems:"center"}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#556377"}}>{a}</button>)}
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>upd(i,"access",a)} aria-pressed={u.access===a} style={{flex:1,padding:"6px 8px",borderRadius:7,fontSize:11,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?"var(--wc-accent)":"var(--wc-border)",color:u.access===a?"var(--wc-on-accent)":"var(--wc-muted)"}}>{a}</button>)}
         {/* Remove a row. The fully-empty guard above already stops an untouched extra row
             from blocking Confirm, but a row the client STARTED and thought better of does
             count as filled: it then failed validation with no way to get rid of it, so
@@ -2284,16 +2284,16 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
         {users.length>1 && <button onClick={()=>{setUsers(us=>us.filter((_,j)=>j!==i)); setErrors({});}}
           aria-label={L("expRemoveUser",lang,{name:u.firstName||u.email||i+1})}
           title={L("expRemoveUser",lang,{name:u.firstName||u.email||i+1})}
-          style={{flexShrink:0,background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:13,padding:"6px 8px",lineHeight:1}}>✕</button>}
+          style={{flexShrink:0,background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:13,padding:"6px 8px",lineHeight:1}}>✕</button>}
       </div>
     </div>)}
     {/* The reason Confirm is disabled, stated next to it — a grey button with a
         silent why strands non-technical clients (tooltips don't exist on touch). */}
-    {!valid && <div style={{fontSize:11,color:"#92400e",marginTop:6}}>{WL("confirmUsersHint",lang)}</div>}
+    {!valid && <div style={{fontSize:11,color:"var(--wc-warn-text)",marginTop:6}}>{WL("confirmUsersHint",lang)}</div>}
     <div style={{display:"flex",gap:8,marginTop:4}}>
-      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 14px",color:"#556377",cursor:"pointer",fontSize:12}}>{WL("addUser",lang)}</button>
-      <button onClick={()=>valid&&onSubmit(filled)} disabled={!valid} style={{background:valid?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"7px 20px",fontSize:13,fontWeight:600,cursor:valid?"pointer":"default"}}>{WL("confirmUsers",lang)}</button>
-      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>}
+      <button onClick={()=>setUsers(u=>[...u,empty()])} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"7px 14px",color:"var(--wc-muted)",cursor:"pointer",fontSize:12}}>{WL("addUser",lang)}</button>
+      <button onClick={()=>valid&&onSubmit(filled)} disabled={!valid} style={{background:valid?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:valid?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"7px 20px",fontSize:13,fontWeight:600,cursor:valid?"pointer":"default"}}>{WL("confirmUsers",lang)}</button>
+      {onSkip && <button onClick={onSkip} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"7px 16px",fontSize:13,color:"var(--wc-muted)",cursor:"pointer"}}>{WL("skip",lang)}</button>}
     </div>
   </div>;
 }
@@ -2327,8 +2327,8 @@ function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
   const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || (navigator.maxTouchPoints||0) > 0);
   const kept = cards.filter(c=>c.status==="kept");
   return <div style={{marginTop:8}}>
-    <div style={{fontSize:12,color:"#556377",marginBottom:6}}>{WL("topicHint",lang)}</div>
-    <div style={{fontSize:11,color:"#556377",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+    <div style={{fontSize:12,color:"var(--wc-muted)",marginBottom:6}}>{WL("topicHint",lang)}</div>
+    <div style={{fontSize:11,color:"var(--wc-muted)",marginBottom:10,display:"flex",justifyContent:"space-between"}}>
       <span>{kept.length} {WL("kept",lang)} · {cards.filter(c=>c.status==="discarded").length} {WL("discarded",lang)}</span>
       {!isTouch && <span>☰ {WL("dragPrioritize",lang)}</span>}
     </div>
@@ -2336,27 +2336,27 @@ function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
       onDragStart={e=>{setDragIdx(i);e.dataTransfer.effectAllowed="move";}}
       onDragOver={e=>e.preventDefault()}
       onDrop={e=>{e.preventDefault();if(dragIdx===null||dragIdx===i)return;const nc=[...cards];const[dc]=nc.splice(dragIdx,1);nc.splice(i,0,dc);setCards(nc);setDragIdx(null);}}
-      style={{background:c.status==="kept"?"#f0fdf4":c.status==="discarded"?"#fef2f2":"#f8f9fa",border:`1px solid ${c.status==="kept"?"#bbf7d0":c.status==="discarded"?"#fecaca":"#e2e8f0"}`,borderRadius:10,padding:"12px 14px",marginBottom:8,opacity:c.status==="discarded"?0.5:1,display:"flex",alignItems:"center",gap:8}}>
+      style={{background:c.status==="kept"?"var(--wc-ok-bg)":c.status==="discarded"?"var(--wc-bad-bg)":"var(--wc-subtle)",border:`1px solid ${c.status==="kept"?"var(--wc-ok-line)":c.status==="discarded"?"var(--wc-bad-line)":"var(--wc-border)"}`,borderRadius:10,padding:"12px 14px",marginBottom:8,opacity:c.status==="discarded"?0.5:1,display:"flex",alignItems:"center",gap:8}}>
       {/* Position, not just a grab handle. "Drag to prioritize" was on screen while
           the resulting order was invisible — unlike RankedSelector, which numbers
           its priorities. Kept cards are numbered in order; a discarded card has no
           position to show. */}
-      <div style={{cursor:"grab",padding:"0 6px",color:"#556377",userSelect:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:22}}>
-        <span style={{fontSize:12,fontWeight:700,color:c.status==="kept"?"#166534":"#94a3b8"}}>
+      <div style={{cursor:"grab",padding:"0 6px",color:"var(--wc-muted)",userSelect:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:22}}>
+        <span style={{fontSize:12,fontWeight:700,color:c.status==="kept"?"var(--wc-ok-text)":"var(--wc-faint)"}}>
           {c.status==="kept" ? kept.indexOf(c)+1 : "—"}
         </span>
         {!isTouch && <span style={{fontSize:11,opacity:0.7}}>☰</span>}
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"#556377",marginBottom:2}}>{WL("topicNameLbl",lang)}</label>
-        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder={WL("topicName",lang)} aria-label={WL("topicNameLbl",lang)} style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
+        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"var(--wc-muted)",marginBottom:2}}>{WL("topicNameLbl",lang)}</label>
+        <input value={c.name} onChange={e=>upd(i,"name",e.target.value)} disabled={c.status==="discarded"} placeholder={WL("topicName",lang)} aria-label={WL("topicNameLbl",lang)} style={{background:"transparent",border:"none",borderBottom:"1px solid var(--wc-border)",color:"var(--wc-text)",fontSize:13,fontWeight:600,width:"100%",outline:"none",padding:"2px 0",marginBottom:6}}/>
         {/* The rationale is the JUDGEMENT input — it is the only thing that lets a
             client decide whether a topic is right — so it sits directly under the
             name rather than last, and is no longer 11px italic. Italic is also wrong
             for Arabic, which has no italic form: browsers synthesise a slant that
             reads as broken rendering. */}
-        {c.rationale && <div style={{fontSize:12,color:"#556377",marginBottom:8,lineHeight:1.45}}>{c.rationale}</div>}
-        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"#556377",marginBottom:2}}>{WL("keywordsLbl",lang)}</label>
+        {c.rationale && <div style={{fontSize:12,color:"var(--wc-muted)",marginBottom:8,lineHeight:1.45}}>{c.rationale}</div>}
+        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",color:"var(--wc-muted)",marginBottom:2}}>{WL("keywordsLbl",lang)}</label>
         {/* A TEXTAREA, not an input. This holds the Boolean query Lumen will actually
             search with, and it is the one field the prose asks the client to check
             ("which of these is wrong?"). Measured in a browser: a real query rendered
@@ -2367,23 +2367,23 @@ function TopicCards({ suggestions, initialData, onConfirm, onSkip, lang }) {
             placeholder. */}
         <textarea value={c.keywords} onChange={e=>{upd(i,"keywords",e.target.value);autoGrow(e.target);}} ref={el=>el&&autoGrow(el)}
           placeholder={WL("keywordsPh",lang)} disabled={c.status==="discarded"} rows={2} aria-label={WL("keywordsLbl",lang)}
-          style={{background:"transparent",border:"none",borderBottom:"1px solid #e2e8f0",color:"#1e293b",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6,resize:"none",overflow:"hidden",whiteSpace:"pre-wrap",lineHeight:1.5,fontFamily:"inherit",boxSizing:"border-box"}}/>
+          style={{background:"transparent",border:"none",borderBottom:"1px solid var(--wc-border)",color:"var(--wc-text)",fontSize:12,width:"100%",outline:"none",padding:"2px 0",marginBottom:6,resize:"none",overflow:"hidden",whiteSpace:"pre-wrap",lineHeight:1.5,fontFamily:"inherit",boxSizing:"border-box"}}/>
       </div>
       <div style={{display:"flex",gap:6,flexShrink:0,alignSelf:"flex-start"}}>
-        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={WL("moveUp",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===0?"#cbd5e1":"#556377",cursor:i===0?"default":"pointer",fontSize:12}}>▲</button>
-        <button onClick={()=>move(i,1)} disabled={i===cards.length-1} aria-label={WL("moveDown",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid #e2e8f0",background:"transparent",color:i===cards.length-1?"#cbd5e1":"#556377",cursor:i===cards.length-1?"default":"pointer",fontSize:12}}>▼</button>
+        <button onClick={()=>move(i,-1)} disabled={i===0} aria-label={WL("moveUp",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid var(--wc-border)",background:"transparent",color:i===0?"var(--wc-disabled)":"var(--wc-muted)",cursor:i===0?"default":"pointer",fontSize:12}}>▲</button>
+        <button onClick={()=>move(i,1)} disabled={i===cards.length-1} aria-label={WL("moveDown",lang)} style={{width:32,height:32,borderRadius:8,border:"1px solid var(--wc-border)",background:"transparent",color:i===cards.length-1?"var(--wc-disabled)":"var(--wc-muted)",cursor:i===cards.length-1?"default":"pointer",fontSize:12}}>▼</button>
         {/* ONE toggle, not a ✓/✕ pair. There are only two outcomes (kept / discarded)
             and this control already switched between them in both directions, so the
             separate ✓ could never do anything on arrival — every card seeds as kept.
             It was a fifth control per card that was dead on sight. */}
         <button onClick={()=>setSt(i,c.status==="discarded"?"kept":"discarded")} aria-pressed={c.status==="discarded"}
           aria-label={WL(c.status==="discarded"?"restoreTopic":"discardTopic",lang,{name:c.name||i+1})}
-          style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="discarded"?"#fecaca":"#e2e8f0"}`,background:c.status==="discarded"?"#fee2e2":"transparent",color:c.status==="discarded"?"#991b1b":"#556377",cursor:"pointer",fontSize:16}}>{c.status==="discarded"?"↺":"✕"}</button>
+          style={{width:32,height:32,borderRadius:8,border:`1px solid ${c.status==="discarded"?"var(--wc-bad-line)":"var(--wc-border)"}`,background:c.status==="discarded"?"var(--wc-bad-fill)":"transparent",color:c.status==="discarded"?"var(--wc-bad-text)":"var(--wc-muted)",cursor:"pointer",fontSize:16}}>{c.status==="discarded"?"↺":"✕"}</button>
       </div>
     </div>)}
     <div style={{display:"flex",gap:8,marginTop:4}}>
-      <button onClick={()=>kept.length>0&&onConfirm(kept)} disabled={kept.length===0} style={{background:kept.length>0?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:kept.length>0?"pointer":"default"}}>{WL("confirm",lang)} ({kept.length})</button>
-      <button onClick={onSkip} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:"#556377",cursor:"pointer"}}>{WL("skip",lang)}</button>
+      <button onClick={()=>kept.length>0&&onConfirm(kept)} disabled={kept.length===0} style={{background:kept.length>0?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:kept.length>0?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:kept.length>0?"pointer":"default"}}>{WL("confirm",lang)} ({kept.length})</button>
+      <button onClick={onSkip} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"8px 16px",fontSize:13,color:"var(--wc-muted)",cursor:"pointer"}}>{WL("skip",lang)}</button>
     </div>
   </div>;
 }
@@ -2623,18 +2623,18 @@ export function QueriesWidget({ onSubmit, initialData, lang }) {
     ingest(r.text, f.name);
   };
   return <div style={{marginTop:8}}>
-    <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={WL("pasteQueries",lang)} rows={4} style={{width:"100%",background:"#f8f9fa",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+    <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={WL("pasteQueries",lang)} rows={4} style={{width:"100%",background:"var(--wc-subtle)",border:"1px solid var(--wc-border)",borderRadius:8,padding:"10px 12px",fontSize:12,color:"var(--wc-text)",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
     <input ref={fileRef} type="file" accept=".txt,.csv,.xlsx,.xls,.docx,text/plain,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={onFile} style={{display:"none"}} aria-hidden="true"/>
-    {note && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:7,padding:"6px 10px",marginTop:6}}>{note}</div>}
+    {note && <div style={{fontSize:11,color:"var(--wc-warn-text)",background:"var(--wc-warn-bg)",border:"1px solid var(--wc-warn-line)",borderRadius:7,padding:"6px 10px",marginTop:6}}>{note}</div>}
     <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center",flexWrap:"wrap"}}>
-      <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{WL("submitQueries",lang)}</button>
+      <button onClick={()=>text.trim()&&onSubmit(text.trim())} disabled={!text.trim()} style={{background:text.trim()?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:text.trim()?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{WL("submitQueries",lang)}</button>
       {/* "No queries" is disabled once the box has content, mirroring Submit being
           disabled while it is empty: exactly one of the two applies at any moment.
           It used to discard whatever was pasted, with no confirmation and no undo —
           and this widget is the ONLY path that preserves a client's original query
           syntax verbatim, so that text is the one thing here that cannot be
           reconstructed later. Clearing the box re-enables it. */}
-      <button onClick={()=>!text.trim()&&onSubmit("__skip__")} disabled={!!text.trim()} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 16px",fontSize:13,color:text.trim()?"#cbd5e1":"#556377",cursor:text.trim()?"default":"pointer"}}>{WL("noQueries",lang)}</button>
+      <button onClick={()=>!text.trim()&&onSubmit("__skip__")} disabled={!!text.trim()} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"8px 16px",fontSize:13,color:text.trim()?"var(--wc-disabled)":"var(--wc-muted)",cursor:text.trim()?"default":"pointer"}}>{WL("noQueries",lang)}</button>
       <button onClick={()=>fileRef.current?.click()} style={{display:"inline-flex",alignItems:"center",gap:6,background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"8px 4px"}}><Ic d={IC.clip} size={12}/><span style={{textDecoration:"underline"}}>{WL("importFile",lang)}</span></button>
     </div>
   </div>;
@@ -2648,7 +2648,7 @@ function Section({ title, badge, defaultOpen=true, children }) {
   return <div style={{marginBottom:18}}>
     <h3 style={{margin:0}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:"0 0 6px",borderBottom:`2px solid ${P}20`,marginBottom:open?12:0,font:"inherit"}}>
-        <span style={{fontSize:12,fontWeight:700,color:P,textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"#556377",background:"#f1f5f9",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
+        <span style={{fontSize:12,fontWeight:700,color:"var(--wc-heading)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"#556377",background:"#f1f5f9",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
         <span aria-hidden="true" style={{fontSize:11,color:"#556377",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",display:"inline-block"}}>▶</span>
       </button>
     </h3>
@@ -2793,12 +2793,12 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
   const gaps = reqChecks.filter(c=>!c[1]).map(c=>L(c[0],uiLang));
   const ready = gaps.length===0;
   const fld = (label,val,set,multi,req) => <div style={{marginBottom:12}}>
-    <div style={{fontSize:11,fontWeight:600,color:"#556377",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-      {label}<span style={{fontSize:10,padding:"1px 6px",borderRadius:4,fontWeight:600,background:req?"#fef2f2":"#f1f5f9",color:req?"#dc2626":"#556377"}}>{req?L("expRequired",uiLang):L("expOptional",uiLang)}</span>
+    <div style={{fontSize:11,fontWeight:600,color:"var(--wc-muted)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
+      {label}<span style={{fontSize:10,padding:"1px 6px",borderRadius:4,fontWeight:600,background:req?"var(--wc-bad-bg)":"var(--wc-subtle-3)",color:req?"var(--wc-err-strong)":"var(--wc-muted)"}}>{req?L("expRequired",uiLang):L("expOptional",uiLang)}</span>
     </div>
     {multi
-      ? <textarea value={val} onChange={e=>set(e.target.value)} rows={2} aria-label={label} style={{width:"100%",border:`1px solid ${req&&!val?"#fca5a5":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
-      : <input value={val} onChange={e=>set(e.target.value)} aria-label={label} style={{width:"100%",border:`1px solid ${req&&!val?"#fca5a5":"#e2e8f0"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none"}}/>}
+      ? <textarea value={val} onChange={e=>set(e.target.value)} rows={2} aria-label={label} style={{width:"100%",background:"var(--wc-surface)",border:`1px solid ${req&&!val?"var(--wc-err-soft)":"var(--wc-border)"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"var(--wc-text)",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+      : <input value={val} onChange={e=>set(e.target.value)} aria-label={label} style={{width:"100%",background:"var(--wc-surface)",border:`1px solid ${req&&!val?"var(--wc-err-soft)":"var(--wc-border)"}`,borderRadius:7,padding:"7px 10px",fontSize:12,color:"var(--wc-text)",outline:"none"}}/>}
   </div>;
   const addBtn = (label,onClick) => <button onClick={onClick} style={{background:"transparent",border:`1px dashed ${LINK}`,color:LINK,borderRadius:8,padding:"6px 14px",fontSize:12,cursor:"pointer",marginTop:6}}>{label}</button>;
   // Blank rows are dropped here, not just hidden from the readiness score: they used to
@@ -2835,31 +2835,31 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
     };
   }, [onClose]);
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:16,animation:REDUCE_MOTION?"none":"fadeIn .18s ease-out"}}>
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={L("expTitle",uiLang)} tabIndex={-1} style={{background:"white",borderRadius:T.radius.lg,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:T.shadow.modal,outline:"none",animation:REDUCE_MOTION?"none":"modalPop .2s ease-out"}}>
-      <div style={{padding:"20px 24px 16px",borderBottom:"1px solid #e2e8f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div><h2 style={{fontWeight:700,fontSize:16,color:"#1e293b",margin:0}}>{L("expTitle",uiLang)}</h2><div style={{fontSize:12,color:"#556377",marginTop:2}}>{L("expSubtitle",uiLang)}</div></div>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={L("expTitle",uiLang)} tabIndex={-1} style={{background:"var(--wc-surface)",borderRadius:T.radius.lg,width:"100%",maxWidth:680,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:T.shadow.modal,outline:"none",animation:REDUCE_MOTION?"none":"modalPop .2s ease-out"}}>
+      <div style={{padding:"20px 24px 16px",borderBottom:"1px solid var(--wc-border)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+        <div><h2 style={{fontWeight:700,fontSize:16,color:"var(--wc-text)",margin:0}}>{L("expTitle",uiLang)}</h2><div style={{fontSize:12,color:"var(--wc-muted)",marginTop:2}}>{L("expSubtitle",uiLang)}</div></div>
         {/* Not closeable mid-send. sendErr renders ONLY inside this modal, so closing
             it while the send is in flight threw away the one surface the failure had:
             the client saw the dialog vanish, no error anywhere, and reasonably assumed
             the brief had gone. It had not. Verified in a browser with every write
             failing — the page carried no trace of the failure at all. */}
-        <button onClick={onClose} disabled={sending} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:sending?"default":"pointer",color:sending?"#cbd5e1":"#556377"}}>✕</button>
+        <button onClick={onClose} disabled={sending} aria-label={L("expClose",uiLang)} style={{background:"transparent",border:"none",fontSize:20,cursor:sending?"default":"pointer",color:sending?"var(--wc-disabled)":"var(--wc-muted)"}}>✕</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,padding:"12px 14px",borderRadius:10,background:ready?"#f0fdf4":"#fffbeb",border:`1px solid ${ready?"#bbf7d0":"#fde68a"}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,padding:"12px 14px",borderRadius:10,background:ready?"var(--wc-ok-bg)":"var(--wc-warn-bg)",border:`1px solid ${ready?"var(--wc-ok-line)":"var(--wc-warn-line)"}`}}>
           <div style={{position:"relative",width:52,height:52,flexShrink:0}}>
             <svg width="52" height="52" viewBox="0 0 52 52">
-              <circle cx="26" cy="26" r="22" fill="none" stroke="#e2e8f0" strokeWidth="6"/>
-              <circle cx="26" cy="26" r="22" fill="none" stroke={ready?"#16a34a":A} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${2*Math.PI*22*pct/100} ${2*Math.PI*22}`} transform="rotate(-90 26 26)"/>
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--wc-border)" strokeWidth="6"/>
+              <circle cx="26" cy="26" r="22" fill="none" stroke={ready?"var(--wc-ok-strong)":A} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${2*Math.PI*22*pct/100} ${2*Math.PI*22}`} transform="rotate(-90 26 26)"/>
             </svg>
-            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#1e293b"}}>{pct}%</div>
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"var(--wc-text)"}}>{pct}%</div>
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{ready?L("expReady",uiLang):L("expAlmost",uiLang)}</div>
-            <div style={{fontSize:11,color:"#556377",margin:"1px 0 2px"}}>{topics.length} {L(topics.length!==1?"expTopics":"expTopic",uiLang)} · {chans.length} {L(chans.length!==1?"expChannels":"expChannel",uiLang)} · {reports.length+alerts.length} {L((reports.length+alerts.length)!==1?"expReports":"expReport",uiLang)} · {users.length} {L(users.length!==1?"expUsers":"expUser",uiLang)}</div>
+            <div style={{fontWeight:700,fontSize:13,color:"var(--wc-text)"}}>{ready?L("expReady",uiLang):L("expAlmost",uiLang)}</div>
+            <div style={{fontSize:11,color:"var(--wc-muted)",margin:"1px 0 2px"}}>{topics.length} {L(topics.length!==1?"expTopics":"expTopic",uiLang)} · {chans.length} {L(chans.length!==1?"expChannels":"expChannel",uiLang)} · {reports.length+alerts.length} {L((reports.length+alerts.length)!==1?"expReports":"expReport",uiLang)} · {users.length} {L(users.length!==1?"expUsers":"expUser",uiLang)}</div>
             {ready
-              ? <div style={{fontSize:12,color:"#166534"}}>{L("expReadyDesc",uiLang)}</div>
-              : <div style={{fontSize:12,color:"#92400e"}}>{L("expStillNeeded",uiLang,{gaps:gaps.join(", ")})}</div>}
+              ? <div style={{fontSize:12,color:"var(--wc-ok-text)"}}>{L("expReadyDesc",uiLang)}</div>
+              : <div style={{fontSize:12,color:"var(--wc-warn-text)"}}>{L("expStillNeeded",uiLang,{gaps:gaps.join(", ")})}</div>}
           </div>
         </div>
         {/* Non-empty sections now default OPEN. They used to open only when EMPTY or
@@ -2882,74 +2882,74 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           {fld(L("expFldContact",uiLang),co.contact,v=>setCo(c=>({...c,contact:v})),false,false)}
         </Section>
         <Section title={L("expSecTeam",uiLang)} badge={users.length} defaultOpen={true}>
-          {users.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoUsers",uiLang)}</div>}
-          {users.map((u,i) => <div key={i} style={{background:"#f8f9fa",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+          {users.length===0 && <div style={{fontSize:12,color:"var(--wc-muted)",fontStyle:"italic",marginBottom:8}}>{L("expNoUsers",uiLang)}</div>}
+          {users.map((u,i) => <div key={i} style={{background:"var(--wc-subtle)",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:6,marginBottom:6}}>
               {/* Human names, not raw keys: "firstName" as a placeholder is unreadable
                   for everyone and vanishes once filled, leaving the field nameless. */}
-              {[["firstName",L("expUFirst",uiLang)],["lastName",L("expULast",uiLang)],["email",L("expUEmail",uiLang)],["role",L("expURole",uiLang)]].map(([k,lb]) => <input key={k} value={u[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setUsers(us=>us.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
+              {[["firstName",L("expUFirst",uiLang)],["lastName",L("expULast",uiLang)],["email",L("expUEmail",uiLang)],["role",L("expURole",uiLang)]].map(([k,lb]) => <input key={k} value={u[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setUsers(us=>us.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",gap:4}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>setUsers(us=>us.map((x,j)=>j===i?{...x,access:a}:x))} aria-pressed={u.access===a} style={{padding:"3px 8px",borderRadius:5,fontSize:10,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?P:"#e2e8f0",color:u.access===a?"white":"#556377"}}>{a}</button>)}</div>
-              <button onClick={()=>setUsers(us=>us.filter((_,j)=>j!==i))} aria-label={L("expRemoveUser",uiLang,{name:u.firstName||u.email||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12}}>✕</button>
+              <div style={{display:"flex",gap:4}}>{["Admin","Full Tool","Read-Only"].map(a => <button key={a} onClick={()=>setUsers(us=>us.map((x,j)=>j===i?{...x,access:a}:x))} aria-pressed={u.access===a} style={{padding:"3px 8px",borderRadius:5,fontSize:10,cursor:"pointer",border:"1px solid",background:u.access===a?P:"transparent",borderColor:u.access===a?"var(--wc-accent)":"var(--wc-border)",color:u.access===a?"var(--wc-on-accent)":"var(--wc-muted)"}}>{a}</button>)}</div>
+              <button onClick={()=>setUsers(us=>us.filter((_,j)=>j!==i))} aria-label={L("expRemoveUser",uiLang,{name:u.firstName||u.email||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12}}>✕</button>
             </div>
           </div>)}
           {addBtn(L("expAddUser",uiLang), ()=>setUsers(u=>[...u,emptyUser()]))}
         </Section>
         <Section title={L("expSecTrack",uiLang)} badge={topics.length} defaultOpen={true}>
-          {topics.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoTopics",uiLang)}</div>}
-          {unconfirmed>0 && <div style={{fontSize:11,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:7,padding:"7px 10px",marginBottom:10,display:"flex",gap:6}}><span>⚠</span><span>{L(unconfirmed!==1?"expUnconfirmedMany":"expUnconfirmedOne",uiLang,{n:unconfirmed})}</span></div>}
-          {topics.map((tp,i) => { const guess = !tp.confirmed; return <div key={tp.id} style={{background:guess?"#fffbeb":"#f0fdf4",border:`1px solid ${guess?"#fde68a":"#bbf7d0"}`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+          {topics.length===0 && <div style={{fontSize:12,color:"var(--wc-muted)",fontStyle:"italic",marginBottom:8}}>{L("expNoTopics",uiLang)}</div>}
+          {unconfirmed>0 && <div style={{fontSize:11,color:"var(--wc-warn-text)",background:"var(--wc-warn-bg)",border:"1px solid var(--wc-warn-line)",borderRadius:7,padding:"7px 10px",marginBottom:10,display:"flex",gap:6}}><span>⚠</span><span>{L(unconfirmed!==1?"expUnconfirmedMany":"expUnconfirmedOne",uiLang,{n:unconfirmed})}</span></div>}
+          {topics.map((tp,i) => { const guess = !tp.confirmed; return <div key={tp.id} style={{background:guess?"var(--wc-warn-bg)":"var(--wc-ok-bg)",border:`1px solid ${guess?"var(--wc-warn-line)":"var(--wc-ok-line)"}`,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:6}}>
-              <div style={{fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:5,color:guess?"#d97706":"#16a34a",textTransform:"uppercase",letterSpacing:"0.04em"}}><span>{guess?"⚠":"✓"}</span>{guess?L("expGuess",uiLang):L("expConfirmed",uiLang)}</div>
+              <div style={{fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:5,color:guess?"var(--wc-warn-strong)":"var(--wc-ok-strong)",textTransform:"uppercase",letterSpacing:"0.04em"}}><span>{guess?"⚠":"✓"}</span>{guess?L("expGuess",uiLang):L("expConfirmed",uiLang)}</div>
               {guess
                 ? <div style={{display:"flex",gap:6}}>
                     <button onClick={()=>confirmTopic(i,true)} style={{background:P,color:"#fff",border:"none",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{L("expConfirm",uiLang)}</button>
-                    <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:6,padding:"4px 9px",fontSize:11,color:"#556377",cursor:"pointer"}}>{L("expDrop",uiLang)}</button>
+                    <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:6,padding:"4px 9px",fontSize:11,color:"var(--wc-muted)",cursor:"pointer"}}>{L("expDrop",uiLang)}</button>
                   </div>
-                : <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} aria-label={L("expRemoveTopic",uiLang,{name:tp.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>}
+                : <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} aria-label={L("expRemoveTopic",uiLang,{name:tp.name||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>}
             </div>
             <div>
-              <input value={tp.name||""} placeholder={L("expTopicName",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,name:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid #e2e8f0",fontSize:13,fontWeight:600,outline:"none",background:"transparent",marginBottom:6,padding:"2px 0"}}/>
-              <input value={tp.keywords||""} placeholder={L("expKeywords",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,keywords:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid #e2e8f0",fontSize:12,outline:"none",background:"transparent",padding:"2px 0",marginBottom:6}}/>
-              <input value={tp.rationale||tp.comments||""} placeholder={L("expRationale",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,rationale:e.target.value,comments:e.target.value}:x))} style={{width:"100%",border:"none",fontSize:11,outline:"none",background:"transparent",padding:"2px 0",color:"#556377",fontStyle:"italic"}}/>
+              <input value={tp.name||""} placeholder={L("expTopicName",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,name:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid var(--wc-border)",fontSize:13,fontWeight:600,outline:"none",background:"transparent",marginBottom:6,padding:"2px 0"}}/>
+              <input value={tp.keywords||""} placeholder={L("expKeywords",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,keywords:e.target.value}:x))} style={{width:"100%",border:"none",borderBottom:"1px solid var(--wc-border)",fontSize:12,outline:"none",background:"transparent",padding:"2px 0",marginBottom:6}}/>
+              <input value={tp.rationale||tp.comments||""} placeholder={L("expRationale",uiLang)} onChange={e=>setTopics(ts=>ts.map((x,j)=>j===i?{...x,rationale:e.target.value,comments:e.target.value}:x))} style={{width:"100%",border:"none",fontSize:11,outline:"none",background:"transparent",padding:"2px 0",color:"var(--wc-muted)",fontStyle:"italic"}}/>
             </div>
           </div>; })}
           {addBtn(L("expAddTopic",uiLang), ()=>setTopics(ts=>[...ts,emptyTopic()]))}
           <PasteImport label={L("expPasteLabel",uiLang)} placeholder={L("expPasteTopicPh",uiLang)} lang={uiLang} onImport={lines=>setTopics(ts=>[...ts,...lines.map((l,i)=>{ const p=l.split("|").map(s=>s.trim()); return {name:p[0]||"",keywords:p[1]||"",rationale:p[2]||"",comments:p[2]||"Imported from client list",id:Date.now()+i,confirmed:true}; })])}/>
         </Section>
         <Section title={L("expSecLook",uiLang)} badge={chans.length} defaultOpen={chans.length>0}>
-          {chans.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoChannels",uiLang)}</div>}
+          {chans.length===0 && <div style={{fontSize:12,color:"var(--wc-muted)",fontStyle:"italic",marginBottom:8}}>{L("expNoChannels",uiLang)}</div>}
           {/* flexWrap + a minimum basis: four fields forced into one row collapse to
               ~55px each inside the modal on a phone — unreadable and uneditable. */}
           {chans.map((ch,i) => <div key={ch.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
-            {[["author",L("expChName",uiLang)],["type",L("expChPlatform",uiLang)],["url",L("expChUrl",uiLang)],["owned",L("expChOwned",uiLang)]].map(([k,lb]) => <input key={k} value={ch[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setChans(cs=>cs.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
-            <button onClick={()=>setChans(cs=>cs.filter((_,j)=>j!==i))} aria-label={L("expRemoveChannel",uiLang,{name:ch.author||ch.url||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+            {[["author",L("expChName",uiLang)],["type",L("expChPlatform",uiLang)],["url",L("expChUrl",uiLang)],["owned",L("expChOwned",uiLang)]].map(([k,lb]) => <input key={k} value={ch[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setChans(cs=>cs.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
+            <button onClick={()=>setChans(cs=>cs.filter((_,j)=>j!==i))} aria-label={L("expRemoveChannel",uiLang,{name:ch.author||ch.url||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
           </div>)}
           {addBtn(L("expAddChannel",uiLang), ()=>setChans(cs=>[...cs,{...emptyChan(),id:Date.now()}]))}
           <PasteImport label={L("expPasteLabel",uiLang)} placeholder={L("expPasteChannelPh",uiLang)} lang={uiLang} onImport={lines=>setChans(cs=>[...cs,...lines.map((l,i)=>{ const u=l.match(URL_RE)?.[0]||""; const author=l.replace(u,"").replace(/[|,]/g," ").trim(); return {author:author||"",type:guessChanType(u),url:u,owned:"",id:Date.now()+i}; })])}/>
         </Section>
         <Section title={L("expSecReports",uiLang)} badge={reports.length+alerts.length} defaultOpen={reports.length+alerts.length>0}>
-          <div style={{fontSize:11,fontWeight:700,color:"#556377",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:6}}>{L("expReportsHdr",uiLang)}</div>
-          {reports.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoReports",uiLang)}</div>}
+          <div style={{fontSize:11,fontWeight:700,color:"var(--wc-muted)",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:6}}>{L("expReportsHdr",uiLang)}</div>
+          {reports.length===0 && <div style={{fontSize:12,color:"var(--wc-muted)",fontStyle:"italic",marginBottom:8}}>{L("expNoReports",uiLang)}</div>}
           {reports.map((r,i) => <div key={r.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
             {/* Dashboard vs Report: the assistant pre-classifies each item (kind); this
                 lets the client see and correct it before it writes to the sheet's
                 "Dashboard / Report" column. Values are literal so they match the sheet. */}
-            <select value={r.kind||""} aria-label={L("expRepKind",uiLang)} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,kind:e.target.value}:x))} style={{flex:"0 0 auto",border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none",background:"#fff",color:r.kind?"#1e293b":"#94a3b8"}}>
+            <select value={r.kind||""} aria-label={L("expRepKind",uiLang)} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,kind:e.target.value}:x))} style={{flex:"0 0 auto",border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none",background:"#fff",color:r.kind?"var(--wc-text)":"var(--wc-faint)"}}>
               <option value="">{L("expRepKind",uiLang)}</option>
               <option value="Dashboard">{L("expRepKindDashboard",uiLang)}</option>
               <option value="Report">{L("expRepKindReport",uiLang)}</option>
             </select>
-            {[["name",L("expRepName",uiLang)],["objective",L("expObjective",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={r[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
-            <button onClick={()=>setReports(rs=>rs.filter((_,j)=>j!==i))} aria-label={L("expRemoveReport",uiLang,{name:r.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+            {[["name",L("expRepName",uiLang)],["objective",L("expObjective",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={r[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
+            <button onClick={()=>setReports(rs=>rs.filter((_,j)=>j!==i))} aria-label={L("expRemoveReport",uiLang,{name:r.name||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
           </div>)}
           {addBtn(L("expAddReport",uiLang), ()=>setReports(rs=>[...rs,{...emptyReport(),id:Date.now()}]))}
-          <div style={{fontSize:11,fontWeight:700,color:"#556377",textTransform:"uppercase",letterSpacing:"0.04em",margin:"14px 0 6px"}}>{L("expAlertsHdr",uiLang)}</div>
-          {alerts.length===0 && <div style={{fontSize:12,color:"#556377",fontStyle:"italic",marginBottom:8}}>{L("expNoAlerts",uiLang)}</div>}
+          <div style={{fontSize:11,fontWeight:700,color:"var(--wc-muted)",textTransform:"uppercase",letterSpacing:"0.04em",margin:"14px 0 6px"}}>{L("expAlertsHdr",uiLang)}</div>
+          {alerts.length===0 && <div style={{fontSize:12,color:"var(--wc-muted)",fontStyle:"italic",marginBottom:8}}>{L("expNoAlerts",uiLang)}</div>}
           {alerts.map((a,i) => <div key={a.id} style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,alignItems:"center"}}>
-            {[["name",L("expAlName",uiLang)],["type",L("expType",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={a[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setAlerts(as=>as.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid #e2e8f0",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
-            <button onClick={()=>setAlerts(as=>as.filter((_,j)=>j!==i))} aria-label={L("expRemoveAlert",uiLang,{name:a.name||i+1})} style={{background:"transparent",border:"none",color:"#ef4444",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
+            {[["name",L("expAlName",uiLang)],["type",L("expType",uiLang)],["details",L("expDetails",uiLang)],["comments",L("expComments",uiLang)]].map(([k,lb]) => <input key={k} value={a[k]||""} placeholder={lb} aria-label={lb} onChange={e=>setAlerts(as=>as.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))} style={{flex:"1 1 140px",minWidth:0,border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none"}}/>)}
+            <button onClick={()=>setAlerts(as=>as.filter((_,j)=>j!==i))} aria-label={L("expRemoveAlert",uiLang,{name:a.name||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>
           </div>)}
           {addBtn(L("expAddAlert",uiLang), ()=>setAlerts(as=>[...as,{...emptyAlert(),id:Date.now()}]))}
         </Section>
@@ -2959,12 +2959,12 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
           the brief is short of the bar, Send does not dead-end — it opens a one-tap
           "send anyway" confirmation (with review-session reassurance) so a genuinely
           stuck client can still submit. Download is available either way. */}
-      <div style={{padding:"16px 24px",borderTop:"1px solid #e2e8f0",flexShrink:0}}>
+      <div style={{padding:"16px 24px",borderTop:"1px solid var(--wc-border)",flexShrink:0}}>
         {(!ready && confirmSend) ? (
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"10px 12px"}}>
-              <div style={{fontWeight:700,fontSize:13,color:"#92400e",marginBottom:2}}>{L("expIncompleteTitle",uiLang)}</div>
-              <div style={{fontSize:12,color:"#92400e",lineHeight:1.5}}>{L("expIncompleteBody",uiLang)}</div>
+            <div style={{background:"var(--wc-warn-bg)",border:"1px solid var(--wc-warn-line)",borderRadius:8,padding:"10px 12px"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"var(--wc-warn-text)",marginBottom:2}}>{L("expIncompleteTitle",uiLang)}</div>
+              <div style={{fontSize:12,color:"var(--wc-warn-text)",lineHeight:1.5}}>{L("expIncompleteBody",uiLang)}</div>
             </div>
             {/* WEIGHTS INVERTED. "Send it anyway" used to be the full-purple primary
                 while "Keep going" — the outcome that produces a usable brief — was a
@@ -2976,27 +2976,27 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
                 moment a send could fail was the one moment the client could not keep a
                 copy of their own answers. */}
             <div style={{display:"flex",gap:10,alignItems:"center",justifyContent:"flex-end",flexWrap:"wrap"}}>
-              {sendErr && <div role="alert" style={{fontSize:11,color:"#b91c1c",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
-              <button onClick={()=>onExport(merged,realUsers)} disabled={sending} style={{background:"transparent",border:"none",color:"#556377",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:sending?"default":"pointer"}}>{L("expDownload",uiLang)}</button>
-              <button onClick={()=>doSend()} disabled={sending} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#556377",cursor:sending?"default":"pointer"}}>{sending?L("expSending",uiLang):L("expSendAnyway",uiLang)}</button>
-              <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{L("expKeepGoing",uiLang)}</button>
+              {sendErr && <div role="alert" style={{fontSize:11,color:"var(--wc-err-text)",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={()=>onExport(merged,realUsers)} disabled={sending} style={{background:"transparent",border:"none",color:"var(--wc-muted)",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:sending?"default":"pointer"}}>{L("expDownload",uiLang)}</button>
+              <button onClick={()=>doSend()} disabled={sending} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"9px 20px",fontSize:13,color:"var(--wc-muted)",cursor:sending?"default":"pointer"}}>{sending?L("expSending",uiLang):L("expSendAnyway",uiLang)}</button>
+              <button onClick={()=>setConfirmSend(false)} disabled={sending} style={{display:"inline-flex",alignItems:"center",gap:7,background:A,color:"var(--wc-on-accent)",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}}>{L("expKeepGoing",uiLang)}</button>
             </div>
           </div>
         ) : (
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-            <div style={{fontSize:11,color:ready?"#16a34a":"#92400e",flex:"1 1 180px",minWidth:0}}>{ready?L("expFooterReady",uiLang):`${L("expStillNeeded",uiLang,{gaps:gaps.slice(0,3).join(", ")})}${gaps.length>3?` ${L("expMore",uiLang,{n:gaps.length-3})}`:""}`}</div>
+            <div style={{fontSize:11,color:ready?"var(--wc-ok-strong)":"var(--wc-warn-text)",flex:"1 1 180px",minWidth:0}}>{ready?L("expFooterReady",uiLang):`${L("expStillNeeded",uiLang,{gaps:gaps.slice(0,3).join(", ")})}${gaps.length>3?` ${L("expMore",uiLang,{n:gaps.length-3})}`:""}`}</div>
             <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-              {sendErr && <div role="alert" style={{fontSize:11,color:"#b91c1c",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
-              <button onClick={onClose} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 20px",fontSize:13,color:"#556377",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
+              {sendErr && <div role="alert" style={{fontSize:11,color:"var(--wc-err-text)",maxWidth:240,lineHeight:1.4}}>{sendErr==="send-failed"?L("expSendFailed",uiLang):sendErr}</div>}
+              <button onClick={onClose} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:8,padding:"9px 20px",fontSize:13,color:"var(--wc-muted)",cursor:"pointer"}}>{L("expCancel",uiLang)}</button>
               {/* Download stays a quiet text link so it never reads as "download = done"
                   beside Send, but it is available whether or not the brief is complete —
                   a stuck client can always keep a copy of their own answers. */}
-              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,realUsers)} style={{background:"transparent",border:"none",color:"#556377",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
+              {!(sent && sheetLink) && <button onClick={()=>onExport(merged,realUsers)} style={{background:"transparent",border:"none",color:"var(--wc-muted)",padding:"9px 6px",fontSize:12,textDecoration:"underline",cursor:"pointer"}}>{L("expDownload",uiLang)}</button>}
               {/* Ready: submit directly. Not ready: enabled but amber, opening the confirm
                   step rather than dead-ending, so a stuck client is never trapped. */}
               <button onClick={()=>{ if (sending) return; if (ready) doSend(); else setConfirmSend(true); }} disabled={sending} style={ready
-                ? {display:"inline-flex",alignItems:"center",gap:7,background:A,color:"white",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}
-                : {display:"inline-flex",alignItems:"center",gap:7,background:"#fffbeb",color:"#92400e",border:"1px solid #f59e0b",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sending?L("expSending",uiLang):<><Ic d={IC.send} size={13}/>{L("expSend",uiLang)}</>}</button>
+                ? {display:"inline-flex",alignItems:"center",gap:7,background:A,color:"var(--wc-on-accent)",border:"none",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:sending?"default":"pointer",opacity:sending?0.7:1}
+                : {display:"inline-flex",alignItems:"center",gap:7,background:"var(--wc-warn-bg)",color:"var(--wc-warn-text)",border:"1px solid var(--wc-warn-strong-2)",borderRadius:8,padding:"9px 24px",fontSize:13,fontWeight:600,cursor:"pointer"}}>{sending?L("expSending",uiLang):<><Ic d={IC.send} size={13}/>{L("expSend",uiLang)}</>}</button>
             </div>
           </div>
         )}
@@ -4306,6 +4306,101 @@ a{transition:color var(--dur-base) var(--ease-out),opacity var(--dur-base) var(-
    of a conditional at eight separate call sites, and it covers any added later. */
 [dir="rtl"],[dir="rtl"] *{font-synthesis-style:none}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid #6D28D9 !important;outline-offset:2px !important}
+/* WIDGET PALETTE. The five in-conversation widgets and the review modal were written
+   with hardcoded light colours and take no theme, so in dark mode they rendered as
+   bright islands inside a dark chat and the review modal was a full-white flash at
+   the send moment. They cannot read the C object (it is inline styles in the app
+   shell), so the theme reaches them as custom properties instead, keyed off the
+   data-theme attribute.
+   ONE VARIABLE PER DISTINCT LIGHT VALUE, and every light value below is byte-identical
+   to what was there before: light mode cannot shift, only dark gains anything. Dark
+   values were chosen by measuring, not by eye — body text 10.3:1, muted 5.82:1,
+   status text 5.8-10.2:1, and the control border 3.27:1 for SC 1.4.11. */
+:root{
+  --wc-border:#e2e8f0;
+  --wc-muted:#556377;
+  --wc-text:#1e293b;
+  --wc-disabled:#cbd5e1;
+  --wc-faint:#94a3b8;
+  --wc-subtle:#f8f9fa;
+  --wc-subtle-2:#eef1f5;
+  --wc-subtle-3:#f1f5f9;
+  --wc-accent-soft:#ede9fe;
+  --wc-accent-line:#c4b5fd;
+  --wc-ok-bg:#f0fdf4;
+  --wc-ok-line:#bbf7d0;
+  --wc-ok-text:#166534;
+  --wc-ok-strong:#16a34a;
+  --wc-ok-fill:#dcfce7;
+  --wc-bad-bg:#fef2f2;
+  --wc-bad-line:#fecaca;
+  --wc-bad-fill:#fee2e2;
+  --wc-bad-text:#991b1b;
+  --wc-err:#ef4444;
+  --wc-err-soft:#fca5a5;
+  --wc-err-text:#b91c1c;
+  --wc-err-strong:#dc2626;
+  --wc-warn-bg:#fffbeb;
+  --wc-warn-line:#fde68a;
+  --wc-warn-text:#92400e;
+  --wc-warn-strong:#d97706;
+  --wc-warn-strong-2:#f59e0b;
+  --wc-surface:#ffffff;
+  --wc-on-accent:#ffffff;
+  --wc-accent:#012B3A;
+  --wc-accent-edge:#012B3A;
+  --wc-heading:#012B3A;
+}
+[data-theme="dark"]{
+  --wc-border:#5a7899;
+  --wc-muted:#8aa4c1;
+  --wc-text:#c8d8e8;
+  --wc-disabled:#46586f;
+  --wc-faint:#7d93ad;
+  --wc-subtle:#14243a;
+  --wc-subtle-2:#16283c;
+  --wc-subtle-3:#16283c;
+  --wc-accent-soft:#2a2145;
+  --wc-accent-line:#6b5bb5;
+  --wc-ok-bg:#13301f;
+  --wc-ok-line:#1f5c38;
+  --wc-ok-text:#86efac;
+  --wc-ok-strong:#4ade80;
+  --wc-ok-fill:#163d26;
+  --wc-bad-bg:#3a1618;
+  --wc-bad-line:#7f2c2c;
+  --wc-bad-fill:#45191b;
+  --wc-bad-text:#fca5a5;
+  --wc-err:#f87171;
+  --wc-err-soft:#b45050;
+  --wc-err-text:#fca5a5;
+  --wc-err-strong:#f87171;
+  --wc-warn-bg:#3a2f14;
+  --wc-warn-line:#7a6320;
+  --wc-warn-text:#fcd34d;
+  --wc-warn-strong:#fbbf24;
+  --wc-warn-strong-2:#fbbf24;
+  --wc-surface:#16283c;
+  /* Text ON a coloured fill. White in BOTH themes: a purple button's label is
+     white because the fill is dark, not because the page is light. Folding this into
+     --wc-surface turned every primary button's label dark-on-purple in dark mode. */
+  --wc-on-accent:#ffffff;
+  /* The primary fill. Dark Teal on the dark bubble measured 1.12:1, so the primary
+     action of every widget had no perceptible edge. The fill gives white text 5.7:1
+     and the separate edge gives the boundary 6.11:1 — measured, and neither
+     requirement is traded away for the other. */
+  --wc-accent:#7C3AED;
+  --wc-accent-edge:#a78bfa;
+  /* Section/widget headings. P is Dark Teal, which is right on a light card and
+     invisible on a dark one (1.1:1 against the dark modal). */
+  --wc-heading:#c8d8e8;
+}
+/* Fields with no background of their own fell back to the UA default, which is
+   white. Invisible in light mode; in dark mode the review modal was a wall of
+   glaring white boxes. Safe as a global default: any field that sets its own
+   background inline still wins (inline beats a stylesheet declaration), and for
+   the rest --wc-surface IS #ffffff in light mode, so nothing shifts there. */
+input,textarea,select{background:var(--wc-surface)}
 /* Placeholder contrast. There was no ::placeholder rule anywhere, so every field
    fell back to Chrome's UA default — measured #757575, which is 4.31:1 on the page
    background and fails AA for text under 18.66px. It is the composer's own

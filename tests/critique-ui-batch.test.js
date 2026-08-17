@@ -210,7 +210,9 @@ describe("the review modal shows what it claims to show", () => {
     expect(keep).toBeGreaterThan(-1);
     expect(anyway).toBeGreaterThan(-1);
     // Keep going now carries the filled treatment; Send it anyway carries the border one.
-    expect(step.slice(step.lastIndexOf("<button", keep), keep)).toMatch(/background:A,color:"white"/);
+    // color:"white" became var(--wc-on-accent) in the dark-mode refactor; the point of
+    // the assertion is which button carries the FILLED treatment, not the literal.
+    expect(step.slice(step.lastIndexOf("<button", keep), keep)).toMatch(/background:A,color:"var\(--wc-on-accent\)"/);
     expect(step.slice(step.lastIndexOf("<button", anyway), anyway)).toMatch(/background:"transparent"/);
   });
   it("keeps Download reachable on the confirm step", () => {
@@ -235,5 +237,85 @@ describe("the smaller defects", () => {
     const main = code.slice(code.indexOf("<main ref={msgRef}"), code.indexOf("<main ref={msgRef}") + 400);
     expect(main).not.toMatch(/justifyContent:"flex-end"/);
     expect(main).toMatch(/display:"flex",flexDirection:"column",minHeight:0/);
+  });
+});
+
+describe("dark mode reaches the widgets and the review modal", () => {
+  // The five in-conversation widgets and the review modal were written with hardcoded
+  // light colours and take no theme prop, so in dark mode they rendered as bright
+  // islands and the modal was a full-white flash at the send moment. 202 colour
+  // references across six components. They cannot read the C object (that is inline
+  // styles in the app shell), so the theme reaches them as custom properties.
+  const COMPONENTS = ["ChipSelector", "RankedSelector", "UserForm", "TopicCards", "QueriesWidget", "ExportModal"];
+  const bodyOf = name => {
+    const a = code.indexOf(`function ${name}(`);
+    const rest = code.slice(a + 10);
+    const m = rest.search(/\n(?:export )?function /);
+    return code.slice(a, m === -1 ? undefined : a + 10 + m);
+  };
+
+  it("defines the palette for both themes", () => {
+    expect(src).toMatch(/--wc-border:#e2e8f0;/);
+    expect(src).toMatch(/\[data-theme="dark"\]\{/);
+    expect(src).toMatch(/--wc-border:#5a7899;/);
+  });
+
+  it("keeps every light value byte-identical to what was hardcoded before", () => {
+    // The safety property of the whole refactor: light mode cannot shift, only dark
+    // gains anything. Verified in a browser too — field bg, border and heading all
+    // still resolve to their pre-refactor values.
+    const rootBlock = src.slice(src.indexOf(":root{"), src.indexOf('[data-theme="dark"]{'));
+    for (const [v, hex] of [["--wc-border", "#e2e8f0"], ["--wc-muted", "#556377"], ["--wc-text", "#1e293b"],
+                            ["--wc-surface", "#ffffff"], ["--wc-heading", "#012B3A"], ["--wc-warn-text", "#92400e"]]) {
+      expect(rootBlock, `${v} light value`).toContain(`${v}:${hex};`);
+    }
+  });
+
+  it("leaves no hardcoded light colour inside those six components", () => {
+    for (const name of COMPONENTS) {
+      const body = bodyOf(name);
+      expect(body.match(/#[0-9a-fA-F]{6}/g) || [], `${name} still has hex colours`).toHaveLength(0);
+      expect(body, `${name} still has a bare "white"`).not.toMatch(/"white"/);
+    }
+  });
+
+  it("keeps white button text white, rather than folding it into the surface role", () => {
+    // color:"white" meant white ON a coloured fill. Mapping it to --wc-surface turned
+    // every primary button's label dark-on-purple in dark mode — caught in the browser.
+    expect(src).toMatch(/--wc-on-accent:#ffffff;/);
+    expect(src.match(/--wc-on-accent:#ffffff;/g) || []).toHaveLength(2); // same in both themes
+    expect(code).not.toMatch(/color:"var\(--wc-surface\)"/);
+  });
+
+  it("gives the primary action a boundary without losing its text contrast", () => {
+    // Dark Teal on the dark bubble measured 1.12:1. The fill carries white text at
+    // 5.7:1 and a separate edge carries the 3:1 boundary at 6.11:1.
+    expect(src).toMatch(/--wc-accent:#7C3AED;/);
+    expect(src).toMatch(/--wc-accent-edge:#a78bfa;/);
+    expect(contrast("#ffffff", "#7C3AED")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#a78bfa", "#111f30")).toBeGreaterThanOrEqual(3);
+  });
+
+  it("shows the accent edge only while the button is enabled", () => {
+    // Applying it unconditionally made the DISABLED button read as interactive.
+    expect(code).not.toMatch(/color:"var\(--wc-on-accent\)",border:"1px solid var\(--wc-accent-edge\)"/);
+    expect(code).toMatch(/border:[^,]+\?"1px solid var\(--wc-accent-edge\)":"1px solid var\(--wc-border\)"/);
+  });
+
+  it("gives fields a background instead of inheriting the UA white", () => {
+    // Fields with no background of their own fell back to Chrome's white: invisible in
+    // light mode, a wall of glaring white boxes in the dark modal.
+    expect(src).toMatch(/input,textarea,select\{background:var\(--wc-surface\)\}/);
+  });
+
+  it("measures the dark values rather than guessing them", () => {
+    const S = "#16283c", BUBBLE = "#111f30";
+    expect(contrast("#c8d8e8", S)).toBeGreaterThanOrEqual(4.5);   // body text
+    expect(contrast("#8aa4c1", S)).toBeGreaterThanOrEqual(4.5);   // muted
+    expect(contrast("#5a7899", S)).toBeGreaterThanOrEqual(3);     // control border, SC 1.4.11
+    expect(contrast("#86efac", "#13301f")).toBeGreaterThanOrEqual(4.5); // ok text
+    expect(contrast("#fca5a5", "#3a1618")).toBeGreaterThanOrEqual(4.5); // danger text
+    expect(contrast("#fcd34d", "#3a2f14")).toBeGreaterThanOrEqual(4.5); // warning text
+    expect(contrast("#c8d8e8", BUBBLE)).toBeGreaterThanOrEqual(4.5);    // heading on the bubble
   });
 });
