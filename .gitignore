@@ -10,3 +10,11 @@ ab-transcripts.txt
 # Playwright writes here when a screenshot path env var is unset (SHOT_DIR/SD).
 # Two stray PNGs reached a commit this way; never again.
 undefined/
+
+# Impeccable (design tooling) local state, transient parts only. A design
+# critique writes a snapshot under .impeccable/critique/ that later commands read
+# as a backlog and use for a score trend across runs, so those ARE worth
+# committing. The live-mode server's pid/port file and machine-local config are
+# not: a stale one points at a port nothing is listening on.
+.impeccable/live/
+.impeccable/config.local.json
