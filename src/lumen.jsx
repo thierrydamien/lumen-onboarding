@@ -4546,17 +4546,21 @@ input,textarea,select,button{font-family:inherit}
           already carries the brand visually; it exists so the document has a top-level
           heading at all. */}
       <h1 style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0 0 0 0)",whiteSpace:"nowrap",margin:0}}>{L("a11yPageTitle",uiLang)}</h1>
-      {/* A short conversation used to sit pinned to the TOP of a tall column: at
-          1280x720 the opening turn left ~350px of empty canvas between the quick
-          replies and the composer, which reads as a rendering fault rather than a new
-          chat. Chat convention anchors the newest content near the input.
-          Done with an auto-margin spacer, NOT justify-content:flex-end. On a scroll
-          container flex-end makes overflowing content unreachable at the start edge in
-          several engines — you cannot scroll back to the first message. margin-top:auto
-          on a leading spacer absorbs the slack when there is any and collapses to 0
-          when the content overflows, so scrolling stays intact. */}
-      <main ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",display:"flex",flexDirection:"column",minHeight:0,transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
-        <div aria-hidden="true" style={{marginTop:"auto"}}/>
+      {/* Lays out TOP-DOWN. Deliberate, and reverted from the opposite: a critique
+          finding about "dead canvas" (at 1280x720 an opening turn left ~350px of empty
+          space between the reply and the composer) was answered with a leading
+          margin-top:auto spacer to pin the conversation to the bottom. Seen on the
+          deployed site with a real first message, that only MOVED the empty space —
+          from below the text to above it, leaving the greeting floating mid-column
+          under the stepper, which looks more broken than the gap it replaced.
+          Top-down is also the actual convention: iMessage, WhatsApp, Slack, Teams and
+          Messenger all anchor a thread from the top and grow downward, and a new
+          thread's first message sits directly under the header.
+          The "follow the newest message" behaviour people associate with chat is a
+          SCROLL concern, not a layout one, and it is already handled — see the
+          wheel/touch/key intent tracking above. Conflating the two is what produced
+          the spacer. Do not reintroduce it. */}
+      <main ref={msgRef} style={{flex:1,overflowY:"auto",padding:"24px 16px",maxWidth:760,width:"100%",margin:"0 auto",alignSelf:"center",transform:sideCol&&showPanel&&started?(uiLang==="Arabic"?"translateX(160px)":"translateX(-160px)"):"none",transition:"transform 0.25s ease"}}>
 
         {!started && !saved && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",padding:"18px 24px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>

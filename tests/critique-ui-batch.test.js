@@ -229,14 +229,25 @@ describe("the smaller defects", () => {
     // contradicting the finish card below it.
     expect(code).toMatch(/\{started && !sent && <div style=\{\{background:C\.card,borderBottom/);
   });
-  it("anchors a short transcript near the composer without breaking scroll", () => {
-    // ~350px of dead canvas at 1280x720. Done with an auto-margin spacer, NOT
-    // justify-content:flex-end, which on a scroll container makes overflowing content
-    // unreachable at the start edge — verified scrollTop can still return to 0.
-    expect(code).toMatch(/<div aria-hidden="true" style=\{\{marginTop:"auto"\}\}\/>/);
-    const main = code.slice(code.indexOf("<main ref={msgRef}"), code.indexOf("<main ref={msgRef}") + 400);
-    expect(main).not.toMatch(/justifyContent:"flex-end"/);
-    expect(main).toMatch(/display:"flex",flexDirection:"column",minHeight:0/);
+  it("lays the transcript out top-down, like every other chat client", () => {
+    // The "dead canvas" finding (~350px of empty space below an opening turn at
+    // 1280x720) was first answered by pinning the conversation to the BOTTOM with a
+    // leading margin-top:auto spacer. On the deployed site with a real first message
+    // that only moved the empty space above the text, leaving the greeting floating
+    // mid-column under the stepper — worse than the gap it replaced. iMessage,
+    // WhatsApp, Slack, Teams and Messenger all anchor from the top.
+    //
+    // Following the newest message is a SCROLL concern and is handled separately (the
+    // wheel/touch/key intent tracking). This test exists to stop the spacer coming
+    // back as a "fix" for sparseness.
+    // Scoped to <main>'s OWN opening tag. A fixed-length slice runs into the welcome
+    // screen child, which is legitimately a flex column, and the assertion then fails
+    // against correct code.
+    const from = code.indexOf("<main ref={msgRef}");
+    const mainTag = code.slice(from, code.indexOf(">", from));
+    expect(code).not.toMatch(/marginTop:"auto"/);
+    expect(mainTag).not.toMatch(/justifyContent:"flex-end"/);
+    expect(mainTag).not.toMatch(/flexDirection:"column"/);
   });
 });
 
