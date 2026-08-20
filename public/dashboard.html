@@ -774,18 +774,80 @@
     var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
     var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
     var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
+    // WHERE unfinished sessions stop. This is the drop-off question the old KPI row
+    // could not answer: a median percentage says how far people get on average, never
+    // which question loses them. Counted over unfinished sessions only, because a
+    // completed one has no drop-off point.
+    var unfinished = real.filter(function (s) { return s.status !== "completed" && s.section; });
+    var bySection = {};
+    unfinished.forEach(function (s) { bySection[s.section] = (bySection[s.section] || 0) + 1; });
+    var worst = Object.keys(bySection).sort(function (a, b) { return bySection[b] - bySection[a]; })[0];
+    var worstLabel = worst
+      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / unfinished.length * 100) + "%"
+      : "—";
+
+    // Completion rate per language. uiLang never reached the server before, so nobody
+    // could tell whether a French or Arabic session finishes as often as an English
+    // one — across six supported languages, with non-English conversation quality
+    // still untested.
+    var byLang = {};
+    real.forEach(function (s) {
+      if (!s.uiLang) return;
+      byLang[s.uiLang] = byLang[s.uiLang] || { n: 0, done: 0 };
+      byLang[s.uiLang].n++;
+      if (s.status === "completed") byLang[s.uiLang].done++;
+    });
+    var langKeys = Object.keys(byLang);
+    // The WEAKEST language, not a breakdown of all of them. A stat tile holds one
+    // number; the first version put "Eng 67% · Fre 33% · Ara 0% · Ger 100%" in the
+    // value slot, which wrapped to three lines and is a table wearing a KPI's clothes.
+    // The lowest completion rate is also the only figure here that should prompt
+    // action, and the per-language detail belongs in Insights.
+    // Needs a floor: one abandoned Arabic session is not evidence of a problem.
+    var LANG_MIN_N = 3;
+    var ranked = langKeys.filter(function (k) { return byLang[k].n >= LANG_MIN_N; })
+      .sort(function (a, b) { return (byLang[a].done / byLang[a].n) - (byLang[b].done / byLang[b].n); });
+    var weakest = ranked[0];
+    var langSummary = weakest
+      ? weakest.slice(0, 3) + " " + Math.round(byLang[weakest].done / byLang[weakest].n * 100) + "%"
+      : "—";
+    var langLabel = weakest
+      ? "lowest completion, by language (" + langKeys.length + " in use)"
+      : (langKeys.length ? "too few sessions per language yet" : "no language recorded");
+
+    // How often a client skips a widget, and which one most. A live probe measured
+    // that a skip currently gets 0% help offered by the assistant; this says whether
+    // that is worth fixing or a rounding error.
+    var skipTotal = 0, bySkip = {};
+    real.forEach(function (s) {
+      (s.skips || []).forEach(function (w) { skipTotal++; bySkip[w] = (bySkip[w] || 0) + 1; });
+    });
+    var withSkips = real.filter(function (s) { return (s.skips || []).length > 0; }).length;
+    var topSkip = Object.keys(bySkip).sort(function (a, b) { return bySkip[b] - bySkip[a]; })[0];
+    var skipLabel = total
+      ? Math.round(withSkips / total * 100) + "%" + (topSkip ? " · " + topSkip.toLowerCase() : "")
+      : "—";
+
     var kpis = [
       [String(total), total === 1 ? "session" : "sessions"],
       [card2v, card2l],
       [medMin != null ? medMin + " min" : "—", "median time, start to submit"],
       [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 60 min manual)"],
       [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
+      [worstLabel, unfinished.length ? "top drop-off of " + unfinished.length + " unfinished" : "no unfinished sessions"],
+      [langSummary, langLabel],
+      [skipLabel, "sessions that skipped a question"],
     ];
     box.innerHTML = kpis.map(function (k) {
       return '<div class="kpi"><div class="v">' + esc(k[0]) + '</div><div class="l">' + esc(k[1]) + '</div></div>';
     }).join("");
     box.hidden = false;
   }
+
+  // Mirrors SECTION_LABELS in src/lumen.jsx, so a drop-off reads as the step the
+  // client actually saw rather than an internal key.
+  var SECTION_LABELS = { company: "About you", path: "Approach", topics: "What to track",
+                         channels: "Where to look", reports: "Reports", users: "Your team" };
 
   // ---- Insights charts. Recomputed from the current filtered list on every
   // filter/search/sort change, so the charts always match the table. All rendering

@@ -2301,6 +2301,18 @@ function UserForm({ onSubmit, onSkip, initialData=[], lang }) {
 // Size a textarea to its content. Needed because the topic-card keywords field
 // holds a Boolean query of unpredictable length and must never clip: a fixed-row
 // textarea would just move the clipping from horizontal to vertical.
+// The furthest section a session actually reached. Deliberately a frontier, not
+// progress.section: the model's `collected` map can arrive non-monotonic (the same
+// reason Stepper derives one), so the raw section can go backwards and would
+// misreport where a client stopped. Feeds the dashboard's drop-off view — "41% of
+// drop-offs happen at topics" is actionable in a way that "median 62%" is not.
+function furthestSection(progress) {
+  if (!progress) return null;
+  const cur = SECTION_KEYS.indexOf(progress.section);
+  const collectedMax = SECTION_KEYS.reduce((m,k,i)=> progress.collected?.[k] ? i : m, -1);
+  return SECTION_KEYS[Math.max(cur, collectedMax, 0)] || null;
+}
+
 function autoGrow(el) {
   if (!el) return;
   el.style.height = "auto";
@@ -3175,6 +3187,8 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
   // the notes ever reaching this browser.
   const seedIdRef = useRef(seedId);
   const apiCountRef = useRef(0);
+  // Widget types the client skipped, in order. See the note on the session upsert.
+  const skipsRef = useRef([]);
   const usageRef = useRef({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
   const sendingRef = useRef(false); // synchronous double-send guard (state lags a fast double-click)
   const startedAtRef = useRef(null);
@@ -3427,6 +3441,14 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
           durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
           apiCalls: apiCountRef.current,
           tokens: { ...usageRef.current },
+          // Three fields the dashboard could not previously answer anything with:
+          // WHERE a session stopped (percent alone cannot name the question), which
+          // LANGUAGE it ran in (uiLang never reached the server, so nobody could tell
+          // whether non-English completes at the same rate), and WHICH widgets were
+          // skipped.
+          section: furthestSection(progress),
+          uiLang,
+          skips: [...skipsRef.current],
           lastActiveAt: new Date().toISOString(),
         };
         fetchWithTimeout(SESSION_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: inProgress }) }, 15000).catch(() => {});
@@ -3806,6 +3828,14 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
         durationMs: startedAtRef.current ? (Date.now() - startedAtRef.current) : null,
         apiCalls: apiCountRef.current,
         tokens: { ...usageRef.current },
+        // Three fields the dashboard could not previously answer anything with:
+        // WHERE a session stopped (percent alone cannot name the question), which
+        // LANGUAGE it ran in (uiLang never reached the server, so nobody could tell
+        // whether non-English completes at the same rate), and WHICH widgets were
+        // skipped.
+        section: furthestSection(progress),
+        uiLang,
+        skips: [...skipsRef.current],
         status: "completed",
         sentAt: sentAt.toISOString(),
       };
@@ -4156,6 +4186,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     const key = `${mi}-${type}`;
     setWState(p=>({...p,[key]:{submitted:true,data:"__skip__"}}));
     setMessages(m=>[...m,{role:"user",content:`Skipped ${type}`,isWidget:true,timestamp:gts(),at:gat()}]);
+    skipsRef.current = [...skipsRef.current, type];
     sendToAPI(`[Widget skipped — ${type}]`);
   }, [sendToAPI]);
 

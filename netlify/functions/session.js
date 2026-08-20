@@ -217,6 +217,17 @@ export default async (req) => {
 // either render as an XSS sink (apiCalls) or poison the KPI math (tokens -> NaN).
 const numOrNull = (x) => (Number.isFinite(x) ? x : null);
 
+// Section, language and skips are client-POSTed and end up rendered by the
+// dashboard, so each is validated against a fixed set rather than passed through.
+// The existing `status` field is whitelisted for exactly this reason, and apiCalls is
+// coerced because it would otherwise be an XSS sink.
+const SECTIONS = ["company", "path", "topics", "channels", "reports", "users"];
+const UI_LANGS = ["English", "French", "German", "Spanish", "Italian", "Arabic"];
+const WIDGETS = ["MARKETS", "LANGUAGES", "OBJECTIVES", "TEAMS", "TIMEZONE", "TOPICS", "USERS", "QUERIES"];
+const oneOf = (v, allowed) => (typeof v === "string" && allowed.includes(v) ? v : null);
+// Bounded: a client could otherwise post thousands of entries into the store.
+const skipsOf = (v) => (Array.isArray(v) ? v.filter((x) => WIDGETS.includes(x)).slice(0, 20) : []);
+
 function summarize(r) {
   const company = (r.merged && r.merged.company) || {};
   const status = r.status === "in_progress" ? "in_progress" : "completed"; // whitelist
@@ -237,6 +248,15 @@ function summarize(r) {
     status: status,
     percent: percent,
     durationMs: numOrNull(r.durationMs),
+    // Where the session actually got to. `percent` alone can say a session died at
+    // 62% but never which question lost them.
+    section: oneOf(r.section, SECTIONS),
+    // Never reached the server before, so completion rate per language was unknowable
+    // across six supported languages.
+    uiLang: oneOf(r.uiLang, UI_LANGS),
+    // Which widgets the client skipped. A live probe showed a skip gets 0% help
+    // offered by the assistant; this is what says whether that matters in practice.
+    skips: skipsOf(r.skips),
     apiCalls: numOrNull(r.apiCalls),
     tokens: tokens,
     sheetUrl: r.sheetUrl || null,
