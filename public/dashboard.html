@@ -781,48 +781,11 @@
     var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
     var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
     var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
-    // WHERE sessions stop.
-    //
-    // `section` is only present on sessions recorded since that field shipped, and on
-    // first deploy that was none of them — so a tile scoped to it read "no data yet"
-    // beside a banner saying 62 sessions were stalled, which is useless when the answer
-    // is already derivable. Every session carries `percent`, and the stepper maps a
-    // percentage onto the six steps with exactly this arithmetic, so an older record's
-    // step can be recovered to within one step. Recorded beats derived; derived beats
-    // waiting three weeks for the backlog to age out.
-    //
-    // Marked "(est.)" whenever any row in the count was derived, because percent is
-    // model-reported and blended with section progress, so it can land a step early or
-    // late. Good enough to rank the steps, not to quote to two significant figures.
-    var SECTION_ORDER_KPI = ["company", "path", "topics", "channels", "reports", "users"];
-    function sectionOf(s) {
-      if (s.section) return { key: s.section, derived: false };
-      if (!Number.isFinite(s.percent)) return null;
-      var pct = Math.max(0, Math.min(100, s.percent));
-      var i = Math.min(SECTION_ORDER_KPI.length - 1, Math.floor(pct / 100 * SECTION_ORDER_KPI.length));
-      return { key: SECTION_ORDER_KPI[i], derived: true };
-    }
-
-    // Counted over NOT-COMPLETED sessions, since a completed one has no drop-off point.
-    // "not completed" deliberately, not "unfinished": the dashboard already calls this
-    // cohort Stalled and In progress, and a third word for the same set reads as a
-    // fourth status that does not exist.
-    var bySection = {}, notDoneN = 0, anyDerived = false;
-    real.forEach(function (s) {
-      if (s.status === "completed") return;
-      var r = sectionOf(s);
-      if (!r) return;
-      notDoneN++;
-      if (r.derived) anyDerived = true;
-      bySection[r.key] = (bySection[r.key] || 0) + 1;
-    });
-    var worst = Object.keys(bySection).sort(function (a, b) { return bySection[b] - bySection[a]; })[0];
-    var worstLabel = worst
-      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / notDoneN * 100) + "%"
-      : "—";
-    var worstSub = notDoneN
-      ? "top drop-off of " + notDoneN + " not completed" + (anyDerived ? " (est.)" : "")
-      : "every session completed";
+    // NO AGGREGATE DROP-OFF TILE. There was one; it was removed. Across all stalled
+    // clients it only ever said "everyone who stalls, stalls early", which is both
+    // guessable and unactionable — nobody opens this dashboard to learn a distribution.
+    // They open it to chase a specific client, so the step now lives in that client's
+    // detail view, next to Copy link and Send reminder, where it changes what you say.
 
     // How often a client skips a question, and which one most. Unlike the step, this
     // CANNOT be derived from anything older — a session that predates the field simply
@@ -848,7 +811,6 @@
       [medMin != null ? medMin + " min" : "—", "median time, start to submit"],
       [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 60 min manual)"],
       [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
-      [worstLabel, worstSub],
       [skipLabel, skipSub],
     ];
     box.innerHTML = kpis.map(function (k) {
@@ -858,8 +820,8 @@
   }
 
   // The step a session reached: recorded when present, otherwise recovered from the
-  // percentage using the same arithmetic the stepper uses. Shared so the KPI tile, the
-  // filter and the option list can never disagree about which rows belong to a step.
+  // percentage using the same arithmetic the stepper uses. Shared so the detail view,
+  // the filter and the option list can never disagree about which rows belong to a step.
   var SECTION_ORDER_ALL = ["company", "path", "topics", "channels", "reports", "users"];
   function deriveSection(s) {
     if (s.section) return s.section;
@@ -1373,8 +1335,8 @@
       if (except !== "pkg" && pkgKnown && FILTER.pkg && FILTER.pkg !== "all" && (s.pkg || "") !== FILTER.pkg) return false;
       if (except !== "lang" && langKnown && FILTER.lang && FILTER.lang !== "all" && (s.lang || "") !== FILTER.lang) return false;
       if (except !== "section" && FILTER.section && FILTER.section !== "all") {
-        // Same derivation as the KPI tile, or the filter would show none of the rows the
-        // tile is counting. deriveSection() is the shared implementation.
+        // Same derivation as the detail view, or filtering to a step would exclude a row
+        // whose own sheet names that step. deriveSection() is the shared implementation.
         var sk = deriveSection(s);
         if (sk !== FILTER.section) return false;
       }
@@ -1778,6 +1740,22 @@
       .catch(function () { el.innerHTML = '<div class="muted">Could not load notes.</div>'; });
   }
 
+  // What the client was being asked when they stopped. Recorded on sessions from the
+  // day the field shipped; recovered from `percent` for anything older, using the same
+  // arithmetic the client's own stepper uses, and marked approximate when it is.
+  //
+  // Worth being precise about what this means: it is the furthest step REACHED, so a
+  // client who stopped at 5% was still on the opening questions, not stuck on topics.
+  // That distinction is the whole value when you are deciding how to restart the
+  // conversation.
+  function stoppedAtLabel(s) {
+    var pctText = Number.isFinite(s.percent) ? " · " + s.percent + "% through" : "";
+    if (s.section) return (SECTION_LABELS[s.section] || s.section) + pctText;
+    var k = deriveSection(s);
+    if (!k) return "—";
+    return (SECTION_LABELS[k] || k) + pctText + " (approx.)";
+  }
+
   function renderSheet(s) {
     var c = (s.merged && s.merged.company) || {};
     var topics = (s.merged && Array.isArray(s.merged.topics)) ? s.merged.topics : [];
@@ -1804,6 +1782,13 @@
         kv("Objectives", c.objectives) +
         kv("Teams", c.teams) +
         kv("Timezone", c.timezone) +
+        // The question they stopped at. Only for a session that DID stop: a completed
+        // one reached the end, so the row would be noise on every finished brief.
+        // Placed above Time spent because it is the first thing you need when you open
+        // a stalled client — it decides what you say when you chase them.
+        (s.status !== "completed"
+          ? kv("Stopped at", stoppedAtLabel(s))
+          : "") +
         kv("Time spent", fmtDuration(s.durationMs)) +
         kv("AI calls", s.apiCalls != null ? s.apiCalls : "—") +
         kv("Tokens", s.tokens ? (fmtTokens(totalTokens(s.tokens)) + " — " + num(s.tokens.input) + " in / " + num(s.tokens.output) + " out / " + num(s.tokens.cacheRead) + " cached-read") : "—") +
