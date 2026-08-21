@@ -309,8 +309,61 @@ describe("dark mode reaches the widgets and the review modal", () => {
 
   it("shows the accent edge only while the button is enabled", () => {
     // Applying it unconditionally made the DISABLED button read as interactive.
-    expect(code).not.toMatch(/color:"var\(--wc-on-accent\)",border:"1px solid var\(--wc-accent-edge\)"/);
-    expect(code).toMatch(/border:[^,]+\?"1px solid var\(--wc-accent-edge\)":"1px solid var\(--wc-border\)"/);
+    //
+    // This asserted the invariant by banning one literal character sequence, which
+    // also failed an always-enabled button that legitimately needs a constant edge
+    // (the review modal's Confirm). Per this repo's handover: match the BEHAVIOUR,
+    // not a string. The real rule is narrower — a button that can be disabled must
+    // gate its edge on that same condition — so check exactly those buttons.
+    const withEdge = code
+      .split("\n")
+      .map((line, i) => ({ line, n: i + 1 }))
+      .filter(({ line }) => line.includes("--wc-accent-edge"));
+    expect(withEdge.length, "no accent-edge buttons found — the sweep is checking nothing").toBeGreaterThan(0);
+
+    const canBeDisabled = withEdge.filter(({ line }) => /disabled=\{/.test(line));
+    expect(canBeDisabled.length, "no disableable accent buttons — has the pattern moved?").toBeGreaterThan(0);
+    for (const { line, n } of canBeDisabled) {
+      expect(line, `line ${n}: a disableable button applies the accent edge unconditionally, so it reads as interactive while disabled`)
+        .toMatch(/border:[^,]+\?"1px solid var\(--wc-accent-edge\)":"1px solid var\(--wc-border\)"/);
+    }
+  });
+
+  it("leaves no light-mode literal anywhere in the review modal subtree", () => {
+    // The first pass migrated the modal itself but missed two components rendered
+    // INSIDE it (Section's count badge, PasteImport entirely) and two controls that
+    // set a colour inline. Inline wins over the input/select safety-net rule below,
+    // so the reports <select> kept background:"#fff" while its text went light —
+    // near-invisible. Sweep the whole subtree rather than re-listing single lines.
+    const region = (from, to) => {
+      const a = src.indexOf(from);
+      expect(a, `anchor not found: ${from}`).toBeGreaterThan(-1);
+      return src.slice(a, src.indexOf(to, a));
+    };
+    const subtree = [
+      region("function Section({", "function PasteImport({"),
+      region("function PasteImport({", "const URL_RE"),
+      region("function ExportModal({", "function FinishCard({"),
+    ].join("\n");
+    // Hex literals and bare "white"/"black" in style values. The modal scrim is the
+    // one legitimate rgba() — it is a scrim in both themes — so hex only.
+    const literals = subtree.match(/(?:background|color|borderColor):\s*"#[0-9a-fA-F]{3,8}"|(?:background|color):\s*"(?:white|black)"/g) || [];
+    expect(literals, `light-mode literals left in the review modal: ${literals.join(", ")}`).toEqual([]);
+    // Dark Teal as a FILL is the same 1.12:1 case --wc-accent exists for, and `P`
+    // is an identifier so the hex sweep above cannot see it.
+    expect(subtree).not.toMatch(/background:\s*P\b/);
+  });
+
+  it("keeps the new tint as subtle in dark as the light value it replaces", () => {
+    // #faf8ff had no existing counterpart and reusing --wc-accent-soft (#ede9fe)
+    // would have shifted light mode, so this is a new pair. A dark value chosen by
+    // eye tends to land as a slab; match the light subtlety instead.
+    expect(src).toMatch(/--wc-accent-tint:#faf8ff;/);
+    expect(src).toMatch(/--wc-accent-tint:#241c3d;/);
+    expect(contrast("#faf8ff", "#ffffff")).toBeLessThan(1.1);   // barely there in light
+    expect(contrast("#241c3d", "#16283c")).toBeLessThan(1.1);   // and in dark
+    expect(contrast("#8aa4c1", "#241c3d")).toBeGreaterThanOrEqual(4.5); // muted label
+    expect(contrast("#c8d8e8", "#241c3d")).toBeGreaterThanOrEqual(4.5); // textarea text
   });
 
   it("gives fields a background instead of inheriting the UA white", () => {

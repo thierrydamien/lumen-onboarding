@@ -2660,8 +2660,8 @@ function Section({ title, badge, defaultOpen=true, children }) {
   return <div style={{marginBottom:18}}>
     <h3 style={{margin:0}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:"0 0 6px",borderBottom:`2px solid ${P}20`,marginBottom:open?12:0,font:"inherit"}}>
-        <span style={{fontSize:12,fontWeight:700,color:"var(--wc-heading)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"#556377",background:"#f1f5f9",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
-        <span aria-hidden="true" style={{fontSize:11,color:"#556377",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",display:"inline-block"}}>▶</span>
+        <span style={{fontSize:12,fontWeight:700,color:"var(--wc-heading)",textTransform:"uppercase",letterSpacing:"0.06em"}}>{title}{badge!=null && <span style={{marginLeft:8,fontSize:10,fontWeight:600,color:"var(--wc-muted)",background:"var(--wc-subtle-3)",borderRadius:8,padding:"1px 7px",textTransform:"none",letterSpacing:0}}>{badge}</span>}</span>
+        <span aria-hidden="true" style={{fontSize:11,color:"var(--wc-muted)",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",display:"inline-block"}}>▶</span>
       </button>
     </h3>
     {open && children}
@@ -2679,12 +2679,12 @@ function PasteImport({ label, placeholder, onImport, lang }) {
     setText(""); setOpen(false);
   };
   if (!open) return <button onClick={()=>setOpen(true)} style={{background:"transparent",border:"none",color:LINK,fontSize:12,cursor:"pointer",padding:"6px 0",textDecoration:"underline",marginLeft:10}}>{label}</button>;
-  return <div style={{border:`1px solid ${LINK}`,borderRadius:8,padding:"10px 12px",margin:"8px 0",background:"#faf8ff"}}>
-    <div style={{fontSize:11,color:"#556377",marginBottom:6}}>{placeholder}</div>
-    <textarea value={text} onChange={e=>setText(e.target.value)} rows={5} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#1e293b",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
+  return <div style={{border:`1px solid ${LINK}`,borderRadius:8,padding:"10px 12px",margin:"8px 0",background:"var(--wc-accent-tint)"}}>
+    <div style={{fontSize:11,color:"var(--wc-muted)",marginBottom:6}}>{placeholder}</div>
+    <textarea value={text} onChange={e=>setText(e.target.value)} rows={5} style={{width:"100%",border:"1px solid var(--wc-border)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"var(--wc-text)",outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
     <div style={{display:"flex",gap:8}}>
-      <button onClick={run} disabled={!text.trim()} style={{background:text.trim()?P:"#e2e8f0",color:"white",border:"none",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{L("expImport",lang)}</button>
-      <button onClick={()=>{setText("");setOpen(false);}} style={{background:"transparent",border:"1px solid #e2e8f0",borderRadius:7,padding:"6px 12px",fontSize:12,color:"#556377",cursor:"pointer"}}>{L("expCancel",lang)}</button>
+      <button onClick={run} disabled={!text.trim()} style={{background:text.trim()?"var(--wc-accent)":"var(--wc-border)",color:"var(--wc-on-accent)",border:text.trim()?"1px solid var(--wc-accent-edge)":"1px solid var(--wc-border)",borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:text.trim()?"pointer":"default"}}>{L("expImport",lang)}</button>
+      <button onClick={()=>{setText("");setOpen(false);}} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:7,padding:"6px 12px",fontSize:12,color:"var(--wc-muted)",cursor:"pointer"}}>{L("expCancel",lang)}</button>
     </div>
   </div>;
 }
@@ -2916,7 +2916,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
               <div style={{fontSize:10,fontWeight:700,display:"flex",alignItems:"center",gap:5,color:guess?"var(--wc-warn-strong)":"var(--wc-ok-strong)",textTransform:"uppercase",letterSpacing:"0.04em"}}><span>{guess?"⚠":"✓"}</span>{guess?L("expGuess",uiLang):L("expConfirmed",uiLang)}</div>
               {guess
                 ? <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>confirmTopic(i,true)} style={{background:P,color:"#fff",border:"none",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{L("expConfirm",uiLang)}</button>
+                    <button onClick={()=>confirmTopic(i,true)} style={{background:"var(--wc-accent)",color:"var(--wc-on-accent)",border:"1px solid var(--wc-accent-edge)",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{L("expConfirm",uiLang)}</button>
                     <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} style={{background:"transparent",border:"1px solid var(--wc-border)",borderRadius:6,padding:"4px 9px",fontSize:11,color:"var(--wc-muted)",cursor:"pointer"}}>{L("expDrop",uiLang)}</button>
                   </div>
                 : <button onClick={()=>setTopics(ts=>ts.filter((_,j)=>j!==i))} aria-label={L("expRemoveTopic",uiLang,{name:tp.name||i+1})} style={{background:"transparent",border:"none",color:"var(--wc-err)",cursor:"pointer",fontSize:12,flexShrink:0}}>✕</button>}
@@ -2948,7 +2948,7 @@ function ExportModal({ cdata, wState, messages, onClose, onExport, onSend, sendi
             {/* Dashboard vs Report: the assistant pre-classifies each item (kind); this
                 lets the client see and correct it before it writes to the sheet's
                 "Dashboard / Report" column. Values are literal so they match the sheet. */}
-            <select value={r.kind||""} aria-label={L("expRepKind",uiLang)} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,kind:e.target.value}:x))} style={{flex:"0 0 auto",border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none",background:"#fff",color:r.kind?"var(--wc-text)":"var(--wc-faint)"}}>
+            <select value={r.kind||""} aria-label={L("expRepKind",uiLang)} onChange={e=>setReports(rs=>rs.map((x,j)=>j===i?{...x,kind:e.target.value}:x))} style={{flex:"0 0 auto",border:"1px solid var(--wc-border)",borderRadius:6,padding:"6px 8px",fontSize:11,outline:"none",background:"var(--wc-surface)",color:r.kind?"var(--wc-text)":"var(--wc-faint)"}}>
               <option value="">{L("expRepKind",uiLang)}</option>
               <option value="Dashboard">{L("expRepKindDashboard",uiLang)}</option>
               <option value="Report">{L("expRepKindReport",uiLang)}</option>
@@ -3394,10 +3394,10 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // refreshed at the retry card came back to their own message still in the
     // transcript, absent from history, with no Try again anywhere: the answer was
     // silently lost and the assistant carried on as if it had never been given.
-    snapRef.current = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg };
+    snapRef.current = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg, skips: [...skipsRef.current] };
     if (saveT.current) clearTimeout(saveT.current);
     saveT.current = setTimeout(() => {
-      const snap = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg, savedAt: Date.now() };
+      const snap = { messages, progress, wState, cdata, history: histRef.current, uiLang, sid: sidRef.current, startedAt: startedAtRef.current, apiCalls: apiCountRef.current, tokens: { ...usageRef.current }, retryMsg, skips: [...skipsRef.current], savedAt: Date.now() };
       setDraftOk(lsSaveDraft(seedId, snap));
       // Cross-device copy. Best-effort and never blocks the chat; the local copy
       // already covers this device if it fails. Skipped while a send is in flight so
@@ -4074,6 +4074,12 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
     // after a resume (they were reset to 0 on resume, dropping all pre-pause usage).
     apiCountRef.current = s.apiCalls || 0;
     usageRef.current = s.tokens ? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...s.tokens } : { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    // Same failure as apiCalls/tokens above, and the same fix. Skips live only in a
+    // ref, so without this the first autosave after a resume POSTs a SHORTER list —
+    // and session.js rebuilds the record from each POST rather than merging it, so
+    // whatever the client skipped before pausing is gone for good and the dashboard's
+    // skip tile quietly undercounts. Nothing else notices, which is what makes it bad.
+    skipsRef.current = Array.isArray(s.skips) ? [...s.skips] : [];
     setMessages(s.messages); setProgress(s.progress); setWState(s.wState||{});
     prevSecRef.current = s.progress?.section || null;
     if (s.cdata) setCdata(s.cdata);
@@ -4357,6 +4363,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   --wc-subtle-2:#eef1f5;
   --wc-subtle-3:#f1f5f9;
   --wc-accent-soft:#ede9fe;
+  --wc-accent-tint:#faf8ff;
   --wc-accent-line:#c4b5fd;
   --wc-ok-bg:#f0fdf4;
   --wc-ok-line:#bbf7d0;
@@ -4392,6 +4399,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   --wc-subtle-2:#16283c;
   --wc-subtle-3:#16283c;
   --wc-accent-soft:#2a2145;
+  /* Faint purple panel (bulk-import box). 1.05:1 against white in light mode, so
+     the dark value matches that subtlety (1.07:1 against the modal) rather than
+     becoming a slab: muted label 6.24:1, textarea text 11.04:1. */
+  --wc-accent-tint:#241c3d;
   --wc-accent-line:#6b5bb5;
   --wc-ok-bg:#13301f;
   --wc-ok-line:#1f5c38;

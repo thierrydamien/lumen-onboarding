@@ -260,3 +260,35 @@ describe("a figure is never reported where it has not been measured", () => {
     expect(dash).toMatch(/var dsec = deriveSection\(s\); if \(dsec\) sectionMap\[dsec\] = 1;/);
   });
 });
+
+describe("a pause does not erase what the client already skipped", () => {
+  // skipsRef lives only in a ref, so it is not restored by React state rehydration
+  // the way messages/progress/wState are. apiCalls and tokens hit this exact bug
+  // earlier (they "were reset to 0 on resume, dropping all pre-pause usage") and
+  // were fixed by rehydrating them in resumeConvo; skips was added later and did
+  // not get the same treatment.
+  //
+  // It matters because session.js REBUILDS the stored record from each POST rather
+  // than merging into the previous one — only archivedAt/sheetUrl/alertedAt are
+  // deliberately carried across. So the first autosave after a resume overwrites a
+  // longer skip list with a shorter one, permanently, and the only visible symptom
+  // is the dashboard's skip tile quietly reading low.
+  const resume = client.slice(client.indexOf("const resumeConvo = useCallback"));
+  const resumeBody = resume.slice(0, resume.indexOf("}, [saved, seedId"));
+
+  it("rehydrates the skip list on resume, like apiCalls and tokens beside it", () => {
+    expect(resumeBody).toMatch(/skipsRef\.current = Array\.isArray\(s\.skips\) \? \[\.\.\.s\.skips\] : \[\]/);
+    // Ordered with the other two rehydrates, not stranded after an early return:
+    // resumeConvo returns early on a pending retryMsg, and anything below that
+    // would silently not run for exactly the clients most likely to have paused.
+    expect(resumeBody.indexOf("skipsRef.current =")).toBeLessThan(resumeBody.indexOf("if (s.retryMsg)"));
+  });
+
+  it("puts skips in the draft snapshot, or a resume has nothing to restore from", () => {
+    // Both snapshots: snapRef (flush-on-hide) and the debounced save. Missing it
+    // from either loses the list for whichever path fires first.
+    const snaps = client.match(/(snapRef\.current|const snap) = \{ messages, progress[^;]*;/g) || [];
+    expect(snaps.length, "expected both draft snapshots").toBe(2);
+    for (const s of snaps) expect(s).toMatch(/skips: \[\.\.\.skipsRef\.current\]/);
+  });
+});
