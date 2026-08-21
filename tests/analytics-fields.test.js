@@ -88,11 +88,12 @@ describe("the dashboard turns them into something actionable", () => {
   it("names the step that loses people, not a percentage", () => {
     // "median 62%" says how far people get; it never says which question stopped them.
     expect(dash).toMatch(/var SECTION_LABELS = \{ company: "About you"/);
-    expect(dash).toMatch(/top drop-off of " \+ unfinished\.length \+ " unfinished/);
+    expect(dash).toMatch(/top drop-off of " \+ notDone\.length \+ " not completed/);
   });
   it("counts drop-off over unfinished sessions only", () => {
     // A completed session has no drop-off point; including it would dilute the signal.
-    expect(dash).toMatch(/real\.filter\(function \(s\) \{ return s\.status !== "completed" && s\.section; \}\)/);
+    // Scoped to withAnalytics so the legacy backlog cannot dilute it either.
+    expect(dash).toMatch(/var notDone = withAnalytics\.filter\(function \(s\) \{ return s\.status !== "completed"; \}\);/);
   });
   it("feeds the language into the EXISTING filter rather than adding a tile", () => {
     // A dedicated "completion by language" tile was written and then removed. The
@@ -116,7 +117,7 @@ describe("the dashboard turns them into something actionable", () => {
   });
 
   it("shows which widget gets skipped, not just how often", () => {
-    expect(dash).toMatch(/sessions that skipped a question/);
+    expect(dash).toMatch(/recorded, skipped a question/);
     expect(dash).toMatch(/topSkip/);
   });
   it("escapes the new values like every other tile", () => {
@@ -184,5 +185,45 @@ describe("the new dimensions are filterable, not just countable", () => {
     expect(dash).toMatch(/FILTER\.skipped === "any" && !sk\.length/);
     expect(dash).toMatch(/FILTER\.skipped === "none" && sk\.length/);
     expect(dash).toMatch(/FILTER\.skipped\.indexOf\("w:"\) === 0 && sk\.indexOf\(FILTER\.skipped\.slice\(2\)\) === -1/);
+  });
+});
+
+describe("a tile never reports a number it has not measured", () => {
+  // Caught on the first live load, not by any test here. The two new tiles were
+  // computed over ALL sessions, but every one of the 76 in production predates the
+  // section/skips fields — so the drop-off tile rendered "no unfinished sessions"
+  // directly beneath a banner reading "62 onboarding sessions are stalled", and the
+  // skip tile rendered "0%", which looks like a finding rather than an absence.
+  it("scopes both tiles to sessions recorded since the fields shipped", () => {
+    expect(dash).toMatch(/var withAnalytics = real\.filter\(function \(s\) \{ return s\.section; \}\);/);
+    expect(dash).toMatch(/var awaitingData = withAnalytics\.length === 0;/);
+  });
+
+  it("shows a dash, not a zero, while there is no data", () => {
+    // A dash means "not known yet"; a number must always mean "measured".
+    expect(dash).toMatch(/var skipLabel = awaitingData \? "—"/);
+    expect(dash).toMatch(/drop-off step — no data yet/);
+    expect(dash).toMatch(/skipped questions — no data yet/);
+  });
+
+  it("distinguishes no-data from genuinely-none", () => {
+    // Once data exists, "every recorded session completed" is a real finding and must
+    // not be collapsed into the same message as "we have not measured anything".
+    expect(dash).toMatch(/every recorded session completed/);
+  });
+
+  it("counts the denominators over recorded sessions only", () => {
+    // Dividing by `total` would dilute every percentage by the legacy backlog.
+    expect(dash).toMatch(/withSkips \/ withAnalytics\.length \* 100/);
+    expect(dash).toMatch(/of " \+ withAnalytics\.length \+ " recorded, skipped a question/);
+    expect(dash).toMatch(/bySection\[worst\] \/ notDone\.length \* 100/);
+  });
+
+  it("drops the word 'unfinished' for the cohort the dashboard already names", () => {
+    // Stalled and In progress are existing statuses; a third word for the same set
+    // reads as a fourth status that does not exist.
+    const kpiBlock = dash.slice(dash.indexOf("var withAnalytics"), dash.indexOf("var kpis = ["));
+    expect(kpiBlock).not.toMatch(/var unfinished/);
+    expect(dash).toMatch(/not completed/);
   });
 });

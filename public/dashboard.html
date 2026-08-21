@@ -781,30 +781,47 @@
     var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
     var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
     var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
-    // WHERE unfinished sessions stop. This is the drop-off question the old KPI row
-    // could not answer: a median percentage says how far people get on average, never
-    // which question loses them. Counted over unfinished sessions only, because a
+    // Sessions recorded SINCE the section/skips fields shipped. Everything older has
+    // neither, and reporting over them produces confident falsehoods rather than gaps:
+    // on the first live load the drop-off tile read "no unfinished sessions" while 62
+    // sat stalled in the banner directly above it, and the skip tile read "0%", which
+    // looks like a measurement instead of an absence. A dash means "not known yet"; a
+    // number must always mean "measured". `section` is the marker because every new
+    // session gets one, even at 0% (the frontier floors at the first step).
+    var withAnalytics = real.filter(function (s) { return s.section; });
+    var awaitingData = withAnalytics.length === 0;
+
+    // WHERE sessions stop. The old KPI row could say how far people get on average but
+    // never which question lost them. Counted over NOT-COMPLETED sessions, since a
     // completed one has no drop-off point.
-    var unfinished = real.filter(function (s) { return s.status !== "completed" && s.section; });
+    //
+    // "not completed" deliberately, not "unfinished": the dashboard already calls this
+    // cohort Stalled and In progress, and a third word for the same set reads as a
+    // fourth status that does not exist.
+    var notDone = withAnalytics.filter(function (s) { return s.status !== "completed"; });
     var bySection = {};
-    unfinished.forEach(function (s) { bySection[s.section] = (bySection[s.section] || 0) + 1; });
+    notDone.forEach(function (s) { bySection[s.section] = (bySection[s.section] || 0) + 1; });
     var worst = Object.keys(bySection).sort(function (a, b) { return bySection[b] - bySection[a]; })[0];
     var worstLabel = worst
-      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / unfinished.length * 100) + "%"
+      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / notDone.length * 100) + "%"
       : "—";
+    var worstSub = awaitingData ? "drop-off step — no data yet"
+      : notDone.length ? "top drop-off of " + notDone.length + " not completed"
+      : "every recorded session completed";
 
-    // How often a client skips a widget, and which one most. A live probe measured
-    // that a skip currently gets 0% help offered by the assistant; this says whether
-    // that is worth fixing or a rounding error.
-    var skipTotal = 0, bySkip = {};
-    real.forEach(function (s) {
-      (s.skips || []).forEach(function (w) { skipTotal++; bySkip[w] = (bySkip[w] || 0) + 1; });
+    // How often a client skips a question, and which one most. A live probe measured
+    // that a skip currently gets 0% help offered by the assistant; this is what says
+    // whether that is worth fixing or a rounding error.
+    var bySkip = {};
+    withAnalytics.forEach(function (s) {
+      (s.skips || []).forEach(function (w) { bySkip[w] = (bySkip[w] || 0) + 1; });
     });
-    var withSkips = real.filter(function (s) { return (s.skips || []).length > 0; }).length;
+    var withSkips = withAnalytics.filter(function (s) { return (s.skips || []).length > 0; }).length;
     var topSkip = Object.keys(bySkip).sort(function (a, b) { return bySkip[b] - bySkip[a]; })[0];
-    var skipLabel = total
-      ? Math.round(withSkips / total * 100) + "%" + (topSkip ? " · " + topSkip.toLowerCase() : "")
-      : "—";
+    var skipLabel = awaitingData ? "—"
+      : Math.round(withSkips / withAnalytics.length * 100) + "%" + (topSkip ? " · " + topSkip.toLowerCase() : "");
+    var skipSub = awaitingData ? "skipped questions — no data yet"
+      : "of " + withAnalytics.length + " recorded, skipped a question";
 
     var kpis = [
       [String(total), total === 1 ? "session" : "sessions"],
@@ -812,8 +829,8 @@
       [medMin != null ? medMin + " min" : "—", "median time, start to submit"],
       [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 60 min manual)"],
       [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
-      [worstLabel, unfinished.length ? "top drop-off of " + unfinished.length + " unfinished" : "no unfinished sessions"],
-      [skipLabel, "sessions that skipped a question"],
+      [worstLabel, worstSub],
+      [skipLabel, skipSub],
     ];
     box.innerHTML = kpis.map(function (k) {
       return '<div class="kpi"><div class="v">' + esc(k[0]) + '</div><div class="l">' + esc(k[1]) + '</div></div>';
