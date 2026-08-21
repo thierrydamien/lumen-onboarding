@@ -674,6 +674,13 @@
         SESSIONS.forEach(function (s) {
           var m = s.seedId && meta[s.seedId];
           if (m) { if (m.owner) s.owner = m.owner; s.pkg = m.pkg; s.lang = m.lang; }
+          // The language the client ACTUALLY ran in wins over the one Sales seeded.
+          // They can differ: the welcome-back screen lets a client change language
+          // after starting (see langOverrideRef in src/lumen.jsx), so a session seeded
+          // in English can genuinely be conducted in French. This also gives a language
+          // to sessions whose seed has been archived or deleted, which previously had
+          // none at all because s.lang was only set inside the `if (m)` above.
+          if (s.uiLang) s.lang = s.uiLang;
         });
         LINKSENT = seeds.filter(function (x) { return x && x.id && !seen[x.id]; }).map(function (x) {
           return { id: x.id, company: x.company || "(unnamed)", contact: x.contactName || "", email: x.email || "",
@@ -786,35 +793,6 @@
       ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / unfinished.length * 100) + "%"
       : "—";
 
-    // Completion rate per language. uiLang never reached the server before, so nobody
-    // could tell whether a French or Arabic session finishes as often as an English
-    // one — across six supported languages, with non-English conversation quality
-    // still untested.
-    var byLang = {};
-    real.forEach(function (s) {
-      if (!s.uiLang) return;
-      byLang[s.uiLang] = byLang[s.uiLang] || { n: 0, done: 0 };
-      byLang[s.uiLang].n++;
-      if (s.status === "completed") byLang[s.uiLang].done++;
-    });
-    var langKeys = Object.keys(byLang);
-    // The WEAKEST language, not a breakdown of all of them. A stat tile holds one
-    // number; the first version put "Eng 67% · Fre 33% · Ara 0% · Ger 100%" in the
-    // value slot, which wrapped to three lines and is a table wearing a KPI's clothes.
-    // The lowest completion rate is also the only figure here that should prompt
-    // action, and the per-language detail belongs in Insights.
-    // Needs a floor: one abandoned Arabic session is not evidence of a problem.
-    var LANG_MIN_N = 3;
-    var ranked = langKeys.filter(function (k) { return byLang[k].n >= LANG_MIN_N; })
-      .sort(function (a, b) { return (byLang[a].done / byLang[a].n) - (byLang[b].done / byLang[b].n); });
-    var weakest = ranked[0];
-    var langSummary = weakest
-      ? weakest.slice(0, 3) + " " + Math.round(byLang[weakest].done / byLang[weakest].n * 100) + "%"
-      : "—";
-    var langLabel = weakest
-      ? "lowest completion, by language (" + langKeys.length + " in use)"
-      : (langKeys.length ? "too few sessions per language yet" : "no language recorded");
-
     // How often a client skips a widget, and which one most. A live probe measured
     // that a skip currently gets 0% help offered by the assistant; this says whether
     // that is worth fixing or a rounding error.
@@ -835,7 +813,6 @@
       [savedH != null ? savedH.toFixed(1) + " h" : "—", "est. time saved (vs 60 min manual)"],
       [fmtCost(totalCost), "est. AI spend" + (perBrief != null ? " · " + fmtCost(perBrief) + "/brief" : "")],
       [worstLabel, unfinished.length ? "top drop-off of " + unfinished.length + " unfinished" : "no unfinished sessions"],
-      [langSummary, langLabel],
       [skipLabel, "sessions that skipped a question"],
     ];
     box.innerHTML = kpis.map(function (k) {
@@ -985,7 +962,7 @@
       '<div class="chart"><h4>Onboarding funnel</h4>' + funnelHtml(linksSentN, started.length, completedN) + '</div>' +
       '<div class="chart"><h4>Completed per week</h4>' + sparkHtml(weeklyCompletions(list)) + '</div>' +
       '<div class="chart"><h4>By package <span class="chint">click to filter</span></h4>' + barsHtml(byPkg, { filterKey: "pkg" }) + '</div>' +
-      '<div class="chart"><h4>By chat language <span class="chint">click to filter</span></h4>' + barsHtml(byLang, { denom: langTotal, filterKey: "lang" }) + '</div>' +
+      '<div class="chart"><h4>By language used <span class="chint">click to filter</span></h4>' + barsHtml(byLang, { denom: langTotal, filterKey: "lang" }) + '</div>' +
       '<div class="chart wide"><h4>By consultant · links prepared &amp; completion rate <span class="chint">click to filter</span></h4>' + barsHtml(byRep, { filterKey: "owner" }) + '</div>';
     wrap.hidden = false;
     // Play the grow-in animation only the first time the panel appears.

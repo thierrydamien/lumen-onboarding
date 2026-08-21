@@ -94,18 +94,27 @@ describe("the dashboard turns them into something actionable", () => {
     // A completed session has no drop-off point; including it would dilute the signal.
     expect(dash).toMatch(/real\.filter\(function \(s\) \{ return s\.status !== "completed" && s\.section; \}\)/);
   });
-  it("reports the WEAKEST language as a single figure", () => {
-    // The first version put "Eng 67% · Fre 33% · Ara 0% · Ger 100%" in the value slot:
-    // a table wearing a KPI's clothes, and it wrapped to three lines. One number, and
-    // the only one here that should prompt action.
-    expect(dash).toMatch(/lowest completion, by language/);
-    expect(dash).not.toMatch(/"completion by language"/);
+  it("feeds the language into the EXISTING filter rather than adding a tile", () => {
+    // A dedicated "completion by language" tile was written and then removed. The
+    // dashboard already has a language dropdown and a clickable "By language used"
+    // chart, so filtering to French already recalculates the completed tile — and does
+    // it composably with every other filter, which a fixed tile cannot. Verified in a
+    // browser: English 67%, French 33%, Arabic 0%, drop-off recalculating alongside.
+    expect(dash).not.toMatch(/completion by language/);
+    expect(dash).not.toMatch(/lowest completion, by language/);
+    expect(dash).not.toMatch(/LANG_MIN_N/);
   });
-  it("will not call a language weak off one abandoned session", () => {
-    expect(dash).toMatch(/var LANG_MIN_N = 3/);
-    expect(dash).toMatch(/byLang\[k\]\.n >= LANG_MIN_N/);
-    expect(dash).toMatch(/too few sessions per language yet/);
+
+  it("prefers the language actually used over the one Sales seeded", () => {
+    // s.lang came only from the seed, i.e. what Sales picked. The welcome-back screen
+    // lets a client change language after starting, so the two genuinely diverge — and
+    // a session whose seed was archived had no language at all, because s.lang was only
+    // assigned inside the `if (m)` seed-match branch.
+    const i = dash.indexOf("if (m) { if (m.owner) s.owner = m.owner;");
+    expect(dash.slice(i, i + 900)).toMatch(/if \(s\.uiLang\) s\.lang = s\.uiLang;/);
+    expect(dash).toMatch(/By language used/);
   });
+
   it("shows which widget gets skipped, not just how often", () => {
     expect(dash).toMatch(/sessions that skipped a question/);
     expect(dash).toMatch(/topSkip/);
