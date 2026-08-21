@@ -781,47 +781,66 @@
     var costs = completed.map(function (s) { return costOf(s.tokens); }).filter(function (c) { return c != null; });
     var totalCost = costs.length ? costs.reduce(function (a, b) { return a + b; }, 0) : null;
     var perBrief = (totalCost != null && costs.length) ? totalCost / costs.length : null;
-    // Sessions recorded SINCE the section/skips fields shipped. Everything older has
-    // neither, and reporting over them produces confident falsehoods rather than gaps:
-    // on the first live load the drop-off tile read "no unfinished sessions" while 62
-    // sat stalled in the banner directly above it, and the skip tile read "0%", which
-    // looks like a measurement instead of an absence. A dash means "not known yet"; a
-    // number must always mean "measured". `section` is the marker because every new
-    // session gets one, even at 0% (the frontier floors at the first step).
-    var withAnalytics = real.filter(function (s) { return s.section; });
-    var awaitingData = withAnalytics.length === 0;
-
-    // WHERE sessions stop. The old KPI row could say how far people get on average but
-    // never which question lost them. Counted over NOT-COMPLETED sessions, since a
-    // completed one has no drop-off point.
+    // WHERE sessions stop.
     //
+    // `section` is only present on sessions recorded since that field shipped, and on
+    // first deploy that was none of them — so a tile scoped to it read "no data yet"
+    // beside a banner saying 62 sessions were stalled, which is useless when the answer
+    // is already derivable. Every session carries `percent`, and the stepper maps a
+    // percentage onto the six steps with exactly this arithmetic, so an older record's
+    // step can be recovered to within one step. Recorded beats derived; derived beats
+    // waiting three weeks for the backlog to age out.
+    //
+    // Marked "(est.)" whenever any row in the count was derived, because percent is
+    // model-reported and blended with section progress, so it can land a step early or
+    // late. Good enough to rank the steps, not to quote to two significant figures.
+    var SECTION_ORDER_KPI = ["company", "path", "topics", "channels", "reports", "users"];
+    function sectionOf(s) {
+      if (s.section) return { key: s.section, derived: false };
+      if (!Number.isFinite(s.percent)) return null;
+      var pct = Math.max(0, Math.min(100, s.percent));
+      var i = Math.min(SECTION_ORDER_KPI.length - 1, Math.floor(pct / 100 * SECTION_ORDER_KPI.length));
+      return { key: SECTION_ORDER_KPI[i], derived: true };
+    }
+
+    // Counted over NOT-COMPLETED sessions, since a completed one has no drop-off point.
     // "not completed" deliberately, not "unfinished": the dashboard already calls this
     // cohort Stalled and In progress, and a third word for the same set reads as a
     // fourth status that does not exist.
-    var notDone = withAnalytics.filter(function (s) { return s.status !== "completed"; });
-    var bySection = {};
-    notDone.forEach(function (s) { bySection[s.section] = (bySection[s.section] || 0) + 1; });
+    var bySection = {}, notDoneN = 0, anyDerived = false;
+    real.forEach(function (s) {
+      if (s.status === "completed") return;
+      var r = sectionOf(s);
+      if (!r) return;
+      notDoneN++;
+      if (r.derived) anyDerived = true;
+      bySection[r.key] = (bySection[r.key] || 0) + 1;
+    });
     var worst = Object.keys(bySection).sort(function (a, b) { return bySection[b] - bySection[a]; })[0];
     var worstLabel = worst
-      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / notDone.length * 100) + "%"
+      ? (SECTION_LABELS[worst] || worst) + " · " + Math.round(bySection[worst] / notDoneN * 100) + "%"
       : "—";
-    var worstSub = awaitingData ? "drop-off step — no data yet"
-      : notDone.length ? "top drop-off of " + notDone.length + " not completed"
-      : "every recorded session completed";
+    var worstSub = notDoneN
+      ? "top drop-off of " + notDoneN + " not completed" + (anyDerived ? " (est.)" : "")
+      : "every session completed";
 
-    // How often a client skips a question, and which one most. A live probe measured
-    // that a skip currently gets 0% help offered by the assistant; this is what says
-    // whether that is worth fixing or a rounding error.
+    // How often a client skips a question, and which one most. Unlike the step, this
+    // CANNOT be derived from anything older — a session that predates the field simply
+    // has no skip record, and counting it as "skipped nothing" would invent a zero.
+    // So this one stays scoped, and says so rather than reporting a fabricated 0%.
+    var withSkipData = real.filter(function (s) { return s.section; });
     var bySkip = {};
-    withAnalytics.forEach(function (s) {
+    withSkipData.forEach(function (s) {
       (s.skips || []).forEach(function (w) { bySkip[w] = (bySkip[w] || 0) + 1; });
     });
-    var withSkips = withAnalytics.filter(function (s) { return (s.skips || []).length > 0; }).length;
+    var withSkips = withSkipData.filter(function (s) { return (s.skips || []).length > 0; }).length;
     var topSkip = Object.keys(bySkip).sort(function (a, b) { return bySkip[b] - bySkip[a]; })[0];
-    var skipLabel = awaitingData ? "—"
-      : Math.round(withSkips / withAnalytics.length * 100) + "%" + (topSkip ? " · " + topSkip.toLowerCase() : "");
-    var skipSub = awaitingData ? "skipped questions — no data yet"
-      : "of " + withAnalytics.length + " recorded, skipped a question";
+    var skipLabel = withSkipData.length
+      ? Math.round(withSkips / withSkipData.length * 100) + "%" + (topSkip ? " · " + topSkip.toLowerCase() : "")
+      : "—";
+    var skipSub = withSkipData.length
+      ? "of " + withSkipData.length + " recorded, skipped a question"
+      : "skipped questions — recorded from today onward";
 
     var kpis = [
       [String(total), total === 1 ? "session" : "sessions"],
@@ -836,6 +855,17 @@
       return '<div class="kpi"><div class="v">' + esc(k[0]) + '</div><div class="l">' + esc(k[1]) + '</div></div>';
     }).join("");
     box.hidden = false;
+  }
+
+  // The step a session reached: recorded when present, otherwise recovered from the
+  // percentage using the same arithmetic the stepper uses. Shared so the KPI tile, the
+  // filter and the option list can never disagree about which rows belong to a step.
+  var SECTION_ORDER_ALL = ["company", "path", "topics", "channels", "reports", "users"];
+  function deriveSection(s) {
+    if (s.section) return s.section;
+    if (!Number.isFinite(s.percent)) return "";
+    var pct = Math.max(0, Math.min(100, s.percent));
+    return SECTION_ORDER_ALL[Math.min(SECTION_ORDER_ALL.length - 1, Math.floor(pct / 100 * SECTION_ORDER_ALL.length))];
   }
 
   // Mirrors SECTION_LABELS in src/lumen.jsx, so a drop-off reads as the step the
@@ -998,7 +1028,7 @@
       if (s.owner) ownerMap[s.owner] = 1;
       if (s.pkg) pkgMap[s.pkg] = 1;
       if (s.lang) langMap[s.lang] = 1;
-      if (s.section) sectionMap[s.section] = 1;
+      var dsec = deriveSection(s); if (dsec) sectionMap[dsec] = 1;
       (s.skips || []).forEach(function (w) { skipMap[w] = 1; });
     });
     var ownerKeys = Object.keys(ownerMap).sort();
@@ -1342,7 +1372,12 @@
       if (except !== "owner" && ownersKnown && FILTER.owner && FILTER.owner !== "all" && (s.owner || "") !== FILTER.owner) return false;
       if (except !== "pkg" && pkgKnown && FILTER.pkg && FILTER.pkg !== "all" && (s.pkg || "") !== FILTER.pkg) return false;
       if (except !== "lang" && langKnown && FILTER.lang && FILTER.lang !== "all" && (s.lang || "") !== FILTER.lang) return false;
-      if (except !== "section" && FILTER.section && FILTER.section !== "all" && (s.section || "") !== FILTER.section) return false;
+      if (except !== "section" && FILTER.section && FILTER.section !== "all") {
+        // Same derivation as the KPI tile, or the filter would show none of the rows the
+        // tile is counting. deriveSection() is the shared implementation.
+        var sk = deriveSection(s);
+        if (sk !== FILTER.section) return false;
+      }
       if (except !== "skipped" && FILTER.skipped && FILTER.skipped !== "all") {
         var sk = s.skips || [];
         if (FILTER.skipped === "any" && !sk.length) return false;

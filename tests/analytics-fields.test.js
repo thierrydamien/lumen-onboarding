@@ -88,12 +88,14 @@ describe("the dashboard turns them into something actionable", () => {
   it("names the step that loses people, not a percentage", () => {
     // "median 62%" says how far people get; it never says which question stopped them.
     expect(dash).toMatch(/var SECTION_LABELS = \{ company: "About you"/);
-    expect(dash).toMatch(/top drop-off of " \+ notDone\.length \+ " not completed/);
+    expect(dash).toMatch(/top drop-off of " \+ notDoneN \+ " not completed/);
   });
   it("counts drop-off over unfinished sessions only", () => {
     // A completed session has no drop-off point; including it would dilute the signal.
-    // Scoped to withAnalytics so the legacy backlog cannot dilute it either.
-    expect(dash).toMatch(/var notDone = withAnalytics\.filter\(function \(s\) \{ return s\.status !== "completed"; \}\);/);
+    // Skips completed rows while counting, rather than pre-filtering, so a derived
+    // step and a recorded one flow through the same accumulator.
+    expect(dash).toMatch(/if \(s\.status === "completed"\) return;/);
+    expect(dash).toMatch(/notDoneN\+\+;/);
   });
   it("feeds the language into the EXISTING filter rather than adding a tile", () => {
     // A dedicated "completion by language" tile was written and then removed. The
@@ -140,7 +142,7 @@ describe("the new dimensions are filterable, not just countable", () => {
     // own separate defaults map and was missed.
     [/section: "all", skipped: "all"/, "defaultFilter"],
     [/sectionMap = \{\}, skipMap = \{\}/, "option maps declared"],
-    [/if \(s\.section\) sectionMap\[s\.section\] = 1;/, "section map populated"],
+    [/var dsec = deriveSection\(s\); if \(dsec\) sectionMap\[dsec\] = 1;/, "section map populated"],
     [/\(s\.skips \|\| \[\]\)\.forEach\(function \(w\) \{ skipMap\[w\] = 1; \}\);/, "skip map populated"],
     [/sel\("fSection", "Stopped at", sectionOpts, FILTER\.section\)/, "section control"],
     [/sel\("fSkipped", "Skips", skipOpts, FILTER\.skipped\)/, "skips control"],
@@ -189,41 +191,56 @@ describe("the new dimensions are filterable, not just countable", () => {
 });
 
 describe("a tile never reports a number it has not measured", () => {
-  // Caught on the first live load, not by any test here. The two new tiles were
-  // computed over ALL sessions, but every one of the 76 in production predates the
-  // section/skips fields — so the drop-off tile rendered "no unfinished sessions"
-  // directly beneath a banner reading "62 onboarding sessions are stalled", and the
-  // skip tile rendered "0%", which looks like a finding rather than an absence.
-  it("scopes both tiles to sessions recorded since the fields shipped", () => {
-    expect(dash).toMatch(/var withAnalytics = real\.filter\(function \(s\) \{ return s\.section; \}\);/);
-    expect(dash).toMatch(/var awaitingData = withAnalytics\.length === 0;/);
+  // First live load: both tiles were computed over ALL sessions, but every one of the
+  // 76 in production predated the section/skips fields. The drop-off tile read "no
+  // unfinished sessions" directly beneath a banner reading "62 onboarding sessions are
+  // stalled", and the skip tile read "0%" — a fabricated measurement.
+  //
+  // Scoping them fixed the lie but produced a second useless answer: "no data yet"
+  // beside 62 stalled clients, for three weeks, when the step was already derivable.
+  // So the two fields are now treated differently, on the merits.
+
+  it("recovers the step from percent when it was never recorded", () => {
+    // Every session carries percent, and the stepper maps a percentage onto the six
+    // steps with exactly this arithmetic, so an older record is recoverable to within
+    // one step. Verified against a production-shaped fixture: 76 sessions with no
+    // section at all now report "Approach · 100%" over "62 not completed (est.)".
+    expect(dash).toMatch(/function deriveSection\(s\)/);
+    expect(dash).toMatch(/if \(s\.section\) return s\.section;/);
+    expect(dash).toMatch(/Math\.floor\(pct \/ 100 \* SECTION_ORDER_ALL\.length\)/);
   });
 
-  it("shows a dash, not a zero, while there is no data", () => {
-    // A dash means "not known yet"; a number must always mean "measured".
-    expect(dash).toMatch(/var skipLabel = awaitingData \? "—"/);
-    expect(dash).toMatch(/drop-off step — no data yet/);
-    expect(dash).toMatch(/skipped questions — no data yet/);
+  it("prefers a recorded step over a derived one", () => {
+    const fn = dash.slice(dash.indexOf("function sectionOf(s)"), dash.indexOf("function sectionOf(s)") + 600);
+    expect(fn).toMatch(/if \(s\.section\) return \{ key: s\.section, derived: false \};/);
   });
 
-  it("distinguishes no-data from genuinely-none", () => {
-    // Once data exists, "every recorded session completed" is a real finding and must
-    // not be collapsed into the same message as "we have not measured anything".
-    expect(dash).toMatch(/every recorded session completed/);
+  it("says when a figure is estimated", () => {
+    // percent is model-reported and blended with section progress, so it can land a
+    // step early or late. Good enough to rank the steps, not to quote precisely.
+    expect(dash).toMatch(/\(anyDerived \? " \(est\.\)" : ""\)/);
   });
 
-  it("counts the denominators over recorded sessions only", () => {
-    // Dividing by `total` would dilute every percentage by the legacy backlog.
-    expect(dash).toMatch(/withSkips \/ withAnalytics\.length \* 100/);
-    expect(dash).toMatch(/of " \+ withAnalytics\.length \+ " recorded, skipped a question/);
-    expect(dash).toMatch(/bySection\[worst\] \/ notDone\.length \* 100/);
+  it("refuses to derive a skip, because nothing older implies one", () => {
+    // A session predating the field has no skip record. Counting it as "skipped
+    // nothing" would invent a zero, which is the original bug in a new place.
+    expect(dash).toMatch(/var withSkipData = real\.filter\(function \(s\) \{ return s\.section; \}\);/);
+    expect(dash).toMatch(/skipped questions — recorded from today onward/);
+    expect(dash).toMatch(/withSkips \/ withSkipData\.length \* 100/);
   });
 
-  it("drops the word 'unfinished' for the cohort the dashboard already names", () => {
+  it("makes the filter agree with the tile", () => {
+    // Without this the tile would count 62 at a step and filtering to that step would
+    // show none of them. Verified in a browser: both say 62.
+    expect(dash).toMatch(/var sk = deriveSection\(s\);/);
+    expect(dash).toMatch(/var dsec = deriveSection\(s\); if \(dsec\) sectionMap\[dsec\] = 1;/);
+  });
+
+  it("drops the word 'unfinished' for a cohort the dashboard already names", () => {
     // Stalled and In progress are existing statuses; a third word for the same set
     // reads as a fourth status that does not exist.
-    const kpiBlock = dash.slice(dash.indexOf("var withAnalytics"), dash.indexOf("var kpis = ["));
-    expect(kpiBlock).not.toMatch(/var unfinished/);
+    const block = dash.slice(dash.indexOf("// WHERE sessions stop"), dash.indexOf("var kpis = ["));
+    expect(block).not.toMatch(/unfinished sessions/);
     expect(dash).toMatch(/not completed/);
   });
 });
