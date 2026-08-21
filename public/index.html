@@ -16,7 +16,20 @@
      generic client link to give — every client gets their own from Sales).
 
      Signposting only: no credentials here, and both tools still enforce their own
-     access (the dashboard asks for its token, Sales for its write token). -->
+     access (the dashboard asks for its token, Sales for its write token).
+
+     GATED behind the same work-Google sign-in as /sales and /dashboard, using the
+     same shared module. Not because this page holds anything secret — it is three
+     links — but because a client who trims their /chat?s=... link back to the domain
+     currently lands on a page headed "Internal" that names Sales, Proserv and a
+     dashboard of every other client's session. That is a bad thing for a client to
+     find, and it is the same reason the Sales page was gated.
+
+     This gate is presentation, not enforcement: index.html is a static file, so
+     anyone can still curl it. The enforcement that matters is server-side and
+     already exists (netlify/lib/google-auth.js), on the endpoints behind both links.
+     Deliberately NOT applied to /chat or /chat?s=<seedId> — clients are not, and
+     must never need to be, signed into a Hootsuite Google account. -->
 <style>
   :root{
     --bg:#f4f6f9; --card:#fff; --ink:#0f2b3a; --muted:#5b6b76; --faint:#8b98a4;
@@ -32,6 +45,25 @@
       --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-h:0 8px 24px rgba(0,0,0,.5);
     }
   }
+  /* Sign-in gate. Opaque, not a translucent scrim: at 40% the whole hub — the
+     Proserv dashboard card, the internal role labels — reads straight through the
+     card. And .wrap is hidden from first paint so there is no readable frame
+     between paint and the card appearing. */
+  .gate{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;
+    justify-content:center;padding:20px;z-index:200}
+  .gate.show{display:flex}
+  html.gate-check .wrap, html.gate-locked .wrap{visibility:hidden}
+  .gcard{background:var(--card);border-radius:var(--radius);padding:28px;max-width:360px;
+    width:100%;text-align:center;box-shadow:var(--shadow-h)}
+  .glogo{width:52px;height:52px;border-radius:50%;background:var(--purple-soft);
+    display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .glogo img{width:30px;height:30px}
+  .gcard h2{font-size:16px;margin:0 0 4px;color:var(--ink)}
+  .gcard p{font-size:12.5px;color:var(--muted);margin:0 0 16px;line-height:1.5}
+  /* #b3261e on the light bg and #ff8f88 on the dark one both clear 4.5:1; the
+     single #e11d48 the other pages use does not, against either. */
+  .gerr{color:#b3261e;font-size:12px;margin-bottom:10px;min-height:16px}
+  @media (prefers-color-scheme:dark){ .gerr{color:#ff8f88} }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:Arial,Helvetica,"Segoe UI",sans-serif;line-height:1.55;
@@ -93,6 +125,23 @@
 </style>
 </head>
 <body>
+<script>
+  // Set BEFORE the hub paints: it starts hidden and is revealed only once the gate
+  // has resolved (off, or signed in). Inline and synchronous on purpose — a deferred
+  // script would still allow one readable frame.
+  document.documentElement.className += " gate-check";
+  // Safety net, identical to sales.html: reveal ONLY if the gate module never
+  // executed at all (blocked, parse error), in which case it can never unlock the
+  // page and a permanent blank is worse than a readable list of three links the
+  // server still gates. If the module IS running it owns reveal/hide and must not
+  // be raced. 8s clears both the 6s config cap and the 8s GIS-load cap.
+  setTimeout(function () {
+    if (!window.__lumenGateLoaded) {
+      document.documentElement.classList.remove("gate-check");
+      document.documentElement.classList.remove("gate-locked");
+    }
+  }, 8000);
+</script>
 <div class="wrap">
   <header>
     <span class="mark"><img src="/lumen-mark.png" alt=""/></span>
@@ -142,5 +191,30 @@
   </div>
   </main>
 </div>
+
+<!-- Shown only when the site has GOOGLE_CLIENT_ID + ALLOWED_EMAIL_DOMAIN set;
+     otherwise the hub behaves exactly as before. -->
+<div class="gate" id="gGate">
+  <div class="gcard">
+    <div class="glogo"><img src="/lumen-mark.png" alt=""/></div>
+    <h2>Internal tool</h2>
+    <p id="gMsg">Sign in with your work Google account to open the team hub.</p>
+    <div id="gBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+    <div class="gerr" id="gErr"></div>
+  </div>
+</div>
+
+<script src="/google-gate.js"></script>
+<script>
+  // Same shared module as /sales and /dashboard. The whole point of extracting it
+  // was that a third page should cost these ten lines and inherit every fix —
+  // including the token reuse that stopped it asking for a sign-in on every hop
+  // between the pages, which matters most here because this page IS the hop.
+  LumenGoogleGate.create({
+    gateEl: "gGate", msgEl: "gMsg", errEl: "gErr", btnEl: "gBtn",
+    onUnlock: function () { var c = document.documentElement.classList; c.remove("gate-check"); c.remove("gate-locked"); },
+    onLock:   function () { var c = document.documentElement.classList; c.remove("gate-check"); c.add("gate-locked"); },
+  }).init();
+</script>
 </body>
 </html>
