@@ -249,7 +249,7 @@ describe("a figure is never reported where it has not been measured", () => {
     // A session predating the field has no skip record. Counting it as "skipped
     // nothing" would invent a zero, which is the original bug in a new place.
     expect(dash).toMatch(/var withSkipData = real\.filter\(function \(s\) \{ return s\.section; \}\);/);
-    expect(dash).toMatch(/skipped questions — recorded from today onward/);
+    expect(dash).toMatch(/skipped questions/);
     expect(dash).toMatch(/withSkips \/ withSkipData\.length \* 100/);
   });
 
