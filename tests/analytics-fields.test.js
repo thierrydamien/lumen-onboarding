@@ -125,3 +125,64 @@ describe("the dashboard turns them into something actionable", () => {
     expect(dash).toMatch(/'<div class="kpi"><div class="v">' \+ esc\(k\[0\]\) \+ '<\/div><div class="l">' \+ esc\(k\[1\]\)/);
   });
 });
+
+describe("the new dimensions are filterable, not just countable", () => {
+  // A tile says "75% of drop-offs are at What to track". The filter is what turns that
+  // into "show me those three and let me nudge them", composed with owner, package,
+  // language and date. Verified in a browser against a 10-session fixture: section
+  // topics = C,D,G; users = A,B,F,H; skipped-objectives = B,C,D; and section+skip
+  // together = C,D.
+  const REGISTRATION_POINTS = [
+    // Every place a dimension has to be declared for it to actually work. The list is
+    // the point: "Stopped at" and "Skips" rendered, counted toward the More-filters
+    // badge, and had chips whose × silently did nothing, because clearFilter kept its
+    // own separate defaults map and was missed.
+    [/section: "all", skipped: "all"/, "defaultFilter"],
+    [/sectionMap = \{\}, skipMap = \{\}/, "option maps declared"],
+    [/if \(s\.section\) sectionMap\[s\.section\] = 1;/, "section map populated"],
+    [/\(s\.skips \|\| \[\]\)\.forEach\(function \(w\) \{ skipMap\[w\] = 1; \}\);/, "skip map populated"],
+    [/sel\("fSection", "Stopped at", sectionOpts, FILTER\.section\)/, "section control"],
+    [/sel\("fSkipped", "Skips", skipOpts, FILTER\.skipped\)/, "skips control"],
+    [/\$\("fSection"\)\.addEventListener\("change"/, "section handler"],
+    [/\$\("fSkipped"\)\.addEventListener\("change"/, "skips handler"],
+    [/except !== "section" && FILTER\.section/, "section applied in getFilteredList"],
+    [/except !== "skipped" && FILTER\.skipped/, "skips applied in getFilteredList"],
+    [/d\.push\("section"\)/, "section in activeFilterDims"],
+    [/d\.push\("skipped"\)/, "skips in activeFilterDims"],
+    [/dim === "section"\) return "Stopped at: "/, "section chip label"],
+    [/dim === "skipped"\) return "Skips: "/, "skips chip label"],
+    [/SECONDARY_DIMS = \["minPct", "owner", "pkg", "lang", "section", "skipped", "dateFrom", "dateTo"\]/, "SECONDARY_DIMS"],
+  ];
+  for (const [re, label] of REGISTRATION_POINTS) {
+    it(`registers the dimension: ${label}`, () => expect(dash).toMatch(re));
+  }
+
+  it("clears a single dimension from one source of truth, not a second list", () => {
+    // clearFilter used to hold its own hand-written defaults. Adding a dimension
+    // without also editing it produced a chip that rendered and did nothing when
+    // clicked — caught in the browser, not by any of the checks above.
+    expect(dash).toMatch(/var defs = defaultFilter\(\);/);
+    expect(dash).not.toMatch(/var defs = \{ status: \[\], minPct: 0, owner: "all"/);
+  });
+
+  it("does not let clearing a filter reset the sort", () => {
+    // defaultFilter() carries sortKey/sortDir, which are not filters.
+    const fn = dash.slice(dash.indexOf("function clearFilter"), dash.indexOf("function clearFilter") + 1200);
+    expect(fn).toMatch(/delete defs\.sortKey; delete defs\.sortDir;/);
+  });
+
+  it("offers the steps in flow order, not alphabetically", () => {
+    // Alphabetical would read channels, company, reports, topics, users — useless for
+    // seeing where in the conversation clients fall out.
+    expect(dash).toMatch(/var SECTION_ORDER = \["company", "path", "topics", "channels", "reports", "users"\]/);
+    expect(dash).toMatch(/SECTION_ORDER\.filter\(function \(k\) \{ return sectionMap\[k\]; \}\)/);
+  });
+
+  it("lets you isolate a clean run as well as a skipped one", () => {
+    // "any" and "none" partition the set; the per-widget entries drill in.
+    expect(dash).toMatch(/\["any", "Skipped anything"\], \["none", "Skipped nothing"\]/);
+    expect(dash).toMatch(/FILTER\.skipped === "any" && !sk\.length/);
+    expect(dash).toMatch(/FILTER\.skipped === "none" && sk\.length/);
+    expect(dash).toMatch(/FILTER\.skipped\.indexOf\("w:"\) === 0 && sk\.indexOf\(FILTER\.skipped\.slice\(2\)\) === -1/);
+  });
+});

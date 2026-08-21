@@ -708,7 +708,7 @@
   // reset — spelled out twice, a newly added dimension gets filtered but never
   // cleared, so Clear silently leaves it in force.
   function defaultFilter() {
-    return { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
+    return { status: [], minPct: 0, q: "", owner: "all", pkg: "all", lang: "all", section: "all", skipped: "all", dateFrom: "", dateTo: "", sortKey: "lastActive", sortDir: "desc" };
   }
   var FILTER = defaultFilter();
   // Whether the "More filters" panel is expanded. Module state, not derived from
@@ -976,11 +976,13 @@
   function renderFilters() {
     var statusOpts = [["completed", "Completed"], ["in_progress", "In progress"], ["stalled", "Stalled"], ["link_sent", "Link sent"]];
     var pctOpts = [["0", "Any progress"], ["25", "25% or more"], ["50", "50% or more"], ["75", "75% or more"], ["100", "100% progress"]];
-    var ownerMap = {}, pkgMap = {}, langMap = {};
+    var ownerMap = {}, pkgMap = {}, langMap = {}, sectionMap = {}, skipMap = {};
     SESSIONS.concat(LINKSENT).forEach(function (s) {
       if (s.owner) ownerMap[s.owner] = 1;
       if (s.pkg) pkgMap[s.pkg] = 1;
       if (s.lang) langMap[s.lang] = 1;
+      if (s.section) sectionMap[s.section] = 1;
+      (s.skips || []).forEach(function (w) { skipMap[w] = 1; });
     });
     var ownerKeys = Object.keys(ownerMap).sort();
     var ownerOpts = [["all", "Anyone"]].concat(ownerKeys.map(function (o) { return [o, o]; }));
@@ -989,6 +991,18 @@
     var pkgOpts = [["all", "All packages"]].concat(pkgKeys.map(function (c) { return [c, pkgLabel(c)]; }));
     var langKeys = Object.keys(langMap).sort();
     var langOpts = [["all", "All languages"]].concat(langKeys.map(function (l) { return [l, l]; }));
+    // Where a session stopped. Offered in FLOW order, not alphabetically: these are the
+    // six steps of the onboarding, and reading them out of order would be useless for
+    // spotting where clients fall out. Only sections actually present are listed.
+    var SECTION_ORDER = ["company", "path", "topics", "channels", "reports", "users"];
+    var sectionKeys = SECTION_ORDER.filter(function (k) { return sectionMap[k]; });
+    var sectionOpts = [["all", "Any step"]].concat(sectionKeys.map(function (k) { return [k, SECTION_LABELS[k] || k]; }));
+    // Skips. "any" answers "who skipped at all"; the per-widget entries answer "who
+    // skipped THIS question" — the two questions the skip tile raises but cannot drill
+    // into. "none" is included because a clean run is also a cohort worth isolating.
+    var skipKeys = Object.keys(skipMap).sort();
+    var skipOpts = [["all", "Any"], ["any", "Skipped anything"], ["none", "Skipped nothing"]]
+      .concat(skipKeys.map(function (w) { return ["w:" + w, "Skipped " + w.toLowerCase()]; }));
     // esc() the option VALUE too — owner names are user-entered, unlike the fixed
     // status/progress literals. The browser hands back the unescaped value on change.
     function sel(id, label, opts, cur) {
@@ -1024,6 +1038,8 @@
         (ownerKeys.length ? sel("fOwner", "Prepared by", ownerOpts, FILTER.owner) : "") +
         (pkgKeys.length ? sel("fPkg", "Package", pkgOpts, FILTER.pkg) : "") +
         (langKeys.length ? sel("fLang", "Language", langOpts, FILTER.lang) : "") +
+        (sectionKeys.length ? sel("fSection", "Stopped at", sectionOpts, FILTER.section) : "") +
+        (skipKeys.length ? sel("fSkipped", "Skips", skipOpts, FILTER.skipped) : "") +
         '<span class="fdates">Created <input id="fFrom" type="date" aria-label="Created from" value="' + esc(FILTER.dateFrom) +
           '"/><span class="fdash" aria-hidden="true">–</span><input id="fTo" type="date" aria-label="Created to" value="' + esc(FILTER.dateTo) + '"/></span>' +
       '</div>';
@@ -1050,6 +1066,8 @@
     if (ownerKeys.length) $("fOwner").addEventListener("change", function (e) { FILTER.owner = e.target.value; renderTable(); });
     if (pkgKeys.length) $("fPkg").addEventListener("change", function (e) { FILTER.pkg = e.target.value; renderTable(); });
     if (langKeys.length) $("fLang").addEventListener("change", function (e) { FILTER.lang = e.target.value; renderTable(); });
+    if (sectionKeys.length) $("fSection").addEventListener("change", function (e) { FILTER.section = e.target.value; renderTable(); });
+    if (skipKeys.length) $("fSkipped").addEventListener("change", function (e) { FILTER.skipped = e.target.value; renderTable(); });
     // Feature 4: date-range inputs. Empty means unbounded; the predicate treats "To" as end-of-day.
     $("fFrom").addEventListener("change", function (e) { FILTER.dateFrom = e.target.value; renderTable(); });
     $("fTo").addEventListener("change", function (e) { FILTER.dateTo = e.target.value; renderTable(); });
@@ -1307,6 +1325,13 @@
       if (except !== "owner" && ownersKnown && FILTER.owner && FILTER.owner !== "all" && (s.owner || "") !== FILTER.owner) return false;
       if (except !== "pkg" && pkgKnown && FILTER.pkg && FILTER.pkg !== "all" && (s.pkg || "") !== FILTER.pkg) return false;
       if (except !== "lang" && langKnown && FILTER.lang && FILTER.lang !== "all" && (s.lang || "") !== FILTER.lang) return false;
+      if (except !== "section" && FILTER.section && FILTER.section !== "all" && (s.section || "") !== FILTER.section) return false;
+      if (except !== "skipped" && FILTER.skipped && FILTER.skipped !== "all") {
+        var sk = s.skips || [];
+        if (FILTER.skipped === "any" && !sk.length) return false;
+        if (FILTER.skipped === "none" && sk.length) return false;
+        if (FILTER.skipped.indexOf("w:") === 0 && sk.indexOf(FILTER.skipped.slice(2)) === -1) return false;
+      }
       if (isFinite(fromMs) || isFinite(toMs)) {
         var when = Date.parse(s.lastActiveAt || s.sentAt || s.savedAt || "");
         // A row with no parseable date can't fall inside a bounded range, so drop it.
@@ -1334,6 +1359,8 @@
     if (FILTER.owner && FILTER.owner !== "all") d.push("owner");
     if (FILTER.pkg && FILTER.pkg !== "all") d.push("pkg");
     if (FILTER.lang && FILTER.lang !== "all") d.push("lang");
+    if (FILTER.section && FILTER.section !== "all") d.push("section");
+    if (FILTER.skipped && FILTER.skipped !== "all") d.push("skipped");
     if (FILTER.q && FILTER.q.trim()) d.push("q");
     if (FILTER.dateFrom) d.push("dateFrom");
     if (FILTER.dateTo) d.push("dateTo");
@@ -1345,13 +1372,16 @@
     if (dim === "owner") return "Prepared by: " + FILTER.owner;
     if (dim === "pkg") return "Package: " + pkgLabel(FILTER.pkg);
     if (dim === "lang") return "Language: " + FILTER.lang;
+    if (dim === "section") return "Stopped at: " + (SECTION_LABELS[FILTER.section] || FILTER.section);
+    if (dim === "skipped") return "Skips: " + (FILTER.skipped === "any" ? "any"
+      : FILTER.skipped === "none" ? "none" : FILTER.skipped.slice(2).toLowerCase());
     if (dim === "q") return 'Search: "' + FILTER.q.trim() + '"';
     if (dim === "dateFrom") return "From: " + FILTER.dateFrom;
     if (dim === "dateTo") return "To: " + FILTER.dateTo;
     return dim;
   }
   // The dimensions that live behind "More filters". Search and status stay in the bar.
-  var SECONDARY_DIMS = ["minPct", "owner", "pkg", "lang", "dateFrom", "dateTo"];
+  var SECONDARY_DIMS = ["minPct", "owner", "pkg", "lang", "section", "skipped", "dateFrom", "dateTo"];
   function secondaryFilterCount() {
     return activeFilterDims().filter(function (d) { return SECONDARY_DIMS.indexOf(d) !== -1; }).length;
   }
@@ -1402,7 +1432,14 @@
       if (si !== -1) FILTER.status.splice(si, 1);
       renderFilters(); renderTable(); return;
     }
-    var defs = { status: [], minPct: 0, owner: "all", pkg: "all", lang: "all", q: "", dateFrom: "", dateTo: "" };
+    // Derived from defaultFilter(), not a second hand-written list. It WAS a second
+    // list, and adding the "Stopped at" and "Skips" dimensions silently produced chips
+    // whose × did nothing: they rendered, they counted toward the More-filters badge,
+    // and clicking them was a no-op because the dim was missing here. Deriving it means
+    // any dimension added to defaultFilter() is clearable for free.
+    var defs = defaultFilter();
+    // Sort is not a filter and must survive clearing one.
+    delete defs.sortKey; delete defs.sortDir;
     if (dim in defs) { FILTER[dim] = defs[dim]; renderFilters(); renderTable(); }
   }
 
