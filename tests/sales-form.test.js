@@ -101,10 +101,12 @@ describe("confidential consultant notes", () => {
   });
 
   it("keeps the reassurance on the out-card truthful", () => {
-    // This line promised notes stay out of the link. It is only true because the
-    // link is built from nothing but the opaque seed id the server hands back —
-    // assert against the actual construction, not a function name.
-    expect(sales).toMatch(/internal notes are never part of the link/);
+    // The visible promise is that notes stay internal (never part of the link).
+    // That line used to omit notes entirely, alongside a comment claiming the
+    // field didn't exist. True only because the link is built from nothing but
+    // the opaque seed id the server hands back — assert against the actual
+    // construction, not just the wording.
+    expect(sales).toMatch(/product, service package, your notes and your name stay internal/i);
     expect(sales).toMatch(/\$\("link"\)\.value = CHAT_BASE \+ "\?s=" \+ encodeURIComponent\(data\.id\);/);
     // Nothing else may be appended to the client URL.
     expect(sales).not.toMatch(/CHAT_BASE \+[^\n]*notes/);
@@ -163,5 +165,64 @@ describe("the write token", () => {
     expect(sales).toMatch(/localStorage\.getItem\("sales_write_token"\)/);
     // And a server-side 401 still clears the stored copy so rotation works.
     expect(sales).toMatch(/localStorage\.removeItem\("sales_write_token"\)/);
+  });
+});
+
+describe("chat language does not silently carry over between clients", () => {
+  it("resets to English on Create another link, rather than keeping the last selection", () => {
+    // English covers the large majority of clients. Carrying over the previous
+    // selection is how a German client's link, followed by an English one with
+    // nobody looking twice at a field labelled Optional, used to go out in German.
+    const reset = sales.slice(sales.indexOf("function resetForNext()"));
+    expect(reset.slice(0, 700)).toMatch(/\$\("language"\)\.value = "English";/);
+  });
+});
+
+describe("a duplicate client gates the reveal instead of a passive note", () => {
+  it("does not reveal the link until a duplicate is explicitly confirmed", () => {
+    // The old behaviour showed the new link and a duplicate warning together, so
+    // the warning was easy to skim past. Now reveal() only runs immediately when
+    // there are no duplicates; otherwise it's passed as the continuation of an
+    // explicit "create this one anyway" click.
+    expect(generateFn).toMatch(/function reveal\(\)\s*\{/);
+    expect(generateFn).toMatch(/setDupNote\(company, data\.duplicates, reveal\);/);
+    expect(generateFn).toMatch(/clearDupNote\(\);[^\n]*\n\s*reveal\(\);/);
+  });
+
+  it("lives outside #out so the gate can show while the link stays hidden", () => {
+    // .out / .out.show collapses everything inside #out to zero height until
+    // .show is added, so a CHILD of #out could never be shown while the link
+    // itself stays hidden — #dupNote has to be a sibling, not nested inside it.
+    const outStart = sales.indexOf('<div class="out" id="out"');
+    const dupStart = sales.indexOf('id="dupNote"');
+    expect(outStart).toBeGreaterThan(-1);
+    expect(dupStart).toBeGreaterThan(-1);
+    expect(dupStart).toBeLessThan(outStart);
+  });
+
+  it("invalidates a pending confirmation the moment the form is edited", () => {
+    // Otherwise editing the form while the gate is showing leaves a "create this
+    // one anyway" button wired to the seed and duplicate list from BEFORE the edit.
+    const from = sales.indexOf("function showOut(on)");
+    const fn = sales.slice(from, sales.indexOf("\n  }", from) + 4);
+    expect(fn).toMatch(/clearDupNote\(\);/);
+  });
+
+  it("moves focus to the confirm button, like every other new control on this page", () => {
+    // The write-token input auto-focuses; an invalid field on Generate gets
+    // focus() + scrollIntoView(). This button didn't, so a keyboard-only rep had
+    // to tab-hunt for the one control that mattered right after clicking Generate.
+    const from = sales.indexOf('var btn = $("dupContinueBtn");');
+    const block = sales.slice(from, sales.indexOf("\n    }", from) + 6);
+    expect(block).toMatch(/btn\.focus\(\);/);
+  });
+});
+
+describe("the brief caption does not conflate repeating with confirming", () => {
+  it("says confirmation happens later, not in the same beat as the opener", () => {
+    // chat.js explicitly forbids asking to confirm brief facts in the opener;
+    // confirmation happens one fact at a time, later, as each becomes relevant.
+    expect(sales).toMatch(/weaves it into the opening, then confirms each fact as it comes up/);
+    expect(sales).not.toMatch(/repeats it back to confirm at the start of the chat/);
   });
 });

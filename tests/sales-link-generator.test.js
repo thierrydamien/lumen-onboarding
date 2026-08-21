@@ -203,16 +203,21 @@ describe("the write-token gate behaves like a dialog", () => {
 });
 
 describe("the page does not promise privacy it no longer provides", () => {
-  it("no longer claims internal notes are kept out of the link", () => {
-    // There is no internal notes field: the form posts `brief`, and the brief box
-    // is labelled "The client sees this". A rep who read the old reassurance could
-    // have typed something confidential into a box the assistant reads back.
+  it("no longer claims internal notes are kept out of the link, unqualified", () => {
+    // The confidential notes field DOES exist (separate from the client-visible
+    // brief) and DOES stay internal — but a bare, unqualified claim like this one
+    // used to sit next to a comment claiming the field didn't exist at all, which
+    // was false and is the kind of thing that goes stale silently. The current
+    // line names notes explicitly instead; checked below.
     expect(code).not.toMatch(/internal notes are never part of the link/);
   });
 
-  it("names what is actually internal", () => {
-    // package and preparedBy are excluded from CLIENT_SAFE in netlify/functions/seed.js.
-    expect(src).toMatch(/product, service package and your name stay internal/i);
+  it("names what is actually internal, including notes", () => {
+    // package, notes and preparedBy are excluded from CLIENT_SAFE in
+    // netlify/functions/seed.js. This line omitted notes for a while, next to a
+    // comment claiming the field no longer existed — it didn't, and the omission
+    // meant the one confidential field on the page was never confirmed internal.
+    expect(src).toMatch(/product, service package, your notes and your name stay internal/i);
   });
 });
 

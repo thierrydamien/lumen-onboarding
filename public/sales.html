@@ -253,7 +253,7 @@
           <span>A link only works if the sheet's sharing is set to <b>Anyone with the link</b>. If it's private, download it and upload the file instead.</span>
         </div>
         <label for="briefText" style="display:block;margin-top:14px;font-size:12.5px;font-weight:600;color:#0f172a;">…or just type what the assistant should know <span class="opt">Optional</span></label>
-        <div style="font-size:11px;color:#64748b;margin:3px 0 6px;"><b>The client sees this</b>: the assistant repeats it back to confirm at the start of the chat. Uploading or linking above fills it in for you to review.</div>
+        <div style="font-size:11px;color:#64748b;margin:3px 0 6px;"><b>The client sees this</b>: the assistant weaves it into the opening, then confirms each fact as it comes up. Uploading or linking above fills it in for you to review.</div>
         <textarea id="briefText" rows="3" placeholder="e.g. Main use case: competitive intelligence. Competitors: Nike, Adidas. Markets: US, UK. Active on Instagram and X." style="width:100%;background:#fff;"></textarea>
         <div class="chips" style="margin-top:6px;">
           <button type="button" class="chip" data-add="Main use case: ">+ Main use case</button>
@@ -344,6 +344,14 @@
       </div>
       <div class="formerr" id="formErr"></div>
 
+      <!-- Lives OUTSIDE #out, not among its children: when the server reports a
+           duplicate client, this is shown to gate the reveal WHILE #out (and the
+           link inside it) stays hidden. A child of #out couldn't do that, since
+           #out's own CSS collapses everything inside it to zero height until
+           .show is added. role="alert" because it can now block Generate from
+           visibly doing anything, which a screen reader user needs to hear. -->
+      <div class="dupnote" id="dupNote" role="alert" style="display:none;"></div>
+
       <!-- Starts inert in the markup, not only via JS, so the panel is out of the tab
            order and the a11y tree from first paint rather than from first script run. -->
       <div class="out" id="out" inert aria-hidden="true">
@@ -362,13 +370,12 @@
           <button type="button" class="linklike" id="againBtn" style="margin-left:14px;">+ Create another link</button>
         </div>
         <div class="hint" id="noEmailNote" style="display:none;margin-top:8px;">No client email on file, so the draft opens with an empty To field for you to fill in.</div>
-        <div class="dupnote" id="dupNote" style="display:none;"></div>
         <div class="hint" id="expiryNote" style="margin-top:10px;"></div>
-        <!-- This used to promise "your internal notes are never part of the link".
-             There is no internal notes field any more: the only free-text box is the
-             brief, which the assistant reads back to the client. A rep who trusted
-             the old line could have typed something confidential into it. -->
-        <div class="hint" style="margin-top:6px;">The product, service package and your name stay internal to the team. The client just opens the link to start their onboarding.</div>
+        <!-- The free-text boxes are the brief (client-visible: the assistant weaves
+             it into the opening) and the confidential notes (never surfaced to the
+             client, shown only to the onboarding team). Both stay internal to this
+             record either way; neither becomes part of the link itself. -->
+        <div class="hint" style="margin-top:6px;">The product, service package, your notes and your name stay internal to the team. The client just opens the link to start their onboarding.</div>
       </div>
     </div>
   </div>
@@ -427,6 +434,10 @@
     }
     el.setAttribute("inert", "");
     el.setAttribute("aria-hidden", "true");
+    // Anything that hides the link also invalidates an unconfirmed duplicate
+    // warning: otherwise an edit made while that gate is pending would leave a
+    // stale "create this one anyway" button wired to the OLD seed and OLD data.
+    clearDupNote();
   }
 
   // HTML-escape any value before it goes into innerHTML (duplicate heads-up below).
@@ -649,18 +660,25 @@
         || $("notes").value.trim() !== seed.notes
         || pkgCode() !== seed.package;
       if (myGen !== _genSeq || changed) { $("formErr").textContent = "Details changed — click Generate again for an updated link."; return; }
-      $("link").value = CHAT_BASE + "?s=" + encodeURIComponent(data.id);
       // Echo who the link is for, from the seed actually sent. esc() everything:
       // these are rep-entered values landing in innerHTML.
       var tierTxt = $("pkgTier").selectedOptions[0] ? $("pkgTier").selectedOptions[0].textContent : "";
-      $("outFor").innerHTML = "For <b>" + esc(seed.contactName || seed.company) + "</b>" +
-        (seed.contactName ? " at <b>" + esc(seed.company) + "</b>" : "") +
-        " · chat in " + esc(seed.language) + (tierTxt ? " · " + esc(tierTxt) + " package" : "");
-      setExpiryNote(data.expiresAt);
-      setDupNote(company, data.duplicates);
-      $("noEmailNote").style.display = seed.email ? "none" : ""; // heads-up if the email draft will open with a blank To
-      showOut(true);
-      setTimeout(function () { try { $("link").select(); } catch (e) {} }, 350); // auto-select after the reveal
+      function reveal() {
+        $("link").value = CHAT_BASE + "?s=" + encodeURIComponent(data.id);
+        $("outFor").innerHTML = "For <b>" + esc(seed.contactName || seed.company) + "</b>" +
+          (seed.contactName ? " at <b>" + esc(seed.company) + "</b>" : "") +
+          " · chat in " + esc(seed.language) + (tierTxt ? " · " + esc(tierTxt) + " package" : "");
+        setExpiryNote(data.expiresAt);
+        $("noEmailNote").style.display = seed.email ? "none" : ""; // heads-up if the email draft will open with a blank To
+        showOut(true);
+        setTimeout(function () { try { $("link").select(); } catch (e) {} }, 350); // auto-select after the reveal
+      }
+      if (data.duplicates && data.duplicates.length) {
+        setDupNote(company, data.duplicates, reveal); // reveal() only runs if the rep confirms
+      } else {
+        clearDupNote(); // drop any stale gate left over from a previous, different company
+        reveal();
+      }
     } catch (e) {
       $("formErr").textContent = "Could not reach the server to generate the link. Please try again.";
     } finally {
@@ -731,12 +749,21 @@
   }
 
   // Duplicate-client heads-up: if the server reports OTHER non-expired links for
-  // the same company, show a soft, informational note. The new link is still valid
-  // and shown regardless. Values are HTML-escaped before hitting innerHTML.
-  function setDupNote(company, dups) {
+  // the same company, GATE the reveal behind it rather than showing a note beside
+  // an already-visible link. A passive line next to a "✓ Link ready" panel is easy
+  // to skim past; forcing an explicit "create this one anyway" means a rep about to
+  // hand out a second link for the same client has to notice and decide, not just
+  // happen to read the amber text. Values are HTML-escaped before hitting innerHTML.
+  var _dupContinue = null;
+  function clearDupNote() {
+    var el = $("dupNote");
+    if (el) { el.innerHTML = ""; el.style.display = "none"; }
+    _dupContinue = null;
+  }
+  function setDupNote(company, dups, onContinue) {
     var el = $("dupNote");
     if (!el) return;
-    if (!dups || !dups.length) { el.innerHTML = ""; el.style.display = "none"; return; }
+    if (!dups || !dups.length) { clearDupNote(); return; }
     var top = dups[0] || {};
     var when = "";
     if (top.savedAt) {
@@ -747,8 +774,22 @@
     if (when) detail.push("most recent " + esc(when));
     if (top.preparedBy) detail.push("by " + esc(top.preparedBy));
     var suffix = detail.length ? " (" + detail.join(" ") + ")" : "";
-    el.innerHTML = "Heads up: a link for <strong>" + esc(company) + "</strong> was already created" + suffix + ".";
+    _dupContinue = onContinue || null;
+    el.innerHTML = "Heads up: a link for <strong>" + esc(company) + "</strong> was already created" + suffix + "." +
+      (onContinue ? ' <button type="button" class="linklike" id="dupContinueBtn">Create this one anyway</button>' : "");
     el.style.display = "";
+    var btn = $("dupContinueBtn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        var cb = _dupContinue; // read before clearing: clearDupNote() nulls it out
+        clearDupNote();
+        if (cb) cb();
+      });
+      // Every other place this page makes a new control appear moves focus to it
+      // (the write-token input, an invalid field on Generate) — this one didn't,
+      // so a keyboard-only rep had to tab-hunt for the one button that matters.
+      try { btn.focus(); btn.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
+    }
   }
 
   // Email to client: open a Gmail compose draft with a ready-to-send message (client's
@@ -987,7 +1028,11 @@
 
   // "Create another link": clear the client-specific fields so a rep can generate
   // the next client's link without hand-deleting everything. Keeps the rep's name,
-  // product, package and language (usually the same across a batch).
+  // product and package (usually the same across a batch). Language resets to
+  // English rather than carrying over: English covers the large majority of
+  // clients, and silently carrying over is how a German client's link followed by
+  // an English one used to go out in German with nothing on screen to notice —
+  // the field is optional, so nothing prompts a rep to look down and check it.
   function resetForNext() {
     // "notes" MUST be in this list: they are per-client and confidential, so
     // carrying one client's notes into the next rep's link would feed the wrong
@@ -995,6 +1040,7 @@
     ["company", "contactName", "email", "industry", "briefText", "briefUrl", "notes"].forEach(function (id) {
       var e = $(id); if (e) { e.value = ""; e.classList.remove("invalid"); }
     });
+    $("language").value = "English";
     ["err_company", "err_contactName", "err_email", "formErr"].forEach(function (id) { if ($(id)) $(id).textContent = ""; });
     if ($("briefStatus")) $("briefStatus").style.display = "none"; // drop any imported-brief status for the next client
     if ($("briefPreview")) $("briefPreview").style.display = "none";
