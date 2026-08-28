@@ -155,6 +155,14 @@ export default async (req) => {
   catch { return json(400, { error: "bad_json" }); }
 
   const { xlsxBase64, brief, filename, clientEmail, company, contactName, topicsCount, usersCount, sessionId } = body || {};
+  // uiLang / skips are client-POSTed and end up in a Slack message, so they get the
+  // same whitelist treatment session.js already applies to the identical two fields
+  // rather than being forwarded raw. The Apps Script escapes them again on the way
+  // into Slack; this bounds them and keeps junk out of the alert entirely.
+  const UI_LANGS = ["English", "French", "German", "Spanish", "Italian", "Arabic"];
+  const WIDGETS = ["MARKETS", "LANGUAGES", "OBJECTIVES", "TEAMS", "TIMEZONE", "TOPICS", "USERS", "QUERIES"];
+  const uiLang = (typeof body.uiLang === "string" && UI_LANGS.includes(body.uiLang)) ? body.uiLang : "";
+  const skips = Array.isArray(body.skips) ? body.skips.filter((x) => WIDGETS.includes(x)).slice(0, 20) : [];
   const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
   // Never pass the body's clientEmail downstream unchecked — see verifiedClientEmail.
   const shareEmail = await verifiedClientEmail(sessionId, clientEmail);
@@ -182,7 +190,7 @@ export default async (req) => {
         // then never receives the URL). Passing our own origin removes the dependence
         // on a hand-set DASHBOARD_URL script property that, if unset/stale, silently
         // dropped the link on long runs.
-        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: shareEmail, company: company || "", contactName: contactName || "", topicsCount, usersCount, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: shareEmail, company: company || "", contactName: contactName || "", topicsCount, usersCount, uiLang, skips, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
         signal: ac.signal,
       });
       const d = await r.json().catch(() => ({}));

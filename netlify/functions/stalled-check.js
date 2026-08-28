@@ -17,6 +17,12 @@
 //                    "in progress".
 //   URL              site URL (set automatically by Netlify); powers the dashboard
 //                    deep link in the alert.
+//   APPS_SCRIPT_WEBAPP_URL / APPS_SCRIPT_SECRET
+//                    optional; enables the threaded IC/TAM @mention. The tracker is
+//                    a Google Sheet and the roster lives in Script Properties, so
+//                    this function cannot read either — it asks the Apps Script,
+//                    behind the same shared secret sheet.js already uses. Unset
+//                    means the nudge posts exactly as before.
 //
 // Scheduled functions are registered by the `config.schedule` export below — no
 // netlify.toml entry is needed.
@@ -67,8 +73,16 @@ export default async () => {
     const text = `:warning: *Onboarding stalled* — *${slackEsc(company)}* has been idle ${idleH}h at ${pct}% (still in progress).`
       + (link ? `\n<${link}|View the partial session>` : "");
 
-    const ok = await postSlack(token, channel, text);
-    if (!ok) continue; // leave the session un-marked so a failed post retries next run
+    const posted = await postSlack(token, channel, text);
+    if (!posted.ok) continue; // leave the session un-marked so a failed post retries next run
+
+    // Tag whoever owns this client. This is the alert where someone actually has to
+    // act, and it was the one addressed to nobody. Threaded, so the channel still
+    // reads as one line per stalled client. Strictly best-effort: the nudge itself
+    // has already posted and is already deduped, so a lookup failure must never
+    // cost the marker write below and cause a duplicate nudge next run.
+    const mentionText = posted.ts ? await assigneeText(company) : "";
+    if (mentionText) await postSlack(token, channel, mentionText, posted.ts);
 
     // Record the nudge in the dedicated store. A simple write (no read-modify-write
     // of the session record) that cannot clobber a completed record; on the rare
@@ -90,17 +104,45 @@ function isStalled(r, cutoff) {
 
 function slackEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-async function postSlack(token, channel, text) {
+// Ask the Apps Script who owns this client. Returns "" on any failure or when the
+// integration is not configured — every caller treats that as "post nothing extra".
+async function assigneeText(company) {
+  const url = process.env.APPS_SCRIPT_WEBAPP_URL, secret = process.env.APPS_SCRIPT_SECRET;
+  if (!url || !secret || !company) return "";
+  try {
+    // Bounded: this runs inside a loop over every stalled session, so an Apps Script
+    // that is slow rather than down would otherwise stretch the whole scheduled run.
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ secret, action: "assignees", client: company }),
+        redirect: "follow", // Apps Script /exec answers via a 302 to googleusercontent
+        signal: ctl.signal,
+      });
+    } finally { clearTimeout(timer); }
+    const data = await res.json().catch(() => ({}));
+    return typeof data.text === "string" ? data.text : "";
+  } catch (err) {
+    console.error("assignee lookup failed (non-fatal)", err && err.message);
+    return "";
+  }
+}
+
+async function postSlack(token, channel, text, threadTs) {
   try {
     const res = await fetch("https://slack.com/api/chat.postMessage", {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8", authorization: "Bearer " + token },
-      body: JSON.stringify({ channel, text, unfurl_links: false }),
+      body: JSON.stringify(threadTs ? { channel, text, thread_ts: threadTs, unfurl_links: false } : { channel, text, unfurl_links: false }),
     });
     const data = await res.json().catch(() => ({}));
     if (!data.ok) console.error("stalled-check Slack post failed", data.error || res.status);
-    return !!data.ok;
-  } catch (err) { console.error("stalled-check Slack post threw", err); return false; }
+    return { ok: !!data.ok, ts: data.ts || "" };
+  } catch (err) { console.error("stalled-check Slack post threw", err); return { ok: false, ts: "" }; }
 }
 
 function resp(status, body) { return new Response(body, { status }); }

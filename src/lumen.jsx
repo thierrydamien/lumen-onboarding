@@ -3870,7 +3870,7 @@ function OnboardingApp({ seed, seedId, seedError, seedExpired, onBriefSent, onSe
           // failed/slow save let a resend copy a SECOND Sheet + re-send the branded
           // email + re-fire Slack, and killed the link writeback. The completed record
           // is persisted below on every success-ish path, so the Slack deep link resolves.
-          body: JSON.stringify({ sessionId: sidRef.current, xlsxBase64, brief: { ...merged, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length }),
+          body: JSON.stringify({ sessionId: sidRef.current, xlsxBase64, brief: { ...merged, users: users || [] }, filename, clientEmail: merged.company?.email || "", company: merged.company?.name || "", contactName: merged.company?.contact || "", topicsCount: (merged.topics || []).length, usersCount: (users || []).length, uiLang, skips: [...skipsRef.current] }),
         }, 30000); // aligned to the sheet function's own 24s upstream abort + the 26s function ceiling; was 45s, which left the client waiting ~19s after the platform would already have killed the function
         if (sres.ok) { const sd = await sres.json().catch(() => ({})); sheetUrl = sd.url || null; }
         else {

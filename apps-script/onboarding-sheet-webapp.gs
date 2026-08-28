@@ -22,7 +22,15 @@
  *        PIPELINE_SHEET_ID = <tracker spreadsheet id>   (enables the lookup)
  *        SLACK_IDS_JSON    = {"full name":"U012...", …} (name -> Slack user id)
  *        SLACK_ESCALATION  = U012 U345                  (space/comma-separated ids
- *                            pinged for TW Core clients and no-match cases)
+ *                            pinged for TW Core clients, no-match cases, and a
+ *                            client that MATCHES a tracker row with no IC or TAM
+ *                            on it — a confirmed gap, and previously the one
+ *                            branch that tagged nobody at all)
+ *      The same tracker lookup is also served to netlify/functions/stalled-check.js,
+ *      which cannot read a Google Sheet itself: it POSTs {secret, action:"assignees",
+ *      client} here and threads the reply under its stalled nudge. Set
+ *      APPS_SCRIPT_WEBAPP_URL + APPS_SCRIPT_SECRET in Netlify (sheet.js already uses
+ *      both). Unset means the nudge posts exactly as it did before.
  *   3. Deploy > New deployment > type Web app. Execute as: Me. Who has access:
  *      Anyone. Copy the /exec URL into Netlify env APPS_SCRIPT_WEBAPP_URL.
  *
@@ -56,6 +64,7 @@ const PIPELINE_TABS = ["ClosedWon", "Pipeline"];                    // searched 
 const PIPELINE_COL = { account: 1, talkwalker: 21, ic: 22, tam: 23 }; // cols B, V, W, X (0-based)
 const PIPELINE_MIN_SCORE = 0.4;  // below this: treat as no match
 const MENTION_MIN_SCORE = 0.7;   // below this: "low confidence" note / fall back to plain name
+const TIE_GAP = 0.1;             // runner-up within this of the winner: say so, two rows can be two consultants
 
 // Compact signature of a brief's fillable content, used in the idempotency key so a
 // resend with MORE data (e.g. users added after an early send) is treated as new work
@@ -77,6 +86,14 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
     const expected = PropertiesService.getScriptProperties().getProperty("SHARED_SECRET");
     if (!expected || body.secret !== expected) return json_({ error: "unauthorized" });
+
+    // Tracker lookup as a service. stalled-check.js runs on Netlify, so it cannot
+    // touch SpreadsheetApp or the roster; it asks here instead, behind the same
+    // secret. Returns the reply TEXT rather than raw names, so the wording and the
+    // escaping live in one place and both alerts read identically.
+    if (body.action === "assignees") {
+      return json_({ text: assigneeReplyText_(String(body.client || "")) });
+    }
 
     // Idempotency. A slow copy/populate can outlast the client's 45s timeout; the
     // user then re-sends (or a proxy retries) with the SAME sessionId. Without a
@@ -752,6 +769,19 @@ function postCompletionSlack_(body, company, url) {
     { type: "section", text: { type: "mrkdwn", text: ":white_check_mark: *Lumen onboarding completed* — a requirements document was created." } },
     { type: "section", fields: fields.slice(0, 10) },
   ];
+
+  // How the session actually went. The dashboard has known this since the analytics
+  // fields landed; Slack did not, so the consultant picking the brief up could not
+  // see that it ran in another language or that questions were skipped until they
+  // opened it. Both change how you prepare for the review call.
+  const runNotes = runNotes_(body);
+  if (runNotes) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: runNotes }] });
+
+  // Thin-brief flag. The counts were already shown, but neutrally: a rich brief and
+  // an unusable one looked the same at a glance in a busy channel. Flag only a
+  // section that came back EMPTY, so the warning keeps its meaning.
+  const thin = thinBriefNote_(body.brief || {});
+  if (thin) blocks.push({ type: "section", text: { type: "mrkdwn", text: thin } });
   if (links.length) blocks.push({ type: "section", text: { type: "mrkdwn", text: links.join("   ·   ") } });
   if (context.length) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: context.join("   ·   ") }] });
 
@@ -791,6 +821,38 @@ function slackField_(label, value) {
 function slackEsc_(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+// Context line describing HOW the session ran: the language it was completed in
+// (only when it is not the English default, since that is the norm and saying so
+// every time is noise) and how many questions were skipped.
+function runNotes_(body) {
+  const bits = [];
+  const lang = String(body.uiLang || "").trim();
+  if (lang && lang.toLowerCase() !== "english") bits.push(":globe_with_meridians: Completed in *" + slackEsc_(lang) + "*");
+  const skips = Array.isArray(body.skips) ? body.skips : [];
+  if (skips.length) {
+    // Widget keys are internal ("MARKETS"); show them lowercased so the line reads
+    // as prose rather than as constants leaking into Slack.
+    const pretty = skips.slice(0, 6).map(function (k) { return String(k).toLowerCase(); }).join(", ");
+    bits.push(":fast_forward: Skipped " + skips.length + " question" + (skips.length === 1 ? "" : "s") + " (" + slackEsc_(pretty) + ")");
+  }
+  return bits.join("   ·   ");
+}
+
+// Flag a brief where a whole section came back empty. Deliberately NOT a "sparse"
+// heuristic: a client with two topics may be entirely legitimate, and a warning
+// that fires on legitimate briefs stops being read.
+function thinBriefNote_(brief) {
+  const n = function (a) { return Array.isArray(a) ? a.length : 0; };
+  const missing = [];
+  if (!n(brief.topics)) missing.push("topics");
+  if (!n(brief.channels)) missing.push("channels");
+  if (!n(brief.users)) missing.push("users");
+  if (!missing.length) return "";
+  const list = missing.length === 1 ? missing[0]
+    : missing.slice(0, -1).join(", ") + " or " + missing[missing.length - 1];
+  return ":warning: *No " + list + " captured* — likely needs follow-up before the review call.";
+}
+
 // "1. Reputation Management, 2. Competitive Intelligence" -> "Reputation Management".
 function firstObjective_(objectives) {
   if (!objectives) return "";
@@ -803,31 +865,57 @@ function firstObjective_(objectives) {
 // No-op unless PIPELINE_SHEET_ID is set. Client data is read from the tracker;
 // the name->id roster comes from SLACK_IDS_JSON.
 function postAssigneeMentions_(token, channel, threadTs, clientName) {
-  const props = PropertiesService.getScriptProperties();
-  if (!props.getProperty("PIPELINE_SHEET_ID") || !clientName) return;
+  const text = assigneeReplyText_(clientName);
+  if (!text) return;
+  slackPost_(token, { channel: channel, text: text, thread_ts: threadTs });
+}
 
-  let match = null;
-  for (let i = 0; i < PIPELINE_TABS.length && !match; i++) match = findBestMatch_(PIPELINE_TABS[i], clientName);
+// Build the assignee reply for a client name. Returns "" when the feature is off,
+// so callers stay simple. Shared by the completion alert and the stalled nudge.
+function assigneeReplyText_(clientName) {
+  const props = PropertiesService.getScriptProperties();
+  if (!props.getProperty("PIPELINE_SHEET_ID") || !clientName) return "";
+
+  // Keep the runner-up: the score alone cannot tell a clear winner from one that
+  // won by a hair, and the two rows can belong to different consultants.
+  let match = null, runnerUp = null;
+  for (let i = 0; i < PIPELINE_TABS.length && !match; i++) {
+    const r = findBestMatch_(PIPELINE_TABS[i], clientName);
+    if (r) { match = r; runnerUp = r.runnerUp || null; }
+  }
 
   const escalate = escalationMentions_();
-  let text;
-  if (match) {
-    const isCore = match.talkwalker && String(match.talkwalker).trim().toLowerCase() === "core";
-    const icMention = match.ic ? getSlackMention_(match.ic) + " (IC)" : null;
-    const tamMention = match.tam ? getSlackMention_(match.tam) + " (TAM)" : null;
-    const mentions = [icMention, tamMention].filter(Boolean).join("  ");
-    const sourceNote = match.source === "ClosedWon" ? " _(existing client)_" : "";
-    const confidenceNote = match.score < MENTION_MIN_SCORE ? " _(low confidence — please verify)_" : "";
-    const coreNote = isCore ? ("\n:tw-core: *TW Core client*" + (escalate ? " — " + escalate + " please take note." : " — please take note.")) : "";
-    text = mentions
-      ? "Matched: *" + slackEsc_(match.accountName) + "*" + sourceNote + confidenceNote + "\n" + mentions + coreNote
-      : "Matched: *" + slackEsc_(match.accountName) + "*" + sourceNote + " — no IC or TAM assigned yet." + coreNote;
-  } else {
+  if (!match) {
     // Escape the client-entered company name: an unescaped "<!channel>" here would
     // fire a real Slack broadcast (the base alert already escapes via slackField_).
-    text = "No pipeline match for *" + slackEsc_(clientName) + "* — please assign manually." + (escalate ? "\n" + escalate : "");
+    return "No pipeline match for *" + slackEsc_(clientName) + "* — please assign manually." + (escalate ? "\n" + escalate : "");
   }
-  slackPost_(token, { channel: channel, text: text, thread_ts: threadTs });
+
+  const isCore = match.talkwalker && String(match.talkwalker).trim().toLowerCase() === "core";
+  const icMention = match.ic ? getSlackMention_(match.ic) + " (IC)" : null;
+  const tamMention = match.tam ? getSlackMention_(match.tam) + " (TAM)" : null;
+  const mentions = [icMention, tamMention].filter(Boolean).join("  ");
+  const sourceNote = match.source === "ClosedWon" ? " _(existing client)_" : "";
+  const confidenceNote = match.score < MENTION_MIN_SCORE ? " _(low confidence — please verify)_" : "";
+  const coreNote = isCore ? ("\n:tw-core: *TW Core client*" + (escalate ? " — " + escalate + " please take note." : " — please take note.")) : "";
+  // A near tie used to be invisible: an absolute score above MENTION_MIN_SCORE
+  // printed as fully confident even when the runner-up was a hundredth behind, and
+  // the choice between two different consultants was never surfaced. Measured on
+  // the real matcher: "Lidl" scores 0.72 against "Lidl GB" and 0.65 against
+  // "Lidl Ireland".
+  const tieNote = (runnerUp && (match.score - runnerUp.score) < TIE_GAP)
+    ? "\n:warning: Close call — *" + slackEsc_(runnerUp.accountName) + "* scored almost the same"
+      + (runnerUp.ic ? " (IC " + slackEsc_(runnerUp.ic) + ")" : "") + ". Worth a check."
+    : "";
+
+  if (mentions) {
+    return "Matched: *" + slackEsc_(match.accountName) + "*" + sourceNote + confidenceNote + "\n" + mentions + coreNote + tieNote;
+  }
+  // Matched, but the tracker names nobody. This is the case most worth escalating —
+  // it is a confirmed gap in the tracker — and it was the one case that pinged
+  // nobody at all.
+  return "Matched: *" + slackEsc_(match.accountName) + "*" + sourceNote
+    + " — no IC or TAM assigned yet." + (escalate ? " " + escalate : "") + coreNote + tieNote;
 }
 
 // Best fuzzy match for clientName in one tracker tab; null below PIPELINE_MIN_SCORE.
@@ -838,17 +926,21 @@ function findBestMatch_(tabName, clientName) {
   try { sheet = SpreadsheetApp.openById(sheetId).getSheetByName(tabName); } catch (e) { return null; }
   if (!sheet) return null;
   const data = sheet.getDataRange().getValues();
-  let best = null, bestScore = 0;
+  let best = null, second = null;
   for (let i = 1; i < data.length; i++) {
     const account = data[i][PIPELINE_COL.account];
     if (!account) continue;
     const score = similarity_(clientName, String(account));
-    if (score > bestScore) {
-      bestScore = score;
+    if (!best || score > best.score) {
+      second = best;
       best = { accountName: account, talkwalker: data[i][PIPELINE_COL.talkwalker], ic: data[i][PIPELINE_COL.ic], tam: data[i][PIPELINE_COL.tam], score: score, source: tabName };
+    } else if (!second || score > second.score) {
+      second = { accountName: account, ic: data[i][PIPELINE_COL.ic], score: score };
     }
   }
-  return best && best.score >= PIPELINE_MIN_SCORE ? best : null;
+  if (!best || best.score < PIPELINE_MIN_SCORE) return null;
+  best.runnerUp = second;
+  return best;
 }
 
 // name -> "<@Uxxxx>" via the roster, with a fuzzy fallback; plain name if no
