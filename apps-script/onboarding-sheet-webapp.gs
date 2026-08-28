@@ -903,10 +903,23 @@ function assigneeReplyText_(clientName) {
   // the choice between two different consultants was never surfaced. Measured on
   // the real matcher: "Lidl" scores 0.72 against "Lidl GB" and 0.65 against
   // "Lidl Ireland".
-  const tieNote = (runnerUp && (match.score - runnerUp.score) < TIE_GAP)
-    ? "\n:warning: Close call — *" + slackEsc_(runnerUp.accountName) + "* scored almost the same"
-      + (runnerUp.ic ? " (IC " + slackEsc_(runnerUp.ic) + ")" : "") + ". Worth a check."
-    : "";
+  // Duplicate rows are common in a tracker this size, and the first live call hit
+  // one: "Viacom" matched two rows both named "Viacom Inc (main)", producing
+  // "Close call — Viacom Inc (main) scored almost the same", which is noise. A tie
+  // only matters when picking the other row would change WHO gets tagged, so
+  // compare the assignee, not just the score. Same name AND same IC is one client
+  // entered twice; same name but a DIFFERENT IC is worth saying out loud, because
+  // the tracker itself disagrees about who owns it.
+  const sameName = runnerUp && fuzzyNorm_(runnerUp.accountName) === fuzzyNorm_(match.accountName);
+  const norm = function (v) { return String(v == null ? "" : v).trim().toLowerCase(); };
+  const sameIc = runnerUp && norm(runnerUp.ic) === norm(match.ic);
+  const isTie = runnerUp && (match.score - runnerUp.score) < TIE_GAP && !(sameName && sameIc);
+  const tieNote = !isTie ? ""
+    : sameName
+      ? "\n:warning: Two rows named *" + slackEsc_(match.accountName) + "* disagree on the IC ("
+        + slackEsc_(match.ic || "blank") + " vs " + slackEsc_(runnerUp.ic || "blank") + "). Worth a check."
+      : "\n:warning: Close call — *" + slackEsc_(runnerUp.accountName) + "* scored almost the same"
+        + (runnerUp.ic ? " (IC " + slackEsc_(runnerUp.ic) + ")" : "") + ". Worth a check.";
 
   if (mentions) {
     return "Matched: *" + slackEsc_(match.accountName) + "*" + sourceNote + confidenceNote + "\n" + mentions + coreNote + tieNote;

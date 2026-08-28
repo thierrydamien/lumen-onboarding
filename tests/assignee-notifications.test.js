@@ -80,6 +80,19 @@ describe("a near tie is disclosed rather than presented as certainty", () => {
     expect(fn.indexOf("if (!best || best.score < PIPELINE_MIN_SCORE) return null;"))
       .toBeLessThan(fn.indexOf("best.runnerUp = second;"));
   });
+  it("does not warn that a duplicate row scored the same as itself", () => {
+    // Found on the FIRST real call against the live tracker: "Viacom" matched two
+    // rows both named "Viacom Inc (main)", so the reply read "Close call — Viacom
+    // Inc (main) scored almost the same", comparing a row with its own twin. A tie
+    // only matters when picking the other row would change WHO gets tagged.
+    const fn = gs.slice(gs.indexOf("function assigneeReplyText_"), gs.indexOf("// Best fuzzy match"));
+    expect(fn).toMatch(/fuzzyNorm_\(runnerUp\.accountName\) === fuzzyNorm_\(match\.accountName\)/);
+    expect(fn).toMatch(/!\(sameName && sameIc\)/);
+    // Same name but a DIFFERENT IC must still speak up — the tracker contradicts
+    // itself about who owns the account, which is worth more than a tie warning.
+    expect(fn).toMatch(/Two rows named \*/);
+  });
+
   it("warns only when the two are genuinely close", () => {
     expect(gs).toMatch(/const TIE_GAP = 0\.1;/);
     expect(gs).toMatch(/\(match\.score - runnerUp\.score\) < TIE_GAP/);
