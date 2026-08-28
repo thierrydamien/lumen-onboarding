@@ -103,7 +103,13 @@ describe("the alert says how the session actually went", () => {
   it("carries language and skips end to end", () => {
     // Three hops, and a gap at any one of them silently drops the field.
     expect(client).toMatch(/uiLang, skips: \[\.\.\.skipsRef\.current\] \}\)/);      // client -> /sheet
-    expect(sheet).toMatch(/topicsCount, usersCount, uiLang, skips, sessionId/);      // -> Apps Script
+    // Assert the FIELDS are forwarded, not their neighbours: the first version of
+    // this pinned "uiLang, skips, sessionId" as one string and broke the moment
+    // `package` was added between them, while the behaviour was untouched.
+    const payload = sheet.slice(sheet.indexOf("body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET"));
+    const line = payload.slice(0, payload.indexOf("\n"));
+    expect(line).toMatch(/\buiLang\b/);                                               // -> Apps Script
+    expect(line).toMatch(/\bskips\b/);
     expect(gs).toMatch(/function runNotes_\(body\)/);                                // -> Slack
   });
 

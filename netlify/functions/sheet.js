@@ -52,6 +52,25 @@ export const config = { path: "/.netlify/functions/sheet" };
 // against — the session POST failed, or an older client — create the Sheet but do
 // NOT share it, rather than failing the call: the client still gets their link and
 // the dashboard still gets the URL, so nothing user-visible breaks.
+// session -> seedId -> seed.package. Two reads, both best-effort: a missing
+// package must never stop a Sheet being created, so every failure returns "" and
+// the alert simply omits the field.
+async function packageForSession(sessionId) {
+  if (typeof sessionId !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(sessionId)) return "";
+  try {
+    const rec = await getStore("lumen-sessions").get(sessionId, { type: "json" });
+    const seedId = rec && rec.seedId;
+    if (!seedId || typeof seedId !== "string") return "";
+    const seed = await getStore("lumen-seeds").get(seedId, { type: "json" });
+    const pkg = seed && seed.package;
+    // Bounded and shape-checked: it is rendered into a Slack message downstream.
+    return typeof pkg === "string" ? pkg.slice(0, 40) : "";
+  } catch (err) {
+    console.warn("sheet: could not resolve the package for this session", err && err.message);
+    return "";
+  }
+}
+
 async function verifiedClientEmail(sessionId, requested) {
   const want = String(requested || "").trim().toLowerCase();
   if (!want) return "";
@@ -166,6 +185,11 @@ export default async (req) => {
   const name = (typeof filename === "string" && filename) || `Lumen Setup Brief${company ? " - " + company : ""}`;
   // Never pass the body's clientEmail downstream unchecked — see verifiedClientEmail.
   const shareEmail = await verifiedClientEmail(sessionId, clientEmail);
+  // The package scopes the whole engagement, so the consultant reading the Slack
+  // alert needs it. Resolved HERE from the seed record rather than sent by the
+  // browser: the client's own copy of the seed is the client-safe subset, which
+  // deliberately excludes it, and it should stay that way.
+  const pkg = await packageForSession(sessionId);
 
   // Path D (preferred when set): hand off to an Apps Script Web App that runs as a
   // real Google account. It COPIES the master requirements template and fills in
@@ -190,7 +214,7 @@ export default async (req) => {
         // then never receives the URL). Passing our own origin removes the dependence
         // on a hand-set DASHBOARD_URL script property that, if unset/stale, silently
         // dropped the link on long runs.
-        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: shareEmail, company: company || "", contactName: contactName || "", topicsCount, usersCount, uiLang, skips, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
+        body: JSON.stringify({ secret: process.env.APPS_SCRIPT_SECRET || "", brief, filename: name, clientEmail: shareEmail, company: company || "", contactName: contactName || "", topicsCount, usersCount, uiLang, skips, package: pkg, sessionId: sessionId || "", dashboardOrigin: process.env.URL || "" }),
         signal: ac.signal,
       });
       const d = await r.json().catch(() => ({}));

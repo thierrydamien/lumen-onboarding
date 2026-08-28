@@ -14,6 +14,7 @@
 
 import { getStore } from "@netlify/blobs";
 import { SYSTEM_PROMPT } from "../lib/system-prompt.js";
+import { notifyOps } from "../lib/opsalert.js";
 
 const MODEL = "claude-sonnet-4-6";
 // Ceiling sized to the serverless window, not to "generous". The call is
@@ -325,6 +326,9 @@ export async function generateReply(req, { abortMs = 24000 } = {}) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     console.error("ANTHROPIC_API_KEY is not set on this Netlify site");
+    // Total outage, and not self-recovering: every client sees an error until a
+    // human sets the key. void, so the alert cannot delay the client's response.
+    void notifyOps("anthropic_key_missing", "ANTHROPIC_API_KEY is not set — every chat request is failing.");
     return json(500, { error: "server_not_configured" });
   }
 
@@ -424,6 +428,13 @@ export async function generateReply(req, { abortMs = 24000 } = {}) {
     let data = await res.json();
     if (!res.ok || data.error) {
       console.error("Anthropic error", res.status, JSON.stringify(data && data.error));
+      // 401/403 = credential, 429 = quota/rate ceiling, 5xx = provider down. All
+      // of these break every concurrent session, unlike a 400 which is one bad
+      // request. Throttled to one mail an hour per kind inside notifyOps.
+      if (res.status === 401 || res.status === 403 || res.status === 429 || res.status >= 500) {
+        const why = (data && data.error && (data.error.message || data.error.type)) || "no detail";
+        void notifyOps("anthropic_" + res.status, `Anthropic returned ${res.status}: ${why}`);
+      }
       return json(res.status === 200 ? 502 : res.status, { error: "upstream_error", status: res.status });
     }
 
@@ -462,6 +473,8 @@ export async function generateReply(req, { abortMs = 24000 } = {}) {
       return json(504, { error: "upstream_timeout" });
     }
     console.error("Proxy fetch failed", err);
+    // Its own kind, so a network blip cannot use up the quota-alert throttle.
+    void notifyOps("upstream_unreachable", "Could not reach Anthropic: " + (err && err.message));
     return json(502, { error: "upstream_unreachable" });
   } finally {
     clearTimeout(abortT);

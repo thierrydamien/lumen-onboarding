@@ -31,6 +31,12 @@
  *      client} here and threads the reply under its stalled nudge. Set
  *      APPS_SCRIPT_WEBAPP_URL + APPS_SCRIPT_SECRET in Netlify (sheet.js already uses
  *      both). Unset means the nudge posts exactly as it did before.
+ *      Optional — ops alerts by EMAIL when the tool itself breaks (a missing API
+ *      key, an upstream 401/429/5xx). netlify/lib/opsalert.js POSTs
+ *      {secret, action:"ops", kind, detail} here and this script sends the mail,
+ *      because a Netlify function cannot send mail without a new provider and
+ *      credential while this one already runs as a real Google account:
+ *        OPS_EMAIL = you@example.com   (unset = no ops mail is ever sent)
  *   3. Deploy > New deployment > type Web app. Execute as: Me. Who has access:
  *      Anyone. Copy the /exec URL into Netlify env APPS_SCRIPT_WEBAPP_URL.
  *
@@ -93,6 +99,15 @@ function doPost(e) {
     // escaping live in one place and both alerts read identically.
     if (body.action === "assignees") {
       return json_({ text: assigneeReplyText_(String(body.client || "")) });
+    }
+
+    // Ops alert -> EMAIL. Netlify cannot send mail without a new provider and
+    // credential; this script already runs as a real Google account and can.
+    // Deliberately not Slack: an outage message naming a provider and status code
+    // is operational detail, and the completion channel is read by people who
+    // cannot act on it. Recipient lives in Script Properties, never in the repo.
+    if (body.action === "ops") {
+      return json_({ sent: sendOpsEmail_(body) });
     }
 
     // Idempotency. A slow copy/populate can outlast the client's 45s timeout; the
@@ -736,6 +751,12 @@ function postCompletionSlack_(body, company, url) {
   // Two-column fields (Block Kit renders these 2-up), richest first.
   const fields = [slackField_("Client", name), slackField_("Contact", contact),
     slackField_("Topics", topics), slackField_("Users", users)];
+  // What they actually bought. It scopes the whole engagement (topic, channel and
+  // dashboard allowances), so it is the first thing the consultant needs and the
+  // one thing the alert never said. Resolved server-side in sheet.js from the seed
+  // record, so it never passes through the browser.
+  const pkg = packageLabel_(body.package);
+  if (pkg) fields.push(slackField_("Package", pkg));
   if (company.industry) fields.push(slackField_("Industry", company.industry));
   if (company.markets)  fields.push(slackField_("Markets", company.markets));
   const topObjective = firstObjective_(company.objectives);
@@ -821,6 +842,26 @@ function slackField_(label, value) {
 function slackEsc_(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+// "analyze-advanced" -> "Analyze / Research / Deep Research / Agency · Advanced".
+// Product names mirror the PKG table in netlify/functions/chat.js, which is the
+// source of truth for what each code actually allows. An unknown code is title-
+// cased rather than dropped, so a new SKU degrades to something readable instead
+// of silently vanishing from the alert.
+function packageLabel_(code) {
+  const raw = String(code == null ? "" : code).trim().toLowerCase();
+  if (!raw) return "";
+  const parts = raw.split("-");
+  const PRODUCTS = {
+    core: "Core",
+    analyze: "Analyze / Research / Deep Research / Agency",
+    business: "Business / Premium",
+  };
+  const title = function (x) { return x ? x.charAt(0).toUpperCase() + x.slice(1) : ""; };
+  const product = PRODUCTS[parts[0]] || title(parts[0]);
+  const tier = title(parts[1] || "");
+  return tier ? product + " · " + tier : product;
+}
+
 // Context line describing HOW the session ran: the language it was completed in
 // (only when it is not the English default, since that is the norm and saying so
 // every time is noise) and how many questions were skipped.
@@ -1020,6 +1061,33 @@ function similarity_(a, b) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---- Ops alerts (email) -----------------------------------------------------
+
+// Mail the operator that the TOOL is broken. No-op unless OPS_EMAIL is set, so
+// this stays dormant like every other optional integration here. Throttling is
+// the CALLER's job (netlify/lib/opsalert.js) — it owns the storage that can
+// remember what was already sent.
+function sendOpsEmail_(body) {
+  const to = PropertiesService.getScriptProperties().getProperty("OPS_EMAIL");
+  if (!to) return false;
+  const kind = String(body.kind || "unknown").slice(0, 60);
+  const detail = String(body.detail || "").slice(0, 1000);
+  const site = String(body.site || "").slice(0, 200);
+  // Subject carries the kind so a mail rule can file these, and so a repeat is
+  // recognisable at a glance in a phone notification.
+  const subject = "[Lumen onboarding] " + kind;
+  const lines = [
+    "The Lumen onboarding tool reported a failure that affects every live session.",
+    "", "What: " + kind, "Detail: " + detail,
+  ];
+  if (site) lines.push("Site: " + site);
+  lines.push("", "At: " + new Date().toISOString(),
+    "", "Repeats of the same kind are suppressed for an hour, so this may stand for many failures.",
+    "Logs: Netlify > Functions > chat.");
+  try { MailApp.sendEmail(to, subject, lines.join("\n")); return true; }
+  catch (err) { Logger.log("ops email failed: " + err); return false; }
 }
 
 // ---- Diagnostics: verify the IC/TAM mention path without posting ------------
