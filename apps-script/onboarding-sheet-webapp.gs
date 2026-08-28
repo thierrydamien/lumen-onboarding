@@ -916,3 +916,118 @@ function similarity_(a, b) {
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
+
+// ---- Diagnostics: verify the IC/TAM mention path without posting ------------
+//
+// The mention reply only runs on a real completed onboarding, and it is wrapped in
+// safe_(), so when it is misconfigured it fails SILENTLY — the completion alert
+// still posts and nothing says the thread reply was skipped. That is the right
+// behaviour in production and a bad way to find out whether it works.
+//
+// HOW TO USE: open this project in the Apps Script editor, put a real client name
+// in CLIENT below, select dryRunAssignees from the function dropdown, press Run,
+// then read Executions / the log. It reads the tracker and posts NOTHING to Slack.
+//
+// It checks the things that fail quietly, in the order they fail:
+//   1. the feature is switched on at all (PIPELINE_SHEET_ID)
+//   2. this Google account can actually OPEN the tracker
+//   3. the tabs still exist under the names the code looks for
+//   4. columns B/V/W/X still mean Account / Talkwalker / IC / TAM  <- silent
+//      wrong-person pings live here if the tracker ever gains a column
+//   5. what the match resolves to, and how close the runner-up was
+//   6. which names resolved to a real @mention vs fell back to plain text
+function dryRunAssignees() {
+  const CLIENT = "Acme Corp"; // <-- put a real client name here before running
+
+  const props = PropertiesService.getScriptProperties();
+  const out = [];
+  const say = function (s) { out.push(s); Logger.log(s); };
+
+  say("=== IC/TAM mention dry run — nothing will be posted to Slack ===");
+  say("Client under test: " + CLIENT);
+
+  const sheetId = props.getProperty("PIPELINE_SHEET_ID");
+  if (!sheetId) {
+    say("STOP: PIPELINE_SHEET_ID is not set, so postAssigneeMentions_ returns immediately.");
+    say("The completion alert still posts; the threaded @mention reply never runs.");
+    return out.join("\n");
+  }
+  say("PIPELINE_SHEET_ID: set");
+
+  let ss;
+  try { ss = SpreadsheetApp.openById(sheetId); }
+  catch (e) {
+    say("STOP: cannot open the tracker: " + e);
+    say("Usually means the account this script runs AS has no access to that file.");
+    return out.join("\n");
+  }
+  say("Tracker opens OK: " + ss.getName());
+
+  // Roster health. A missing/!parsing roster is not fatal — every name would just
+  // print as plain text, which reads like "nobody was tagged" rather than an error.
+  let ids = {};
+  try { ids = JSON.parse(props.getProperty("SLACK_IDS_JSON") || "{}"); } catch (e) { ids = null; }
+  if (ids === null) say("WARNING: SLACK_IDS_JSON is set but is not valid JSON — every name will post as plain text.");
+  else say("SLACK_IDS_JSON: " + Object.keys(ids).length + " people in the roster");
+  say("SLACK_ESCALATION: " + (props.getProperty("SLACK_ESCALATION") ? "set" : "not set (TW Core / no-match cases will tag nobody)"));
+
+  // Column mapping. This is the check worth running after ANY tracker edit: if a
+  // column is inserted, the code keeps reading the same INDEX and starts reporting
+  // a neighbouring column's contents as the IC, with no error anywhere.
+  for (let t = 0; t < PIPELINE_TABS.length; t++) {
+    const tab = PIPELINE_TABS[t];
+    const sheet = ss.getSheetByName(tab);
+    if (!sheet) { say("\n[" + tab + "] MISSING — this tab is skipped entirely."); continue; }
+    const rows = sheet.getLastRow();
+    say("\n[" + tab + "] " + rows + " rows");
+    if (rows < 1) { say("  empty."); continue; }
+    const header = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 24)).getValues()[0];
+    const col = function (i) { return "col " + String.fromCharCode(65 + i) + " = \"" + (header[i] || "(blank)") + "\""; };
+    say("  reading " + col(PIPELINE_COL.account) + "  <- expect the account/client name");
+    say("  reading " + col(PIPELINE_COL.talkwalker) + "  <- expect the Talkwalker tier");
+    say("  reading " + col(PIPELINE_COL.ic) + "  <- expect IC");
+    say("  reading " + col(PIPELINE_COL.tam) + "  <- expect TAM");
+
+    // Top three, so a near-tie is visible. The live code keeps only the best and
+    // cannot tell "clear winner" from "won by 0.02".
+    const data = sheet.getDataRange().getValues();
+    const scored = [];
+    for (let i = 1; i < data.length; i++) {
+      const account = data[i][PIPELINE_COL.account];
+      if (!account) continue;
+      scored.push({ account: String(account), score: similarity_(CLIENT, String(account)),
+        ic: data[i][PIPELINE_COL.ic], tam: data[i][PIPELINE_COL.tam], tw: data[i][PIPELINE_COL.talkwalker] });
+    }
+    scored.sort(function (a, b) { return b.score - a.score; });
+    if (!scored.length) { say("  no account names found in that column."); continue; }
+    for (let k = 0; k < Math.min(3, scored.length); k++) {
+      const r = scored[k];
+      say("  " + (k + 1) + ". " + r.score.toFixed(2) + "  " + r.account
+        + "   IC=" + (r.ic || "—") + "  TAM=" + (r.tam || "—") + "  TW=" + (r.tw || "—"));
+    }
+    const best = scored[0];
+    if (best.score < PIPELINE_MIN_SCORE) {
+      say("  VERDICT: below " + PIPELINE_MIN_SCORE + " — treated as NO MATCH, posts 'please assign manually'.");
+    } else {
+      const gap = scored.length > 1 ? best.score - scored[1].score : 1;
+      say("  VERDICT: matches \"" + best.account + "\""
+        + (best.score < MENTION_MIN_SCORE ? " WITH a low-confidence note" : " with NO low-confidence note"));
+      // The absolute score can clear MENTION_MIN_SCORE while the runner-up sits a
+      // hundredth behind it. The posted reply looks equally confident either way,
+      // and the two rows can belong to different consultants.
+      if (gap < 0.1 && scored.length > 1) {
+        say("  NEAR TIE: runner-up \"" + scored[1].account + "\" is only " + gap.toFixed(2)
+          + " behind (IC=" + (scored[1].ic || "—") + "). The reply will not say so.");
+      }
+      ["ic", "tam"].forEach(function (role) {
+        const who = best[role];
+        if (!who) { say("  " + role.toUpperCase() + ": nobody assigned in the tracker."); return; }
+        const mention = getSlackMention_(who);
+        say("  " + role.toUpperCase() + ": \"" + who + "\" -> " + mention
+          + (mention.charAt(0) === "<" ? " (real @mention)" : " (NOT in the roster — posts as plain text, nobody is notified)"));
+      });
+    }
+  }
+  say("\n=== end of dry run — nothing was posted ===");
+  return out.join("\n");
+}
