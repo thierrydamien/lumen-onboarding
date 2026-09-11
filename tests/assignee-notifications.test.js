@@ -137,3 +137,44 @@ describe("an unusable brief does not look like a good one", () => {
     expect(fn).not.toMatch(/< *[23]/); // no low-count thresholds crept in
   });
 });
+
+describe("the dashboard deep-link follows the deployment, not a hand-set value", () => {
+  // Reported live: the completion alert's "View full session" link pointed at
+  // lumen-onboarding-v2.netlify.app long after the site was renamed, because it
+  // read the DASHBOARD_URL Script Property and nothing else. Netlify already tells
+  // the Apps Script which site is calling (sheet.js sends process.env.URL as
+  // dashboardOrigin), and updateSessionSheetUrl_ was already preferring it. The
+  // Slack link simply never got the same treatment.
+  it("prefers the origin the caller passed over the stored property", () => {
+    const fn = gs.slice(gs.indexOf("function postCompletionSlack_"), gs.indexOf("function slackPost_"));
+    expect(fn).toMatch(/const dashUrl = body\.dashboardOrigin \|\| props\.getProperty\("DASHBOARD_URL"\)/);
+  });
+
+  it("still falls back to the property for callers that send no origin", () => {
+    const fn = gs.slice(gs.indexOf("function postCompletionSlack_"), gs.indexOf("function slackPost_"));
+    expect(fn).toMatch(/props\.getProperty\("DASHBOARD_URL"\)/);
+  });
+
+  it("matches how the sheet writeback already resolves its origin", () => {
+    // Two links to the same site resolved by different rules is how they drift
+    // apart in the first place.
+    const wb = gs.slice(gs.indexOf("function updateSessionSheetUrl_"), gs.indexOf("function postCompletionSlack_"));
+    expect(wb).toMatch(/originArg \|\| props\.getProperty\("DASHBOARD_URL"\)/);
+  });
+
+  it("keeps taking only the ORIGIN, so a property set to a full path still works", () => {
+    const fn = gs.slice(gs.indexOf("function postCompletionSlack_"), gs.indexOf("function slackPost_"));
+    expect(fn).toMatch(/match\(\/\^https\?:\\\/\\\/\[\^\\\/\]\+\/\)/);
+  });
+
+  it("has no hard-coded site URL in the CODE of any link-building file", () => {
+    // Comments only, stripped first: the explanation above this fix names the bad
+    // URL on purpose, and an earlier draft of this very test failed against its
+    // own prose. Same trap as the "before ANY await" comment in opsalert.
+    const strip = (x) => x.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+    for (const f of ["apps-script/onboarding-sheet-webapp.gs", "netlify/functions/sheet.js",
+                     "netlify/functions/session.js", "netlify/functions/stalled-check.js"]) {
+      expect(strip(read(f)), `${f} hard-codes a site URL`).not.toMatch(/lumen-onboarding(-v2)?\.netlify\.app/);
+    }
+  });
+});

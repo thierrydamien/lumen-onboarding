@@ -12,8 +12,11 @@
  *        SHARED_SECRET   = <a long random string>   (same value in Netlify APPS_SCRIPT_SECRET)
  *        SLACK_BOT_TOKEN = <your xoxb- token>        (optional; enables the completion alert)
  *        SLACK_CHANNEL   = <channel id>              (optional; defaults below)
- *        DASHBOARD_URL   = https://<site>            (optional; adds a "View full
- *                          session" deep-link to the Slack alert. Either the site
+ *        DASHBOARD_URL   = https://<site>            (optional, and now rarely
+ *                          needed: the "View full session" deep-link prefers the
+ *                          origin sheet.js sends, which is Netlify's own URL for
+ *                          the running site. This property is only a fallback for
+ *                          callers that send none. Either the site
  *                          root or the .../dashboard path works — the code derives
  *                          the origin and always links to the /dashboard page.)
  *      Optional — IC/TAM @mentions in a threaded reply (reused from the survey
@@ -777,7 +780,16 @@ function postCompletionSlack_(body, company, url) {
   // /dashboard page. This way a DASHBOARD_URL set to the bare site root (a common
   // mistake — it made this link 404 at /?id=...) OR to the full /dashboard path both
   // resolve correctly, since the dashboard is served at /dashboard (see netlify.toml).
-  const dashUrl = props.getProperty("DASHBOARD_URL");
+  // Prefer the origin sheet.js passed (Netlify's own process.env.URL for the site
+  // that is actually running), exactly as updateSessionSheetUrl_ does, and fall
+  // back to the DASHBOARD_URL property only for callers that don't send it.
+  //
+  // This used to read the property ONLY, so the link pointed wherever that was
+  // last set by hand. After the site was renamed it was still emitting
+  // lumen-onboarding-v2.netlify.app while every other link in the product had
+  // moved on. A value a human has to remember to update is a value that goes
+  // stale; the deployment already knows its own URL.
+  const dashUrl = body.dashboardOrigin || props.getProperty("DASHBOARD_URL");
   const dashOrigin = dashUrl ? (String(dashUrl).match(/^https?:\/\/[^\/]+/) || [])[0] : "";
   const sessionLink = (dashOrigin && body.sessionId)
     ? dashOrigin + "/dashboard?id=" + encodeURIComponent(body.sessionId)
